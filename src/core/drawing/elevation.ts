@@ -1,0 +1,130 @@
+import type { Cabinet, UnitSettings } from '../model';
+import type { CabinetModel, PartRole } from '../parts';
+import { formatLength, type Mm } from '../units';
+import type { Drawing, Fill, Primitive } from './primitives';
+
+const FILL: Partial<Record<PartRole, Fill>> = {
+  platformRail: 'kick',
+  platformCrossMember: 'kick',
+  ffStile: 'frame',
+  ffRail: 'frame',
+  ffMullion: 'frame',
+  slabFront: 'front',
+  blindPanel: 'front',
+  frontStile: 'front',
+  frontRail: 'front',
+  frontPanel: 'panel',
+  filler: 'frame',
+};
+
+/** Dimension line spacing outside the cabinet, as a fraction of its larger side. */
+const GAP = 0.06;
+
+/**
+ * Front elevation: every part seen from the front (painted back to front), overall width and
+ * height, and a chain of opening heights on the right. Opening heights are front heights for
+ * frameless cabinets and opening heights for face frames: the sizes the face tree is edited in.
+ */
+export function frontElevation(
+  cabinet: Cabinet,
+  model: CabinetModel,
+  units: UnitSettings,
+): Drawing {
+  const prims: Primitive[] = [];
+  const parts = [...model.parts].sort((a, b) => a.bounds.max.z - b.bounds.max.z);
+  for (const p of parts) {
+    const b = p.bounds;
+    prims.push({
+      kind: 'rect',
+      x: b.min.x,
+      y: b.min.y,
+      w: b.max.x - b.min.x,
+      h: b.max.y - b.min.y,
+      fill: FILL[p.role] ?? 'carcass',
+    });
+  }
+
+  const xs = model.parts.flatMap((p) => [p.bounds.min.x, p.bounds.max.x]);
+  const x0 = Math.min(0, ...xs);
+  const x1 = Math.max(cabinet.width, ...xs);
+  const H = cabinet.height;
+  const gap = Math.max(cabinet.width, H) * GAP;
+  const label = (v: Mm) => formatLength(v, units);
+
+  // Overall width below, overall height on the left.
+  prims.push(...dimension([0, 0], [cabinet.width, 0], [0, -gap], label(cabinet.width)));
+  prims.push(...dimension([0, 0], [0, H], [-gap, 0], label(H)));
+
+  // Opening heights on the right: the cells along the right-hand edge of the face.
+  const right = Math.max(...model.openings.map((o) => o.rect.x1));
+  const chain = model.openings
+    .filter((o) => Math.abs(o.rect.x1 - right) < 1e-6)
+    .sort((a, b) => b.rect.y1 - a.rect.y1);
+  for (const o of chain) {
+    prims.push(
+      ...dimension([x1, o.rect.y0], [x1, o.rect.y1], [gap, 0], label(o.rect.y1 - o.rect.y0)),
+    );
+  }
+
+  // Labels sit 1.3 × gap out from the object; leave room for the longest one (≈0.6 em per char).
+  const textSize = Math.max(cabinet.width, H) * 0.035;
+  const labelRoom = (texts: string[]) =>
+    Math.max(0, ...texts.map((t) => t.length)) * textSize * 0.6;
+  const rightLabels = chain.map((o) => label(o.rect.y1 - o.rect.y0));
+  const out = gap * 1.3;
+  return {
+    primitives: prims,
+    textSize,
+    bounds: {
+      x0: x0 - out - textSize,
+      y0: -out - textSize,
+      x1: x1 + out + labelRoom(rightLabels) + textSize * 0.5,
+      y1: H + textSize * 0.5,
+    },
+  };
+}
+
+/**
+ * A dimension from `a` to `b`, drawn offset by `off`: extension lines from the object, the
+ * dimension line with end ticks, and the label centred alongside.
+ */
+function dimension(a: [Mm, Mm], b: [Mm, Mm], off: [Mm, Mm], text: string): Primitive[] {
+  const [ox, oy] = off;
+  const len = Math.hypot(ox, oy);
+  const [ux, uy] = [ox / len, oy / len];
+  const a2: [Mm, Mm] = [a[0] + ox, a[1] + oy];
+  const b2: [Mm, Mm] = [b[0] + ox, b[1] + oy];
+  const tick = len * 0.25;
+  const vertical = Math.abs(a[0] - b[0]) < 1e-9;
+  const mid: [Mm, Mm] = [
+    (a2[0] + b2[0]) / 2 + ux * tick * 1.2,
+    (a2[1] + b2[1]) / 2 + uy * tick * 1.2,
+  ];
+  return [
+    {
+      kind: 'line',
+      x1: a[0] + ux * tick * 0.3,
+      y1: a[1] + uy * tick * 0.3,
+      x2: a2[0] + ux * tick,
+      y2: a2[1] + uy * tick,
+      style: 'extension',
+    },
+    {
+      kind: 'line',
+      x1: b[0] + ux * tick * 0.3,
+      y1: b[1] + uy * tick * 0.3,
+      x2: b2[0] + ux * tick,
+      y2: b2[1] + uy * tick,
+      style: 'extension',
+    },
+    { kind: 'line', x1: a2[0], y1: a2[1], x2: b2[0], y2: b2[1], style: 'dimension' },
+    {
+      kind: 'text',
+      x: mid[0],
+      y: mid[1],
+      text,
+      anchor: vertical ? (ux > 0 ? 'start' : 'middle') : 'middle',
+      rotate: vertical && ux < 0 ? 90 : 0,
+    },
+  ];
+}
