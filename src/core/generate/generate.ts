@@ -7,6 +7,7 @@ import type { Cabinet, Project } from '../model';
 import type { CabinetModel } from '../parts';
 import { blindPlan, buildBlindParts } from './blind';
 import { buildCarcass, check, type CarcassFrame } from './carcass';
+import { buildEndPanels } from './endPanels';
 import { BuildContext, BuildError } from './context';
 import { layoutFace, type LayoutRules, type Rect } from './face';
 import { buildFaceFrame, buildFronts } from './fronts';
@@ -42,13 +43,11 @@ function build(ctx: BuildContext): CabinetModel {
   if (!frameless) buildFaceFrame(ctx, f, layout, stiles);
   const { fronts, zFrontInner } = buildFronts(ctx, f, layout);
   if (blind) buildBlindParts(ctx, f, blind, blindPanel, zone);
+  buildEndPanels(ctx, f);
   const interior = buildPartitions(ctx, f, layout);
   const slides = buildDrawers(ctx, f, layout, interior, zFrontInner);
   const adjustableShelves = buildShelves(ctx, f, layout, interior, zFrontInner);
 
-  if (ctx.cabinet.endPanels.left || ctx.cabinet.endPanels.right) {
-    ctx.warnings.push('End panels are not generated yet; they arrive with room layout.');
-  }
   const hw = { fronts, slides, adjustableShelves };
   return {
     cabinetId: ctx.cabinet.id,

@@ -163,7 +163,10 @@ export const IMPERIAL_UNITS: UnitSettings = {
 };
 export const METRIC_UNITS: UnitSettings = { system: 'metric', fractionDenom: 16, mmDecimals: 1 };
 
-/** A new, empty project. The caller supplies the id (core has no randomness, ADR-001). */
+/**
+ * A new project with one 10' wall and no cabinets. The caller supplies the id (core has no
+ * randomness, ADR-001).
+ */
 export function createProject(
   id: string,
   name: string,
@@ -177,7 +180,9 @@ export function createProject(
     shop: DEFAULT_SHOP,
     construction: DEFAULT_CONSTRUCTION,
     materials: DEFAULT_MATERIALS,
-    room: { walls: [] },
+    room: {
+      walls: [{ id: 'wall-1', name: 'Wall 1', length: inch(120), height: inch(96), turn: 'right' }],
+    },
     cabinets: [],
     fillers: [],
   };

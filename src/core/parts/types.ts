@@ -17,6 +17,7 @@ export type PartRole =
   | 'slabFront'
   | 'blindPanel'
   | 'filler'
+  | 'endPanel'
   | 'frontStile'
   | 'frontRail'
   | 'frontPanel'
@@ -66,6 +67,8 @@ export interface Part {
   grain: boolean;
   edges: PartEdges;
   notes: string[];
+  /** A rectangle cut from the bottom front corner (end panels: the toe kick). */
+  notch?: { height: Mm; depth: Mm };
 }
 
 /**

@@ -42,13 +42,17 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
     0,
     ...parts.filter((p) => frontRoles.includes(p.role)).map((p) => p.finished.thickness),
   );
+  const endT = (side: 'L' | 'R') =>
+    parts.find((p) => p.id === `${cabinet.id}/endPanel/${side}`)?.finished.thickness ?? 0;
+  const endL = endT('L');
+  const endR = endT('R');
   // A blind corner's pull filler stands out from the face by its width.
   const zMax = cabinet.depth + maxFront + (cabinet.blind?.pullFillerWidth ?? 0);
   for (const p of parts) {
     const b = p.bounds;
     const inside =
-      b.min.x >= -oh - EPS &&
-      b.max.x <= cabinet.width + oh + EPS &&
+      b.min.x >= -oh - endL - EPS &&
+      b.max.x <= cabinet.width + oh + endR + EPS &&
       b.min.y >= -EPS &&
       b.max.y <= cabinet.height + EPS &&
       b.min.z >= -EPS &&

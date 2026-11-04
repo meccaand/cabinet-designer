@@ -354,18 +354,27 @@ export const WallSchema = z.object({
   name: z.string(),
   length: PositiveLength,
   height: PositiveLength,
-  /** 90° corner at this wall's start, relative to the previous wall (ignored for the first). */
+  /**
+   * 90° corner at this wall's start, relative to the previous wall (ignored for the first).
+   * Walking along the walls, cabinets are on the right, so 'right' is an inside corner (an L or
+   * U kitchen) and 'left' an outside corner.
+   */
   turn: z.enum(['left', 'right']),
 });
 export type Wall = z.infer<typeof WallSchema>;
 
+/** A filler strip between cabinets or between a cabinet and a wall, set in the face plane. */
 export const FillerSchema = z.object({
   id: Id,
   wallId: Id,
+  /** Distance from the wall's start to the filler's left edge. */
   offset: Length,
   width: PositiveLength,
   height: PositiveLength,
+  /** Floor to the bottom of the filler. */
   elevation: NonNegLength,
+  /** Wall to the filler's front face (lines up with the neighbouring fronts). */
+  depth: PositiveLength,
 });
 export type Filler = z.infer<typeof FillerSchema>;
 

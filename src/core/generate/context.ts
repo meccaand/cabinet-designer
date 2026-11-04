@@ -98,6 +98,7 @@ export class BuildContext {
       grain: stock.grain,
       edges,
       notes: spec.notes ?? [],
+      ...(spec.notch && { notch: spec.notch }),
     };
     for (const [label, v] of Object.entries(part.cut)) {
       if (!(v > 0)) throw new BuildError(`${spec.name}: ${label} works out to ${v.toFixed(2)} mm.`);
@@ -123,6 +124,7 @@ export interface PartSpec {
   thicknessAxis: Axis;
   banding?: { role: 'carcassBanding' | 'frontBanding'; edges: (keyof PartEdges)[] };
   notes?: string[];
+  notch?: Part['notch'];
 }
 
 export function otherAxis(a: Axis, b: Axis): Axis {
