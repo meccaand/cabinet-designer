@@ -30,6 +30,7 @@ test('shows the first sample cabinet with overall dimensions', async ({ page }) 
 test('click selects the cabinet, a second click picks the part under the cursor', async ({
   page,
 }) => {
+  await page.getByRole('tab', { name: 'Parts' }).click();
   const { x, y } = await canvasCentre(page);
   const cabinet = page.getByRole('region', { name: 'Selected cabinet' });
   // The 3D view loads lazily and software WebGL can be slow to draw its first frames, so retry
@@ -54,6 +55,7 @@ test('click selects the cabinet, a second click picks the part under the cursor'
 });
 
 test('parts can be picked from the list and hidden by group', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Parts' }).click();
   const parts = page.getByRole('region', { name: 'Parts' });
   await parts.getByRole('button', { name: /^Bottom/ }).click();
   await expect(
@@ -92,6 +94,7 @@ test('display toggles and standard views', async ({ page }) => {
 test('switching cabinets shows the other cabinet', async ({ page }) => {
   await page.getByRole('button', { name: /Face-frame 24" shaker base/ }).click();
   await expect(label(page, 'width')).toHaveText('24"');
+  await page.getByRole('tab', { name: 'Parts' }).click();
   await expect(page.getByRole('region', { name: 'Parts' })).toContainText('Face frame stile');
   await expect(page.getByRole('region', { name: 'Parts' })).toContainText('Slide spacer');
 });
