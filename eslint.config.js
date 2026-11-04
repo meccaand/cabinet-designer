@@ -47,7 +47,7 @@ export default tseslint.config(
   },
   {
     // Tests index into fixtures they just built; a failed lookup fails the test anyway.
-    files: ['**/*.test.ts'],
+    files: ['**/*.test.ts', '**/__tests__/**/*.ts'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
