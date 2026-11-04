@@ -83,6 +83,34 @@ layout).
     door edge. It is cut to the height of the fronts (frameless) or of the box (face frame).
   - Blind cabinets can't have drawers: the box would hit the blind side.
 
+## End panels and fillers
+
+- **End panels** (per cabinet, left and/or right): door material, banded on the front edge and
+  top.
+  - Applied over the side: outside the face-frame overhang, if there is one.
+  - Height: the cabinet's full height, so floor cabinets cover the toe kick.
+  - Depth: from the wall to the door faces, so the panel is flush with the fronts.
+  - Floor cabinets get a recorded toe-kick notch at the bottom front corner: toe-kick height ×
+    (door face − platform front). It shows on the part.
+  - The panel adds its thickness to the run, and layout and snapping account for it.
+- **Fillers** (room items): a strip in door material (frameless) or face-frame stock, with its
+  front face at the filler's depth.
+  - "Fill gap" makes one exactly as wide as the gap beside a cabinet, at the cabinet's depth.
+  - Its height runs from the top of the toe kick to the cabinet top.
+  - Its note says to scribe it to fit.
+
+## Room layout
+
+- Walls form a chain joined at 90°. Walking along the walls, cabinets are on the right, so a
+  right turn is an inside corner (L and U kitchens) and a left turn an outside corner.
+- A cabinet's position is its wall, its distance from the wall's start to its left edge, and its
+  height off the floor (wall cabinets default to 54").
+- Dragging in the plan or elevation snaps the item's outer edge (end panels included) to the wall
+  ends, to neighbours at overlapping heights, and, at an inside corner, to the depth of the run on
+  the adjoining wall.
+- The plan lists problems: items past a wall end, and items that overlap in plan at overlapping
+  heights.
+
 ## Faces: openings, doors and drawer fronts
 
 The cabinet face is a tree of rows and columns. Each child has a size or "auto", and auto

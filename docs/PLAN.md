@@ -13,9 +13,10 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 1. Foundation     | ✅ Done                  |
 | 2. Core engine    | ✅ Done                  |
 | 3. 3D viewer      | ✅ Done                  |
-| 4. Cabinet editor | ✅ Done, awaiting review |
-| 5. Project layout | Next                     |
-| 6–8               | Not started              |
+| 4. Cabinet editor | ✅ Done                  |
+| 5. Project layout | ✅ Done, awaiting review |
+| 6. Outputs        | Next                     |
+| 7–8               | Not started              |
 
 ## Scope decisions from your answers
 
@@ -125,6 +126,7 @@ Every value is editable. Per your quality bar, these are the guesses I'd most li
 | Wall & tall cabinets | Wall: no platform, full top and bottom, 3" hanging rail under the top, fronts with the edge reveal all round. Tall: full top, fixed shelf at the door split (M4).                                                                                                                        |
 | Blind corners        | Blind width = meeting run's depth + 1" (25" base, 13" wall). Frameless blind panel in door material, or a wide face-frame stile. 3" pull filler. No drawers (M4).                                                                                                                        |
 | Open shelving        | Floor bookcase on the platform, full top, 4 adjustable shelves, 36 × 84 × 12 (M4).                                                                                                                                                                                                       |
+| End panels           | Door material, floor to top (toe kick notched), wall to door faces, flush with the fronts (M5).                                                                                                                                                                                          |
 | Pulls                | One per door and drawer front; two on drawer fronts wider than 24"; none on false fronts (M2).                                                                                                                                                                                           |
 
 ## Milestones

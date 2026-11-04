@@ -45,7 +45,7 @@ cut list needs exact equality, and the cut list must never round silently.
 
 ## ADR-003: Undo/redo via immer snapshots
 
-**Status:** Accepted (planned for M5)
+**Status:** Accepted (implemented in M5)
 
 Snapshots of the whole project with structural sharing, capped at 200, coalesced by transaction
 key (e.g. while typing in a field). Simpler than inverse patches and has fewer bug classes; the
@@ -103,7 +103,7 @@ Used for round-trip properties in units now, and for the M2 part-generation inva
 
 ## ADR-010: Persistence behind `ProjectRepository`, IndexedDB via `idb`
 
-**Status:** Accepted (planned for M5)
+**Status:** Accepted (implemented in M5)
 
 Interface `{ list, load, save, delete }` with debounced autosave. A sync backend can implement the
 same interface later.
@@ -257,3 +257,43 @@ A one-line arrow effect `useEffect(() => el?.scrollTo(0, 0), …)` crashed cabin
 Current Chrome's `scrollTo` returns a Promise, which React then calls as a cleanup function
 ("destroy is not a function"). Effects are written with block bodies. The editor end-to-end
 tests caught it.
+
+## ADR-023: Room layout is a wall chain; positions are along walls
+
+**Status:** Accepted (M5)
+
+Walls form a chain at 90° turns. Walking along it, cabinets are on the right, so right turns are
+inside corners. A placement is (wall, offset along the wall, height off the floor), and the
+world transform is derived. Plan geometry stays axis-aligned, so footprints, overlap checks and
+snapping are simple rectangle maths in `core/layout`, unit-tested without a browser.
+
+Moving items is one-dimensional along the wall, by dragging in the plan or the elevation. A
+drag previews locally and commits once on release, so a drag is one undo step. Snapping covers
+wall ends, neighbours at overlapping heights, and the run on the adjoining wall at an inside
+corner. Changing an item's wall is done in the editor.
+
+## ADR-024: Autosave to IndexedDB; JSON for backup and transfer
+
+**Status:** Accepted (M5)
+
+- **Saving:** each edit is saved 400 ms after it happens through `ProjectRepository`
+  (`IndexedDbRepository`; `MemoryRepository` for tests or when IndexedDB is missing).
+- **Startup:** the last-opened project id is a per-browser convenience in `localStorage`. The
+  app reopens that project, or the most recently saved one, or on first run creates and saves the
+  sample.
+- **Bad data:** stored data that doesn't validate (e.g. a newer format) is reported, not opened.
+- **Export/import:** export writes the project JSON as is. Import validates and migrates through
+  `loadProject`, and gets a new id if it would overwrite an existing project.
+- **History:** undo history is per session and resets on reload or project switch.
+
+## ADR-025: End panels are generated parts; fillers are room items
+
+**Status:** Accepted (M5)
+
+An end panel belongs to its cabinet (`cabinet.endPanels`), so it's generated with the cabinet's
+parts, checked by the same invariants, and moves with the cabinet. A filler belongs to the room:
+it sits between cabinets or against a wall and has its own position and size. A filler becomes
+a single part (`fillerPart`) for the 3D view and, in M6, the cut list.
+
+The toe-kick notch on end panels is a structured `notch` on the part (not text with baked-in
+units), so the UI and the cut list can show it in project units.
