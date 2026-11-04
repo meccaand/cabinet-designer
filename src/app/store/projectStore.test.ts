@@ -151,4 +151,24 @@ describe('projectStore', () => {
     s().openProject(other);
     expect(s()).toMatchObject({ project: other, past: [], future: [], activeCabinetId: null });
   });
+
+  it('edits the material library, shop settings and default materials', () => {
+    s().updateMaterials((m) => void (m.sheets[0]!.costPerSheet = 99));
+    s().updateShop((shop) => void (shop.kerf = 3));
+    s().setDefaultMaterial('back', 'ply-12');
+    const p = s().project;
+    expect([
+      p.materials.sheets[0]!.costPerSheet,
+      p.shop.kerf,
+      p.construction.materials.back,
+    ]).toEqual([99, 3, 'ply-12']);
+  });
+
+  it('refuses to remove a material that is still used', () => {
+    expect(s().removeMaterial('ply-18')).toBe(false); // project default
+    s().updateCabinet('sink-base', (c) => void (c.construction.materials = { door: 'pvc-2' }));
+    expect(s().removeMaterial('pvc-2')).toBe(false); // a cabinet override
+    expect(s().removeMaterial('shelf-pin-5')).toBe(true);
+    expect(s().project.materials.hardware.map((h) => h.id)).not.toContain('shelf-pin-5');
+  });
 });
