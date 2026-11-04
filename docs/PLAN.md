@@ -8,12 +8,13 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 
 ## Status
 
-| Milestone      | State                    |
-| -------------- | ------------------------ |
-| 1. Foundation  | ✅ Done                  |
-| 2. Core engine | ✅ Done, awaiting review |
-| 3. 3D viewer   | Next                     |
-| 4–8            | Not started              |
+| Milestone         | State                    |
+| ----------------- | ------------------------ |
+| 1. Foundation     | ✅ Done                  |
+| 2. Core engine    | ✅ Done                  |
+| 3. 3D viewer      | ✅ Done, awaiting review |
+| 4. Cabinet editor | Next                     |
+| 5–8               | Not started              |
 
 ## Scope decisions from your answers
 

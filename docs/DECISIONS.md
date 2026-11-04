@@ -171,3 +171,34 @@ each side).
 - Side-by-side drawers need a divider (frameless). In face-frame cabinets they return an error
   for now, because slides need a centre support or rear brackets.
 - End panels are not generated yet (a warning is returned). They come with room layout in M5.
+
+## ADR-016: Viewer state is separate from the project document
+
+**Status:** Accepted (M3)
+
+Selection, camera view, exploded/x-ray/dimension toggles and hidden parts live in their own
+zustand store (`viewerStore`). They are never saved and never undone. The project document gets
+its own store (`projectStore`), which gains editing, undo/redo and persistence in M4–M5.
+
+Interaction follows SketchUp's group model. The first click selects the cabinet, a click inside
+the selected cabinet picks the part, and clicking empty space clears the selection. Standard
+views (front, top, side) are orthographic so they read as true elevations. Iso is perspective.
+
+## ADR-017: Dimension labels are a DOM overlay positioned every frame
+
+**Status:** Accepted (M3)
+
+drei's `<Html>` creates one React root per label. Under React 19 it intermittently failed to
+mount the first label. Labels are now plain DOM elements over the canvas, and the scene moves
+them to their line's projected midpoint in `useFrame`. This is the documented R3F pattern for
+per-frame DOM writes; the React Compiler lint rule is disabled for that block, with a comment.
+A label is hidden when its line is seen end-on (shorter than 40 px on screen), e.g. depth in the
+front view.
+
+## ADR-018: three.js is loaded lazily; React pinned to 19.3.x
+
+**Status:** Accepted (M3)
+
+The 3D view is a lazy chunk (≈966 kB minified / 257 kB gzip). The app shell (≈351 kB / 108 kB)
+renders first, then shows "Loading 3D view…". React is pinned to `~19.3` because
+@react-three/fiber 9 declares `react <19.4`.
