@@ -202,3 +202,58 @@ front view.
 The 3D view is a lazy chunk (≈966 kB minified / 257 kB gzip). The app shell (≈351 kB / 108 kB)
 renders first, then shows "Loading 3D view…". React is pinned to `~19.3` because
 @react-three/fiber 9 declares `react <19.4`.
+
+## ADR-019: Cabinet types are traits plus a preset face
+
+**Status:** Accepted (M4)
+
+Every type goes through the same generator. A small `TYPE_TRAITS` table says what differs:
+
+- platform or not
+- counter top rules (stretchers allowed, `revealTopBase`) or a full top
+- hanging rail
+- blind corner
+
+A preset sets the default size and face tree. Adding a type is a table row plus a preset, not a
+new generator. A drawer base is a base with a drawer preset.
+
+Fixed shelves at row splits reuse the opening tree's `divider` flag. On a top-level column split
+it means a vertical divider; on a top-level row split it means a fixed shelf. These shelves
+split the interior into levels, so drawers and shelves stay within theirs.
+
+## ADR-020: Openings are edited on the front elevation
+
+**Status:** Accepted (M4)
+
+The opening tree is edited by clicking cells in a 2D front elevation (core drawing primitives
+rendered to SVG, ADR-006), not as an abstract tree. A selected opening offers:
+
+- its fill
+- hinge side
+- shelves
+- its size or "auto"
+- split into rows or columns
+- remove
+
+Splitting in the same direction as the parent adds siblings rather than nesting. Pure tree
+operations live in `core/model/face.ts` and are unit-tested. The elevation's right-hand chain
+dimensions the same sizes the tree stores: front heights (frameless) or opening heights (face
+frame).
+
+## ADR-021: Length inputs commit only what was typed
+
+**Status:** Accepted (M4)
+
+`LengthInput` shows the stored value formatted (with ≈ when off-grid). It commits on Enter or
+blur, but only if the text changed, so tabbing through a field showing "≈29 1/16″" never replaces
+the exact value with its rounding. Escape reverts. Errors are announced inline (`role="alert"`,
+`aria-invalid`). Any form `parseLength` accepts works regardless of project units.
+
+## ADR-022: Effects must not return values
+
+**Status:** Accepted (M4)
+
+A one-line arrow effect `useEffect(() => el?.scrollTo(0, 0), …)` crashed cabinet switching.
+Current Chrome's `scrollTo` returns a Promise, which React then calls as a cleanup function
+("destroy is not a function"). Effects are written with block bodies. The editor end-to-end
+tests caught it.

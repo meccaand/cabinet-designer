@@ -46,6 +46,43 @@ x runs left → right, y floor → up, z back → front (z = 0 is the back of th
   thickness. There is one at each end, plus as many as needed so none are more than
   `crossMemberSpacing` apart (centre to centre).
 
+## Cabinet types
+
+| Type              | Platform | Top                | Hung from    | Fronts (frameless overlay)                      | Default size (W × H × D) and face                             |
+| ----------------- | -------- | ------------------ | ------------ | ----------------------------------------------- | ------------------------------------------------------------- |
+| Base              | yes      | stretchers or full | —            | box bottom to `revealTopBase` below the top     | 24 × 34½ × 24: 6" drawer over doors                           |
+| Drawer base       | yes      | stretchers or full | —            | as base                                         | 18 × 34½ × 24: 6" drawer + two equal drawers                  |
+| Blind corner base | yes      | stretchers or full | —            | as base, minus the blind portion                | 42 × 34½ × 24: blind 25" left, 6" false front over a door     |
+| Tall              | yes      | full               | —            | box bottom to `revealEdge` below the top        | 24 × 84 × 24: upper and lower doors, fixed shelf at the split |
+| Open shelving     | yes      | full               | —            | no fronts                                       | 36 × 84 × 12: 4 adjustable shelves                            |
+| Wall              | no       | full               | hanging rail | `revealEdge` all round                          | 30 × 30 × 12: doors, 2 adjustable shelves                     |
+| Blind corner wall | no       | full               | hanging rail | `revealEdge` all round, minus the blind portion | 36 × 30 × 12: blind 13" left, door                            |
+
+Doors wider than 21" default to a pair. Wall cabinets default to 54" off the floor (used by room
+layout).
+
+- **Hanging rail** (wall types): `hangingRailWidth` (3") × carcass thickness, butted between the
+  sides directly under the top.
+  - With a grooved back whose setback is at least a panel thick, it sits in the setback space
+    behind the back.
+  - Otherwise it sits in front of the back, and shelves, dividers and drawers stop in front of
+    it (so wall shelves are one panel thickness shallower).
+- **Fixed shelf at a row split** (the top-level row split's "divider", default on tall
+  cabinets): a full-width shelf in the shelf material, in dados with dado/rabbet joinery.
+  - Frameless: centred on the gap between the door rows.
+  - Face frame: top flush with the top of the rail.
+  - It divides the interior into levels; drawers and shelves in each row stay within their level.
+- **Blind corners**: the blind portion is `blindWidth` from the blind end of the cabinet.
+  - Frameless overlay: a **blind panel** (door material, banded) runs from the edge reveal to
+    half a gap short of the boundary, and the doors start half a gap past it.
+  - Frameless inset: the blind panel sits in its own cell.
+  - Face frame: the blind-side stile is widened to cover the blind portion. Its note says to glue
+    up or use an edged plywood panel.
+  - The **pull filler** (`pullFillerWidth` wide, door material when frameless, face-frame stock
+    otherwise) stands out from the face, perpendicular to it, one door gap beyond the nearest
+    door edge. It is cut to the height of the fronts (frameless) or of the box (face frame).
+  - Blind cabinets can't have drawers: the box would hit the blind side.
+
 ## Faces: openings, doors and drawer fronts
 
 The cabinet face is a tree of rows and columns. Each child has a size or "auto", and auto
@@ -184,3 +221,54 @@ Notes:
 
 - The G2 drawer front (6" tall) is slab. A shaker panel there would be only 1½".
 - The G2 slide spacers (0.791") are thicker than ¾" poplar. See the spacer note above.
+
+### G4: Frameless wall cabinet 30" × 30" × 12": dado joinery, inset back, hanging rail, door pair, 2 adjustable shelves
+
+| Part             | Qty | Length     | Width      | Thickness | mm (L × W × T)          |
+| ---------------- | --- | ---------- | ---------- | --------- | ----------------------- |
+| Side             | 2   | 30"        | 12"        | ≈23/32"   | 762.00 × 304.80 × 18.00 |
+| Bottom           | 1   | ≈29 3/32"  | ≈11 25/32" | ≈23/32"   | 738.70 × 299.60 × 18.00 |
+| Top              | 1   | ≈29 3/32"  | ≈11 25/32" | ≈23/32"   | 738.70 × 299.60 × 18.00 |
+| Back             | 1   | 30"        | ≈29 11/32" | ≈7/32"    | 762.00 × 745.05 × 5.20  |
+| Hanging rail     | 1   | ≈28 19/32" | 3"         | ≈23/32"   | 726.00 × 76.20 × 18.00  |
+| Door             | 2   | 29 7/8"    | 14 7/8"    | ≈23/32"   | 758.82 × 377.82 × 18.00 |
+| Adjustable shelf | 2   | ≈28 17/32" | ≈10 27/32" | ≈23/32"   | 724.41 × 275.25 × 18.00 |
+
+### G5: Frameless tall cabinet 24" × 84" × 24": upper and lower door pairs with a fixed shelf at the split, 3 + 2 adjustable shelves
+
+| Part                   | Qty | Length     | Width      | Thickness | mm (L × W × T)           |
+| ---------------------- | --- | ---------- | ---------- | --------- | ------------------------ |
+| Side                   | 2   | 80"        | 24"        | ≈23/32"   | 2032.00 × 609.60 × 18.00 |
+| Bottom                 | 1   | ≈23 3/32"  | ≈23 25/32" | ≈23/32"   | 586.30 × 604.40 × 18.00  |
+| Top                    | 1   | ≈23 3/32"  | ≈23 25/32" | ≈23/32"   | 586.30 × 604.40 × 18.00  |
+| Back                   | 1   | 80"        | ≈23 11/32" | ≈7/32"    | 2032.00 × 592.65 × 5.20  |
+| Platform rail          | 2   | 24"        | 4"         | ≈23/32"   | 609.60 × 101.60 × 18.00  |
+| Platform cross member  | 2   | ≈19 19/32" | 4"         | ≈23/32"   | 497.40 × 101.60 × 18.00  |
+| Door                   | 4   | 39 29/32"  | 11 7/8"    | ≈23/32"   | 1013.62 × 301.62 × 18.00 |
+| Fixed shelf (at split) | 1   | ≈23 3/32"  | ≈23 25/32" | ≈23/32"   | 586.30 × 604.40 × 18.00  |
+| Adjustable shelf       | 5   | ≈22 17/32" | ≈23 17/32" | ≈23/32"   | 572.01 × 598.05 × 18.00  |
+
+### G6: Frameless blind corner base 42": blind end on the left (25" blind width, 3" pull filler), false front over a single door, 1 adjustable shelf
+
+| Part                  | Qty | Length     | Width      | Thickness | mm (L × W × T)           |
+| --------------------- | --- | ---------- | ---------- | --------- | ------------------------ |
+| Side                  | 2   | 30 1/2"    | 24"        | ≈23/32"   | 774.70 × 609.60 × 18.00  |
+| Bottom                | 1   | ≈41 3/32"  | ≈23 25/32" | ≈23/32"   | 1043.50 × 604.40 × 18.00 |
+| Stretcher             | 2   | ≈41 3/32"  | 4"         | ≈23/32"   | 1043.50 × 101.60 × 18.00 |
+| Back                  | 1   | 30 1/2"    | ≈41 11/32" | ≈7/32"    | 774.70 × 1049.85 × 5.20  |
+| Platform rail         | 2   | 42"        | 4"         | ≈23/32"   | 1066.80 × 101.60 × 18.00 |
+| Platform cross member | 3   | ≈19 19/32" | 4"         | ≈23/32"   | 497.40 × 101.60 × 18.00  |
+| Blind panel           | 1   | 30 3/8"    | 24 7/8"    | ≈23/32"   | 771.52 × 631.82 × 18.00  |
+| False front           | 1   | 16 7/8"    | 6"         | ≈23/32"   | 428.62 × 152.40 × 18.00  |
+| Door                  | 1   | 24 1/4"    | 16 7/8"    | ≈23/32"   | 615.95 × 428.62 × 18.00  |
+| Pull filler           | 1   | 30 3/8"    | 3"         | ≈23/32"   | 771.52 × 76.20 × 18.00   |
+| Adjustable shelf      | 1   | ≈40 17/32" | ≈23 17/32" | ≈23/32"   | 1029.21 × 598.05 × 18.00 |
+
+Hardware: G4 has 4 hinges, 2 pulls and 8 shelf pins. G5 has 8 hinges (39 29/32" doors are
+under the 40" tier), 4 pulls and 20 shelf pins. G6 has 2 hinges, 1 pull (none on the false
+front) and 4 shelf pins.
+
+Notes:
+
+- The G4 shelves are shallower by the hanging rail (inset back, so the rail is inside the box).
+- The G6 pull filler stands 3" proud of the blind panel at the edge of the door opening.
