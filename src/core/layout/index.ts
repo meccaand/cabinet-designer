@@ -1,0 +1,17 @@
+export {
+  fillerPart,
+  footprint,
+  gapsBeside,
+  layoutIssues,
+  layoutItems,
+  nextFreeOffset,
+  placementTransform,
+  roomBounds,
+  snapOffset,
+  wallFrames,
+  type LayoutIssue,
+  type LayoutItem,
+  type Transform,
+  type Vec2,
+  type WallFrame,
+} from './layout';

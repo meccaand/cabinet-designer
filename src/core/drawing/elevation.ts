@@ -15,6 +15,7 @@ const FILL: Partial<Record<PartRole, Fill>> = {
   frontRail: 'front',
   frontPanel: 'panel',
   filler: 'frame',
+  endPanel: 'front',
 };
 
 /** Dimension line spacing outside the cabinet, as a fraction of its larger side. */
@@ -30,20 +31,7 @@ export function frontElevation(
   model: CabinetModel,
   units: UnitSettings,
 ): Drawing {
-  const prims: Primitive[] = [];
-  const parts = [...model.parts].sort((a, b) => a.bounds.max.z - b.bounds.max.z);
-  for (const p of parts) {
-    const b = p.bounds;
-    prims.push({
-      kind: 'rect',
-      x: b.min.x,
-      y: b.min.y,
-      w: b.max.x - b.min.x,
-      h: b.max.y - b.min.y,
-      fill: FILL[p.role] ?? 'carcass',
-    });
-  }
-
+  const prims = partRects(model, 0, 0);
   const xs = model.parts.flatMap((p) => [p.bounds.min.x, p.bounds.max.x]);
   const x0 = Math.min(0, ...xs);
   const x1 = Math.max(cabinet.width, ...xs);
@@ -84,11 +72,25 @@ export function frontElevation(
   };
 }
 
+/** Every part seen from the front, painted back to front, shifted by (dx, dy). */
+export function partRects(model: CabinetModel, dx: Mm, dy: Mm): Primitive[] {
+  return [...model.parts]
+    .sort((a, b) => a.bounds.max.z - b.bounds.max.z)
+    .map((p) => ({
+      kind: 'rect',
+      x: p.bounds.min.x + dx,
+      y: p.bounds.min.y + dy,
+      w: p.bounds.max.x - p.bounds.min.x,
+      h: p.bounds.max.y - p.bounds.min.y,
+      fill: FILL[p.role] ?? 'carcass',
+    }));
+}
+
 /**
  * A dimension from `a` to `b`, drawn offset by `off`: extension lines from the object, the
  * dimension line with end ticks, and the label centred alongside.
  */
-function dimension(a: [Mm, Mm], b: [Mm, Mm], off: [Mm, Mm], text: string): Primitive[] {
+export function dimension(a: [Mm, Mm], b: [Mm, Mm], off: [Mm, Mm], text: string): Primitive[] {
   const [ox, oy] = off;
   const len = Math.hypot(ox, oy);
   const [ux, uy] = [ox / len, oy / len];

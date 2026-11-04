@@ -5,7 +5,7 @@
  */
 import type { Mm } from '../units';
 
-export type Fill = 'kick' | 'carcass' | 'frame' | 'front' | 'panel' | 'interior';
+export type Fill = 'kick' | 'carcass' | 'frame' | 'front' | 'panel' | 'interior' | 'wall';
 
 export type Primitive =
   | { kind: 'rect'; x: Mm; y: Mm; w: Mm; h: Mm; fill: Fill }
