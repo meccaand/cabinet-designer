@@ -10,22 +10,23 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 
 | Milestone      | State                    |
 | -------------- | ------------------------ |
-| 1. Foundation  | ✅ Done, awaiting review |
-| 2. Core engine | Next                     |
-| 3–8            | Not started              |
+| 1. Foundation  | ✅ Done                  |
+| 2. Core engine | ✅ Done, awaiting review |
+| 3. 3D viewer   | Next                     |
+| 4–8            | Not started              |
 
 ## Scope decisions from your answers
 
-| Topic            | Decision                                                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Toe kick         | A **separate platform base** (ladder: front and back rails plus cross members). The cabinet box sits on it, and side panels are plain rectangles. |
-| Base cabinet top | Configurable per cabinet: **front + back stretchers** (default) or **full top panel**.                                                            |
-| Shaker doors     | **Butt joint** (pocket screw/dowel/Domino). Rail = door W − 2×stile W. Panel sits in a groove, so panel = opening + 2×groove depth − clearance.   |
-| Drawer slides    | **Side-mount ball-bearing** only, with a clearance profile (default ½" per side). Standard lengths 10–28" in 2" steps.                            |
-| Edge banding     | Each banding material has a thickness and a "subtract from cut size" flag. The cut list shows cut size; drawings show finished size.              |
-| Nesting          | **Guillotine only, with a numbered cut sequence** (rip strips, then crosscut), for a table saw or track saw.                                      |
-| Room             | **90° wall runs (straight, L, U)**. Fillers and end panels are supported.                                                                         |
-| Corner cabinets  | **Blind corner base + blind corner wall** in the MVP. L-shaped/lazy-susan and diagonal are deferred.                                              |
+| Topic            | Decision                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Toe kick         | A **separate platform base** (ladder: front and back rails plus cross members). The cabinet box sits on it, and side panels are plain rectangles.     |
+| Base cabinet top | Configurable per cabinet: **front + back stretchers** (default) or **full top panel**.                                                                |
+| Shaker           | Stiles and rails 2¼". Panel ¼" ply in a ¼"-deep groove with 1/16" total clearance. Butt joint. Fronts whose panel would be under 2" become slab (M2). |
+| Drawer slides    | **Side-mount ball-bearing** only, with a clearance profile (default ½" per side). Standard lengths 10–28" in 2" steps.                                |
+| Edge banding     | Each banding material has a thickness and a "subtract from cut size" flag. The cut list shows cut size; drawings show finished size.                  |
+| Nesting          | **Guillotine only, with a numbered cut sequence** (rip strips, then crosscut), for a table saw or track saw.                                          |
+| Room             | **90° wall runs (straight, L, U)**. Fillers and end panels are supported.                                                                             |
+| Corner cabinets  | **Blind corner base + blind corner wall** in the MVP. L-shaped/lazy-susan and diagonal are deferred.                                                  |
 
 ## Architecture
 
@@ -95,30 +96,31 @@ The face is an **opening tree**. Each cabinet type is just a preset tree (e.g. a
 
 **Runtime dependencies (complete list; each is added in the milestone that first uses it):** react, react-dom, three, @react-three/fiber, @react-three/drei, zustand, immer, zod, idb, jspdf, jspdf-autotable. **Dev:** typescript, vite, @vitejs/plugin-react, vitest, @vitest/coverage-v8, fast-check, @playwright/test, eslint + typescript-eslint + react-hooks plugin, prettier.
 
-## Construction conventions: ASSUMED defaults, please review
+## Construction conventions (reviewed after M1; exact formulas in [CONSTRUCTION.md](CONSTRUCTION.md))
 
 Every value is editable. Per your quality bar, these are the guesses I'd most like you to correct.
 
-| Item            | Default                                                                                                                                                                                                                            |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overall dims    | W = outside of the box (the face frame is flush unless an overhang is set; default overhang 0). D = box + back + face frame, **excluding** doors. Base H **includes** the platform.                                                |
-| Standard sizes  | Base 34½ × 24 D. Wall 30 H × 12 D. Tall 84 H × 24 D.                                                                                                                                                                               |
-| Platform base   | 4" high, 3" setback, ¾" ply rails, cross members ≤ 24" apart. One platform per cabinet in the MVP (merging per run comes later).                                                                                                   |
-| Sheet stock     | "¾ ply" with actual thickness **0.709" (18 mm)**, "½ ply" 12 mm, "¼ ply" 5.2 mm. Sheets 48 × 96, grain along the 96". Dados are sized to the actual thickness, not the nominal.                                                    |
-| Joinery depths  | Dado ¼" deep. Back rabbet ⅜" deep × back thickness. Back groove ⅜" deep, set ¾" from the back edge.                                                                                                                                |
-| Back styles     | **Inset**: back sits in a rabbet, so back = exterior − 2×(side t − rabbet depth). **Applied**: back covers the full exterior and the carcass depth is reduced by the back thickness. **Dado'd**: back = interior + 2×groove depth. |
-| Stretchers      | 4" wide, front and back, placed the same way as the top panel.                                                                                                                                                                     |
-| Frameless doors | Full overlay. 1/16" reveal at the cabinet edges, ⅛" between doors and drawer fronts. Door top on base cabinets sits ⅛" below the box top.                                                                                          |
-| Face frame      | ¾" solid stock, stiles 1½", rails 1½", mullions 2", pocket-screwed (rail = opening width). Overlay doors ½" overlay. Inset doors 1/16" gap all around.                                                                             |
-| Shaker          | Stiles and rails 2¼". Panel ¼" ply in a ¼"-deep groove with 1/16" total clearance. Butt joint.                                                                                                                                     |
-| Drawer box      | ½" ply sides, front/back between the sides (butt). ¼" bottom in a groove ½" up. Box W = opening − 1". Box H = opening − 1". Box length = longest standard slide ≤ interior depth − ½".                                             |
-| Shelves         | Adjustable: interior W − 1/16", D = interior D − ¼", 4 pins (5 mm) each. Fixed: dado'd, using the joinery setting.                                                                                                                 |
-| Hinges          | Concealed 35 mm cup. Count by door height: ≤40" → 2, ≤60" → 3, ≤80" → 4.                                                                                                                                                           |
-| Banding         | Default 0.5 mm veneer, not subtracted. Optional 2 mm PVC, subtracted. Banded edges: exposed front edges of the frameless carcass and shelves, and all 4 edges of slab doors and fronts.                                            |
-| Grain           | Sides, doors, and tall parts: vertical. Tops, bottoms, and shelves: along the width.                                                                                                                                               |
-| Saw             | Kerf ⅛". Sheet edge trim 0 (an option allows ¼" per factory edge).                                                                                                                                                                 |
-| Blind corner    | Blind width = depth of the adjacent cabinet + 1". 3" pull filler. Door covers only the open side. The face frame or a blind panel covers the blind portion.                                                                        |
-| Board feet      | Based on rough thickness (4/4 for ¾"), with a 20% waste factor.                                                                                                                                                                    |
+| Item            | Default                                                                                                                                                                                                                                                                                  |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overall dims    | W = outside of the box (the face frame is flush unless an overhang is set; default overhang 0). D = box + back + face frame, **excluding** doors. Base H **includes** the platform.                                                                                                      |
+| Standard sizes  | Base 34½ × 24 D. Wall 30 H × 12 D. Tall 84 H × 24 D.                                                                                                                                                                                                                                     |
+| Platform base   | 4" high, 3" setback, ¾" ply rails, cross members ≤ 24" apart. One platform per cabinet in the MVP (merging per run comes later).                                                                                                                                                         |
+| Sheet stock     | "¾ ply" with actual thickness **0.709" (18 mm)**, "½ ply" 12 mm, "¼ ply" 5.2 mm. Sheets 48 × 96, grain along the 96". Dados are sized to the actual thickness, not the nominal.                                                                                                          |
+| Joinery depths  | Joint depth ¼": top/bottom at the ends of the sides sit in **rabbets**, and panels between the ends (fixed shelves, dividers, raised face-frame bottom) sit in **dados** (decided in M2). Back rabbet ⅜" deep × back thickness. Back groove ⅜" deep, set ¾" from the back edge.          |
+| Back styles     | **Inset**: back sits in a rabbet, so back = exterior − 2×(side t − rabbet depth). **Applied**: back covers the full exterior and the carcass depth is reduced by the back thickness. **Dado'd**: back = interior + 2×groove depth.                                                       |
+| Stretchers      | 4" wide, front and back, placed the same way as the top panel.                                                                                                                                                                                                                           |
+| Frameless doors | Full overlay. 1/16" reveal at the cabinet edges, ⅛" between doors and drawer fronts. Door top on base cabinets sits ⅛" below the box top.                                                                                                                                                |
+| Face frame      | ¾" solid stock, stiles 1½", rails 1½", mullions 2", pocket-screwed (rail = opening width). Carcass bottom raised flush with the top of the bottom rail (M2). Overlay doors ½" overlay. Inset doors 1/16" gap all around. Drawer slides packed out with generated **slide spacers** (M2). |
+| Shaker          | Stiles and rails 2¼". Panel ¼" ply in a ¼"-deep groove with 1/16" total clearance. Butt joint.                                                                                                                                                                                           |
+| Drawer box      | ½" ply sides, front/back between the sides (butt). ¼" bottom in a groove ½" up with 1/16" total clearance. Box W = mounting width − 1". Box H = opening (clipped to the box interior) − 1", centred. Box length = longest standard slide ≤ interior depth − ½".                          |
+| Shelves         | Adjustable: interior W − 1/16", D = interior D − ¼", 4 pins (5 mm) each. Fixed: dado'd, using the joinery setting.                                                                                                                                                                       |
+| Hinges          | Concealed 35 mm cup. Count by door height: ≤40" → 2, ≤60" → 3, ≤80" → 4.                                                                                                                                                                                                                 |
+| Banding         | Default 0.5 mm veneer, not subtracted. Optional 2 mm PVC, subtracted. Banded edges: exposed front edges of the frameless carcass and shelves, and all 4 edges of slab doors and fronts.                                                                                                  |
+| Grain           | Sides, doors, backs, dividers and stiles: vertical. Tops, bottoms, shelves, rails: along the width. Drawer and false fronts: horizontal (M2).                                                                                                                                            |
+| Saw             | Kerf ⅛". Sheet edge trim 0 (an option allows ¼" per factory edge).                                                                                                                                                                                                                       |
+| Blind corner    | Blind width = depth of the adjacent cabinet + 1". 3" pull filler. Door covers only the open side. The face frame or a blind panel covers the blind portion.                                                                                                                              |
+| Board feet      | Based on rough thickness (4/4 for ¾"), with a 20% waste factor.                                                                                                                                                                                                                          |
+| Pulls           | One per door and drawer front; two on drawer fronts wider than 24"; none on false fronts (M2).                                                                                                                                                                                           |
 
 ## Milestones
 

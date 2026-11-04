@@ -122,3 +122,52 @@ same interface later.
 - The project schema is still settling during M2–M5. No saved projects exist yet, so changes
   stay at `schemaVersion: 1` without migrations until the first release. After that, every
   breaking change bumps the version and adds a migration (the scaffold is in place and tested).
+
+## ADR-012: Parts are axis-aligned boxes in cabinet coordinates
+
+**Status:** Accepted (M2)
+
+**Context.** The plan sketched parts as `{position, rotation}` transforms. Every MVP cabinet part,
+blind corners included, is a rectangular board aligned with the cabinet's axes.
+
+**Decision.** A part stores `bounds` (an axis-aligned box: x left → right, y up, z back → front)
+plus which axis is its length (grain) and which is its thickness. Finished sizes are _read from
+the bounds_, so the 3D model and the cut list can't disagree. Cabinets get a transform when
+placed in a room (M5). Angled parts (diagonal corners, deferred) would add an optional rotation.
+
+`box()` does not reorder reversed ranges. A calculation that yields x1 < x0 produces a
+negative extent, which the part builder rejects, instead of being silently "fixed".
+
+## ADR-013: Joints are declared, and undeclared overlaps are bugs
+
+**Status:** Accepted (M2)
+
+Each part's bounds include the portion inside a neighbour's dado, rabbet or groove. The generator
+records each such joint (host, guest, axis, depth). The shared test invariant checks every pair
+of parts:
+
+- Any overlap must be a declared joint, overlapping by exactly its depth along its axis.
+- Every declared joint must actually overlap.
+
+This one check covers the joinery math for all 192 construction combinations, 400 random
+cabinets per run, and the golden cabinets.
+
+## ADR-014: Opening sizes are front sizes (frameless) and opening sizes (face frame)
+
+**Status:** Accepted (M2)
+
+Woodworkers specify frameless drawers by front height ("a 6-inch top drawer") and face-frame
+cabinets by opening size, so the face tree's `size` means whichever is natural for the style.
+`createBaseCabinet` converts the preset's 6" top drawer accordingly (5" opening + ½" overlay
+each side).
+
+## ADR-015: M2 scope limits, enforced with clear errors
+
+**Status:** Accepted (M2)
+
+- Only `base` cabinets generate. Other types return an error until M4.
+- Dividers are only allowed between top-level columns. A divider below a full-width drawer
+  needs a support decision (fixed shelf, web frame), which is deferred.
+- Side-by-side drawers need a divider (frameless). In face-frame cabinets they return an error
+  for now, because slides need a centre support or rear brackets.
+- End panels are not generated yet (a warning is returned). They come with room layout in M5.
