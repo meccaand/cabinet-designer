@@ -8,7 +8,7 @@ import { createProject, type Cabinet, type ConstructionOverrides } from '../mode
 import type { Part, PartRole } from '../parts';
 import { inch } from '../units';
 import { violations } from './__tests__/invariants';
-import { createBaseCabinet, generateCabinet } from './index';
+import { createBaseCabinet, createCabinet, generateCabinet } from './index';
 
 type Row = [
   select: (p: Part) => boolean,
@@ -148,6 +148,72 @@ describe('golden reference cabinets', () => {
       [
         ['slide', 3, 22],
         ['pull', 3],
+      ],
+    );
+  });
+
+  it('G4: frameless wall cabinet with hanging rail', () => {
+    check(
+      createCabinet(createProject('p', 'Golden'), 'wall', { id: 'c' }),
+      [
+        [role('side'), 2, 762, 304.8, 18],
+        [role('bottom'), 1, 738.7, 299.6, 18],
+        [role('top'), 1, 738.7, 299.6, 18],
+        [role('back'), 1, 762, 745.05, 5.2],
+        [role('hangingRail'), 1, 726, 76.2, 18],
+        [role('slabFront'), 2, 758.825, 377.825, 18],
+        [role('shelfAdjustable'), 2, 724.4125, 275.25, 18],
+      ],
+      [
+        ['hinge', 4],
+        ['pull', 2],
+        ['shelfPin', 8],
+      ],
+    );
+  });
+
+  it('G5: frameless tall cabinet with a fixed shelf at the door split', () => {
+    check(
+      createCabinet(createProject('p', 'Golden'), 'tall', { id: 'c' }),
+      [
+        [role('side'), 2, 2032, 609.6, 18],
+        [role('bottom'), 1, 586.3, 604.4, 18],
+        [role('top'), 1, 586.3, 604.4, 18],
+        [role('back'), 1, 2032, 592.65, 5.2],
+        [role('platformRail'), 2, 609.6, 101.6, 18],
+        [role('platformCrossMember'), 2, 497.4, 101.6, 18],
+        [role('slabFront'), 4, 1013.61875, 301.625, 18],
+        [role('shelfFixed'), 1, 586.3, 604.4, 18],
+        [role('shelfAdjustable'), 5, 572.0125, 598.05, 18],
+      ],
+      [
+        ['hinge', 8],
+        ['pull', 4],
+        ['shelfPin', 20],
+      ],
+    );
+  });
+
+  it('G6: frameless blind corner base, blind end left', () => {
+    check(
+      createCabinet(createProject('p', 'Golden'), 'blindBase', { id: 'c' }),
+      [
+        [role('side'), 2, 774.7, 609.6, 18],
+        [role('bottom'), 1, 1043.5, 604.4, 18],
+        [role('stretcher'), 2, 1043.5, 101.6, 18],
+        [role('back'), 1, 774.7, 1049.85, 5.2],
+        [role('platformRail'), 2, 1066.8, 101.6, 18],
+        [role('platformCrossMember'), 3, 497.4, 101.6, 18],
+        [role('blindPanel'), 1, 771.525, 631.825, 18],
+        [id(/front\/0$/), 1, 428.625, 152.4, 18],
+        [id(/front\/1$/), 1, 615.95, 428.625, 18],
+        [role('filler'), 1, 771.525, 76.2, 18],
+        [role('shelfAdjustable'), 1, 1029.2125, 598.05, 18],
+      ],
+      [
+        ['hinge', 2],
+        ['pull', 1],
+        ['shelfPin', 4],
       ],
     );
   });

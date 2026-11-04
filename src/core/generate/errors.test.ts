@@ -30,7 +30,6 @@ describe('generateCabinet: rejected inputs', () => {
     ['too narrow', { width: 30 }, 'too narrow'],
     ['too short', { height: inch(5) }, 'too short'],
     ['too shallow for stretchers', { depth: inch(8) }, 'too shallow for two stretchers'],
-    ['unsupported type', { type: 'wall' as const }, 'wall cabinets are not supported yet'],
   ])('%s', (_label, over, message) => {
     expect(errorsOf(base(over)).join()).toContain(message);
   });
@@ -134,7 +133,8 @@ describe('generateCabinet: rejected inputs', () => {
         },
       ],
     };
-    expect(errorsOf(base({ face: nested })).join()).toContain('top-level columns');
+    expect(errorsOf(base({ face: nested })).join()).toContain('only supported at the top level');
+    // A divided row split is a fixed shelf between the rows: allowed at the top level.
     const rowsDivider: OpeningNode = {
       kind: 'split',
       dir: 'rows',
@@ -144,7 +144,7 @@ describe('generateCabinet: rejected inputs', () => {
         { size: 'auto', node: leaf('door') },
       ],
     };
-    expect(errorsOf(base({ face: rowsDivider })).join()).toContain('top-level columns');
+    expect(errorsOf(base({ face: rowsDivider }))).toEqual([]);
     const zeroGap: OpeningNode = {
       kind: 'split',
       dir: 'columns',

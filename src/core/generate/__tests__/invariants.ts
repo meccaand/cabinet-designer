@@ -37,12 +37,13 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
 
   // Envelope: within the cabinet (face frame may overhang; overlay fronts project forward)
   const oh = c.carcass.style === 'faceFrame' ? c.faceFrame.sideOverhang : 0;
+  const frontRoles = ['slabFront', 'frontStile', 'frontRail', 'frontPanel', 'blindPanel'];
   const maxFront = Math.max(
     0,
-    ...parts
-      .filter((p) => p.role.startsWith('front') || p.role === 'slabFront')
-      .map((p) => p.finished.thickness),
+    ...parts.filter((p) => frontRoles.includes(p.role)).map((p) => p.finished.thickness),
   );
+  // A blind corner's pull filler stands out from the face by its width.
+  const zMax = cabinet.depth + maxFront + (cabinet.blind?.pullFillerWidth ?? 0);
   for (const p of parts) {
     const b = p.bounds;
     const inside =
@@ -51,7 +52,7 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
       b.min.y >= -EPS &&
       b.max.y <= cabinet.height + EPS &&
       b.min.z >= -EPS &&
-      b.max.z <= cabinet.depth + maxFront + EPS;
+      b.max.z <= zMax + EPS;
     if (!inside) out.push(`${p.id}: outside the cabinet envelope`);
   }
 
