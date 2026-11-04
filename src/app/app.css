@@ -5,6 +5,7 @@
   --muted: #6d675d;
   --border: #dedad2;
   --accent: #b5651d;
+  --hover: #f1ece4;
   color-scheme: light;
   font-family:
     system-ui,
@@ -24,6 +25,7 @@
     --muted: #a39d92;
     --border: #3a3732;
     --accent: #e08a3c;
+    --hover: #2e2b27;
     color-scheme: dark;
   }
 }

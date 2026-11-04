@@ -1,8 +1,8 @@
 .shell {
   display: grid;
   height: 100%;
-  grid-template-columns: 240px 1fr 300px;
-  grid-template-rows: auto 1fr 220px;
+  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  grid-template-rows: auto minmax(0, 1fr) 160px;
   grid-template-areas:
     'header header header'
     'sidebar viewport inspector'
@@ -55,6 +55,20 @@
   grid-area: viewport;
   display: grid;
   place-items: center;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.error {
+  max-width: 420px;
+  padding: 16px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+}
+
+.error p {
+  margin: 6px 0 0;
 }
 
 .heading {
