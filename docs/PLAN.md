@@ -8,15 +8,16 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 
 ## Status
 
-| Milestone         | State                    |
-| ----------------- | ------------------------ |
-| 1. Foundation     | ✅ Done                  |
-| 2. Core engine    | ✅ Done                  |
-| 3. 3D viewer      | ✅ Done                  |
-| 4. Cabinet editor | ✅ Done                  |
-| 5. Project layout | ✅ Done, awaiting review |
-| 6. Outputs        | Next                     |
-| 7–8               | Not started              |
+| Milestone          | State                    |
+| ------------------ | ------------------------ |
+| 1. Foundation      | ✅ Done                  |
+| 2. Core engine     | ✅ Done                  |
+| 3. 3D viewer       | ✅ Done                  |
+| 4. Cabinet editor  | ✅ Done                  |
+| 5. Project layout  | ✅ Done                  |
+| 6. Outputs         | ✅ Done, awaiting review |
+| 7. Export & polish | Next                     |
+| 8. Hardening       | Not started              |
 
 ## Scope decisions from your answers
 

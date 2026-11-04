@@ -77,7 +77,7 @@ and rendered to SVG on screen and to jsPDF for print, so screen and paper can't 
 
 ## ADR-007: Nester behind an interface; first implementation is 2-stage guillotine
 
-**Status:** Accepted (planned for M6)
+**Status:** Superseded in part by ADR-026 (three stages instead of two)
 
 Rip strips along the sheet length, then crosscut, with optional trim cuts. Multi-start over sort
 orders and strip orientations; keep the fewest sheets, then the largest offcut. Grain parts never
@@ -297,3 +297,42 @@ a single part (`fillerPart`) for the 3D view and, in M6, the cut list.
 
 The toe-kick notch on end panels is a structured `notch` on the part (not text with baked-in
 units), so the UI and the cut list can show it in project units.
+
+## ADR-026: Three-stage guillotine nesting with a wide multi-start
+
+**Status:** Accepted (M6)
+
+The two-stage strip packer (ADR-007) wasted most of a sheet whenever a short part sat in a tall
+strip. On a 14-cabinet kitchen the 1/4" backs took 6 sheets where a hand layout needs 5.
+
+The nester now cuts each strip into sections, each holding parts stacked across the strip. That
+is still guillotine: every cut is straight through, so it suits a table saw or track saw. It
+tries both strip directions with 6 sort orders and 12 seeded shuffles of the area order, and
+keeps the fewest sheets, then the largest leftover on the last sheet. The result is
+deterministic.
+
+On the benchmark kitchen:
+
+| Material | Sheets | Floor                | Note                    |
+| -------- | ------ | -------------------- | ----------------------- |
+| 3/4"     | 14     | 13 (area bound 12.4) |                         |
+| 1/2"     | 2      |                      |                         |
+| 1/4"     | 5      |                      | matches the hand layout |
+
+Nesting takes about 40 ms in total, fast enough to rerun on every edit. The test suite checks
+on random inputs that layouts have no overlaps, keep kerf gaps, respect grain, have no cut
+through a part, and account for every part. It also guards these sheet counts against
+regressions.
+
+## ADR-027: Outputs are derived live; the library is edited in the app
+
+**Status:** Accepted (M6)
+
+The cut list, sheet layouts and estimate are pure functions of the project
+(`buildCutList` → `nestCutList` → `estimate`), recomputed when the project changes and never
+stored. They get their own main-area views (Cut list, Sheets, Materials & cost), and a summary
+strip shows part count, sheets per material and the total.
+
+The material library, shop settings and project default materials are edited in Materials &
+cost. A material can't be removed while a default or any cabinet still uses it. Prices are
+assumed to be in dollars. Banding is stored per metre and shown per foot in imperial projects.

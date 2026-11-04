@@ -99,6 +99,28 @@ layout).
   - Its height runs from the top of the toe kick to the cabinet top.
   - Its note says to scribe it to fit.
 
+## Cut list, sheets and estimate
+
+- **Cut list**: every part from every cabinet and filler, grouped by material in library order.
+  - Identical parts share a row: same name (left/right ignored), cut size, grain, banding, notch
+    and notes.
+  - Rows are numbered 1…n across the whole list, longest first within a material. Sheet diagrams
+    label parts by these numbers.
+  - Sizes are cut sizes. Thicknesses show at 1/32" in imperial projects.
+- **Sheets**: each sheet material is nested on its sheet size with the project's kerf and factory
+  edge trim (ADR-007).
+  - Cuts are guillotine in three stages: strips off the sheet, sections off a strip, parts off a
+    section, then a trim if a part is shorter than its section.
+  - Every cut is numbered and described in shop terms (rip = along the sheet length/grain,
+    crosscut = across it).
+  - A part with grain never turns. Parts larger than a sheet are listed as a warning, never
+    dropped.
+- **Estimate**:
+  - Sheets: whole sheets × price.
+  - Solid stock: board feet = Σ length × width × rough thickness / 144 in³, plus the waste %.
+  - Edge banding: Σ banded edge lengths + 1" per edge.
+  - Hardware: totals from every cabinet × unit price.
+
 ## Room layout
 
 - Walls form a chain joined at 90°. Walking along the walls, cabinets are on the right, so a
