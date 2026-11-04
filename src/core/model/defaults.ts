@@ -111,6 +111,7 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     railWidth: inch(2.25),
     grooveDepth: inch(1 / 4),
     panelClearance: inch(1 / 16),
+    minPanel: inch(2),
   },
   drawer: {
     sideClearance: inch(1 / 2),
@@ -119,6 +120,8 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     slideLengths: [10, 12, 14, 16, 18, 20, 22, 24, 26, 28].map(inch),
     bottomGrooveHeight: inch(1 / 2),
     bottomGrooveDepth: inch(1 / 4),
+    bottomClearance: inch(1 / 16),
+    spacerWidth: inch(2),
   },
   shelves: { widthClearance: inch(1 / 16), depthSetback: inch(1 / 4), pinsPerShelf: 4 },
   hardware: {
@@ -128,6 +131,7 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
       { upTo: inch(80), count: 4 },
       { upTo: null, count: 5 },
     ],
+    twoPullsOver: inch(24),
   },
   materials: {
     carcass: 'ply-18',

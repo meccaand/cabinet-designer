@@ -125,6 +125,11 @@ const CarcassConventions = z.object({
   back: BackStyleSchema,
   /** Base cabinets only: two stretchers or a full top panel. */
   baseTop: BaseTopSchema,
+  /**
+   * Depth of the joint where panels meet the sides. Top/bottom at the ends of the sides sit in
+   * rabbets of this depth; panels between the ends (fixed shelves, dividers, a raised
+   * face-frame bottom) sit in dados of this depth. Ignored for butt/pocket joinery.
+   */
   dadoDepth: PositiveLength,
   backRabbetDepth: PositiveLength,
   backGrooveDepth: PositiveLength,
@@ -170,6 +175,8 @@ const ShakerConventions = z.object({
   grooveDepth: PositiveLength,
   /** Total clearance (both sides combined) between panel and groove bottoms. */
   panelClearance: NonNegLength,
+  /** Fronts whose centre panel would be narrower or shorter than this are made slab. */
+  minPanel: NonNegLength,
 });
 
 const DrawerConventions = z.object({
@@ -183,6 +190,10 @@ const DrawerConventions = z.object({
   slideLengths: z.array(PositiveLength).min(1),
   bottomGrooveHeight: NonNegLength,
   bottomGrooveDepth: PositiveLength,
+  /** Total clearance (both directions combined) between the bottom and its groove bottoms. */
+  bottomClearance: NonNegLength,
+  /** Face-frame cabinets: width of the slide spacer strips that pack slides out to the frame. */
+  spacerWidth: PositiveLength,
 });
 
 const ShelfConventions = z.object({
@@ -204,6 +215,8 @@ const HardwareConventions = z.object({
     .array(HingeTier)
     .min(1)
     .refine((tiers) => tiers.at(-1)?.upTo === null, 'The last hinge tier must cover any height.'),
+  /** Drawer fronts wider than this get two pulls. */
+  twoPullsOver: PositiveLength,
 });
 
 const MaterialAssignments = z.record(MaterialRoleSchema, Id);
@@ -255,7 +268,11 @@ export interface OpeningSplit {
   kind: 'split';
   /** 'rows' stacks children top to bottom; 'columns' places them left to right. */
   dir: 'rows' | 'columns';
-  /** 'auto' children share whatever the fixed-size children leave. Sizes are opening sizes. */
+  /**
+   * Child sizes along `dir`. Frameless: the size of the front (door/drawer front) itself.
+   * Face frame: the size of the opening between rails/mullions. 'auto' children share
+   * whatever the fixed-size children leave, equally.
+   */
   children: { size: 'auto' | number; node: OpeningNode }[];
   /** Frameless columns: a full-depth divider panel between children. */
   divider?: boolean | undefined;
