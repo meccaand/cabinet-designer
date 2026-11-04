@@ -1,0 +1,420 @@
+/**
+ * Project data model. The zod schemas are the single source of truth; TS types are inferred.
+ *
+ * All lengths are millimetres (ADR-002). Parts, cut lists and sheet layouts are NOT stored:
+ * they are derived from this document by pure functions (see docs/PLAN.md "Data flow").
+ */
+import { z } from 'zod';
+import type { UnitFormat } from '../units';
+
+const Id = z.string().min(1);
+const Length = z.number();
+const PositiveLength = z.number().positive();
+const NonNegLength = z.number().nonnegative();
+const Money = z.number().nonnegative();
+
+// ---------------------------------------------------------------------------------------------
+// Units & settings
+
+export const UnitSettingsSchema = z.object({
+  system: z.enum(['imperial', 'metric']),
+  fractionDenom: z.union([z.literal(16), z.literal(32)]),
+  mmDecimals: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+}) satisfies z.ZodType<UnitFormat>; // stored unit settings drive the formatter directly
+export type UnitSettings = z.infer<typeof UnitSettingsSchema>;
+
+export const ShopSettingsSchema = z.object({
+  /** Saw blade kerf, applied between every pair of adjacent cuts on a sheet. */
+  kerf: NonNegLength,
+  /** Strip removed from each factory edge of a sheet before nesting. */
+  sheetEdgeTrim: NonNegLength,
+  /** Extra solid stock to buy, as a fraction (0.2 = 20%). */
+  boardFootWaste: z.number().min(0).max(1),
+});
+export type ShopSettings = z.infer<typeof ShopSettingsSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Materials
+
+export const SheetMaterialSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  /** Actual (measured) thickness, not nominal: dados and part math use this. */
+  thickness: PositiveLength,
+  length: PositiveLength,
+  width: PositiveLength,
+  /** Grain runs along `length`. Grain-matched parts never rotate when nested. */
+  grain: z.boolean(),
+  costPerSheet: Money,
+});
+export type SheetMaterial = z.infer<typeof SheetMaterialSchema>;
+
+export const SolidStockSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  /** Finished (planed) thickness used for part math. */
+  thickness: PositiveLength,
+  /** Rough thickness used for board-foot purchasing (e.g. 4/4 = 1"). */
+  roughThickness: PositiveLength,
+  costPerBoardFoot: Money,
+});
+export type SolidStock = z.infer<typeof SolidStockSchema>;
+
+export const BandingSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  thickness: NonNegLength,
+  width: PositiveLength,
+  /** When true, banded edges are cut short by `thickness` so the finished part is nominal. */
+  subtractFromCut: z.boolean(),
+  costPerMeter: Money,
+});
+export type Banding = z.infer<typeof BandingSchema>;
+
+export const HardwareKindSchema = z.enum(['hinge', 'slide', 'pull', 'shelfPin']);
+export type HardwareKind = z.infer<typeof HardwareKindSchema>;
+
+export const HardwareItemSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  kind: HardwareKindSchema,
+  /** Per hinge, per slide pair, per pull, per pin. */
+  unitCost: Money,
+});
+export type HardwareItem = z.infer<typeof HardwareItemSchema>;
+
+export const MaterialLibrarySchema = z.object({
+  sheets: z.array(SheetMaterialSchema),
+  solids: z.array(SolidStockSchema),
+  banding: z.array(BandingSchema),
+  hardware: z.array(HardwareItemSchema),
+});
+export type MaterialLibrary = z.infer<typeof MaterialLibrarySchema>;
+
+/** What each part is made of. Roles map to a sheet/solid (or banding, for *Banding roles). */
+export const MaterialRoleSchema = z.enum([
+  'carcass',
+  'back',
+  'shelf',
+  'platform',
+  'door',
+  'frontFrame',
+  'frontPanel',
+  'faceFrame',
+  'drawerBox',
+  'drawerBottom',
+  'carcassBanding',
+  'frontBanding',
+]);
+export type MaterialRole = z.infer<typeof MaterialRoleSchema>;
+export const BANDING_ROLES = ['carcassBanding', 'frontBanding'] as const satisfies MaterialRole[];
+
+// ---------------------------------------------------------------------------------------------
+// Construction conventions (ADR-008: conventions are data, overridable per cabinet)
+
+export const ConstructionStyleSchema = z.enum(['frameless', 'faceFrame']);
+export const JoinerySchema = z.enum(['dado', 'rabbet', 'butt', 'pocket']);
+export const BackStyleSchema = z.enum(['inset', 'applied', 'dado']);
+export const BaseTopSchema = z.enum(['stretchers', 'full']);
+export const FrontStyleSchema = z.enum(['slab', 'shaker']);
+export const DoorMountSchema = z.enum(['overlay', 'inset']);
+
+const CarcassConventions = z.object({
+  style: ConstructionStyleSchema,
+  joinery: JoinerySchema,
+  back: BackStyleSchema,
+  /** Base cabinets only: two stretchers or a full top panel. */
+  baseTop: BaseTopSchema,
+  dadoDepth: PositiveLength,
+  backRabbetDepth: PositiveLength,
+  backGrooveDepth: PositiveLength,
+  /** Distance from the back edge of the sides to the near face of the back groove. */
+  backGrooveSetback: NonNegLength,
+  stretcherWidth: PositiveLength,
+});
+
+const PlatformConventions = z.object({
+  height: PositiveLength,
+  /** Toe-kick recess from the cabinet front. */
+  setback: NonNegLength,
+  /** Maximum spacing between cross members of the ladder base. */
+  crossMemberSpacing: PositiveLength,
+});
+
+const FrontConventions = z.object({
+  style: FrontStyleSchema,
+  mount: DoorMountSchema,
+  /** Frameless overlay: gap between a front and the outside edge of the cabinet. */
+  revealEdge: NonNegLength,
+  /** Gap between adjacent doors/drawer fronts. */
+  revealBetween: NonNegLength,
+  /** Frameless base cabinets: door top sits this far below the box top. */
+  revealTopBase: NonNegLength,
+  /** Face-frame overlay: how far a front overlaps the frame on each side. */
+  faceFrameOverlay: NonNegLength,
+  /** Inset fronts: gap all around. */
+  insetGap: NonNegLength,
+});
+
+const FaceFrameConventions = z.object({
+  stileWidth: PositiveLength,
+  railWidth: PositiveLength,
+  mullionWidth: PositiveLength,
+  /** How far the frame extends past each carcass side (for scribing). */
+  sideOverhang: NonNegLength,
+});
+
+const ShakerConventions = z.object({
+  stileWidth: PositiveLength,
+  railWidth: PositiveLength,
+  grooveDepth: PositiveLength,
+  /** Total clearance (both sides combined) between panel and groove bottoms. */
+  panelClearance: NonNegLength,
+});
+
+const DrawerConventions = z.object({
+  /** Side-mount slide clearance per side. */
+  sideClearance: NonNegLength,
+  /** Box height = opening height − this. */
+  heightDeduction: NonNegLength,
+  /** Minimum space behind the box. */
+  rearClearance: NonNegLength,
+  /** Available slide lengths; box length = longest that fits. */
+  slideLengths: z.array(PositiveLength).min(1),
+  bottomGrooveHeight: NonNegLength,
+  bottomGrooveDepth: PositiveLength,
+});
+
+const ShelfConventions = z.object({
+  /** Adjustable shelves: total width clearance (both sides combined). */
+  widthClearance: NonNegLength,
+  /** Shelves are this much shallower than the interior depth. */
+  depthSetback: NonNegLength,
+  pinsPerShelf: z.int().min(0),
+});
+
+const HingeTier = z.object({
+  /** Doors up to this height (inclusive) get `count` hinges; null = any height. */
+  upTo: PositiveLength.nullable(),
+  count: z.int().min(1),
+});
+
+const HardwareConventions = z.object({
+  hingeTiers: z
+    .array(HingeTier)
+    .min(1)
+    .refine((tiers) => tiers.at(-1)?.upTo === null, 'The last hinge tier must cover any height.'),
+});
+
+const MaterialAssignments = z.record(MaterialRoleSchema, Id);
+
+export const ConstructionDefaultsSchema = z.object({
+  carcass: CarcassConventions,
+  platform: PlatformConventions,
+  fronts: FrontConventions,
+  faceFrame: FaceFrameConventions,
+  shaker: ShakerConventions,
+  drawer: DrawerConventions,
+  shelves: ShelfConventions,
+  hardware: HardwareConventions,
+  materials: MaterialAssignments,
+});
+export type ConstructionDefaults = z.infer<typeof ConstructionDefaultsSchema>;
+
+/** Per-cabinet overrides: any field of any group. Unset fields inherit the project default. */
+export const ConstructionOverridesSchema = z.object({
+  carcass: CarcassConventions.partial().optional(),
+  platform: PlatformConventions.partial().optional(),
+  fronts: FrontConventions.partial().optional(),
+  faceFrame: FaceFrameConventions.partial().optional(),
+  shaker: ShakerConventions.partial().optional(),
+  drawer: DrawerConventions.partial().optional(),
+  shelves: ShelfConventions.partial().optional(),
+  hardware: HardwareConventions.partial().optional(),
+  materials: z.partialRecord(MaterialRoleSchema, Id).optional(),
+});
+export type ConstructionOverrides = z.infer<typeof ConstructionOverridesSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Cabinet face: a tree of openings (ADR in PLAN.md: one generator path for all cabinet types)
+
+export const OpeningFillSchema = z.enum(['door', 'doorPair', 'drawer', 'falseFront', 'open']);
+export type OpeningFill = z.infer<typeof OpeningFillSchema>;
+
+export const OpeningLeafSchema = z.object({
+  kind: z.literal('leaf'),
+  fill: OpeningFillSchema,
+  /** Single doors only. */
+  hinge: z.enum(['left', 'right']).optional(),
+  /** Shelves behind this opening (doors or open). */
+  shelves: z.object({ count: z.int().min(0).max(20), adjustable: z.boolean() }).optional(),
+});
+export type OpeningLeaf = z.infer<typeof OpeningLeafSchema>;
+
+export interface OpeningSplit {
+  kind: 'split';
+  /** 'rows' stacks children top to bottom; 'columns' places them left to right. */
+  dir: 'rows' | 'columns';
+  /** 'auto' children share whatever the fixed-size children leave. Sizes are opening sizes. */
+  children: { size: 'auto' | number; node: OpeningNode }[];
+  /** Frameless columns: a full-depth divider panel between children. */
+  divider?: boolean | undefined;
+}
+export type OpeningNode = OpeningLeaf | OpeningSplit;
+
+export const OpeningSplitSchema: z.ZodType<OpeningSplit> = z.object({
+  kind: z.literal('split'),
+  dir: z.enum(['rows', 'columns']),
+  get children() {
+    return z
+      .array(
+        z.object({ size: z.union([z.literal('auto'), PositiveLength]), node: OpeningNodeSchema }),
+      )
+      .min(2);
+  },
+  divider: z.boolean().optional(),
+});
+
+export const OpeningNodeSchema: z.ZodType<OpeningNode> = z.union([
+  OpeningLeafSchema,
+  OpeningSplitSchema,
+]);
+
+// ---------------------------------------------------------------------------------------------
+// Cabinets, room, project
+
+export const CabinetTypeSchema = z.enum([
+  'base',
+  'wall',
+  'tall',
+  'drawerBank',
+  'openShelf',
+  'blindBase',
+  'blindWall',
+]);
+export type CabinetType = z.infer<typeof CabinetTypeSchema>;
+const BLIND_TYPES: readonly CabinetType[] = ['blindBase', 'blindWall'];
+
+export const CabinetSchema = z
+  .object({
+    id: Id,
+    name: z.string(),
+    type: CabinetTypeSchema,
+    /** Overall box size; see docs/PLAN.md "Construction conventions" for exactly what's included. */
+    width: PositiveLength,
+    height: PositiveLength,
+    depth: PositiveLength,
+    placement: z.object({
+      /** null = not yet placed on a wall. */
+      wallId: Id.nullable(),
+      /** Distance from the wall's start to the cabinet's left edge. */
+      offset: Length,
+      /** Floor to the bottom of the cabinet (0 for base/tall). */
+      elevation: NonNegLength,
+    }),
+    construction: ConstructionOverridesSchema,
+    face: OpeningNodeSchema,
+    endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
+    blind: z
+      .object({
+        /** Which end of the cabinet is hidden behind the adjacent run. */
+        side: z.enum(['left', 'right']),
+        blindWidth: PositiveLength,
+        pullFillerWidth: NonNegLength,
+      })
+      .optional(),
+  })
+  .refine((c) => BLIND_TYPES.includes(c.type) === (c.blind !== undefined), {
+    message: 'Blind corner cabinets need blind settings; other types must not have them.',
+    path: ['blind'],
+  });
+export type Cabinet = z.infer<typeof CabinetSchema>;
+
+export const WallSchema = z.object({
+  id: Id,
+  name: z.string(),
+  length: PositiveLength,
+  height: PositiveLength,
+  /** 90° corner at this wall's start, relative to the previous wall (ignored for the first). */
+  turn: z.enum(['left', 'right']),
+});
+export type Wall = z.infer<typeof WallSchema>;
+
+export const FillerSchema = z.object({
+  id: Id,
+  wallId: Id,
+  offset: Length,
+  width: PositiveLength,
+  height: PositiveLength,
+  elevation: NonNegLength,
+});
+export type Filler = z.infer<typeof FillerSchema>;
+
+export const ProjectSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    id: Id,
+    name: z.string(),
+    units: UnitSettingsSchema,
+    shop: ShopSettingsSchema,
+    construction: ConstructionDefaultsSchema,
+    materials: MaterialLibrarySchema,
+    room: z.object({ walls: z.array(WallSchema) }),
+    cabinets: z.array(CabinetSchema),
+    fillers: z.array(FillerSchema),
+  })
+  .superRefine((p, ctx) => {
+    const issue = (message: string, path: (string | number)[]) =>
+      ctx.addIssue({ code: 'custom', message, path });
+
+    duplicates(p.cabinets.map((c) => c.id)).forEach((id) =>
+      issue(`Duplicate cabinet id "${id}".`, ['cabinets']),
+    );
+    duplicates(p.room.walls.map((w) => w.id)).forEach((id) =>
+      issue(`Duplicate wall id "${id}".`, ['room', 'walls']),
+    );
+    const m = p.materials;
+    const materialIds = [...m.sheets, ...m.solids, ...m.banding, ...m.hardware].map((x) => x.id);
+    duplicates(materialIds).forEach((id) => issue(`Duplicate material id "${id}".`, ['materials']));
+
+    const stock = new Set([...m.sheets, ...m.solids].map((x) => x.id));
+    const banding = new Set(m.banding.map((x) => x.id));
+    const checkRoles = (
+      assign: Partial<Record<MaterialRole, string>>,
+      path: (string | number)[],
+    ) => {
+      for (const [role, id] of Object.entries(assign) as [MaterialRole, string][]) {
+        const pool = (BANDING_ROLES as readonly string[]).includes(role) ? banding : stock;
+        if (!pool.has(id))
+          issue(`Material "${id}" for role "${role}" does not exist.`, [...path, role]);
+      }
+    };
+    checkRoles(p.construction.materials, ['construction', 'materials']);
+
+    const wallIds = new Set(p.room.walls.map((w) => w.id));
+    p.cabinets.forEach((c, i) => {
+      if (c.construction.materials) {
+        checkRoles(c.construction.materials, ['cabinets', i, 'construction', 'materials']);
+      }
+      if (c.placement.wallId !== null && !wallIds.has(c.placement.wallId)) {
+        issue(`Wall "${c.placement.wallId}" does not exist.`, [
+          'cabinets',
+          i,
+          'placement',
+          'wallId',
+        ]);
+      }
+    });
+    p.fillers.forEach((f, i) => {
+      if (!wallIds.has(f.wallId))
+        issue(`Wall "${f.wallId}" does not exist.`, ['fillers', i, 'wallId']);
+    });
+  });
+export type Project = z.infer<typeof ProjectSchema>;
+
+function duplicates(ids: string[]): string[] {
+  const seen = new Set<string>();
+  const dupes = new Set<string>();
+  for (const id of ids) (seen.has(id) ? dupes : seen).add(id);
+  return [...dupes];
+}
