@@ -2,7 +2,7 @@
   display: grid;
   height: 100%;
   grid-template-columns: 240px minmax(0, 1fr) 360px;
-  grid-template-rows: auto minmax(0, 1fr) 160px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     'header header header'
     'sidebar viewport inspector'
@@ -218,7 +218,7 @@
 .mainTabs {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   z-index: 30;
   display: flex;
   border: 1px solid var(--border);
@@ -245,4 +245,21 @@
 .mainTabs button[aria-selected='true'] {
   background: var(--accent);
   color: #fff;
+}
+
+.outputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  font-size: 0.85rem;
+}
+
+.linkButton {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
 }

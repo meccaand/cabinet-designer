@@ -16,6 +16,10 @@ import { ProjectsDialog } from './ui/ProjectsDialog';
 import { RoomPanel } from './ui/RoomPanel';
 import { UnitsSelect } from './ui/UnitsSelect';
 import { useCabinetModel } from './useCabinetModel';
+import { CutListView } from './outputs/CutListView';
+import { MaterialsView } from './outputs/MaterialsView';
+import { SheetsView } from './outputs/SheetsView';
+import { formatMoney, useOutputs } from './outputs';
 import { formatLength } from '../core/units';
 
 // three.js is most of the bundle; load it after the shell so the app appears immediately.
@@ -25,6 +29,9 @@ const MAIN_VIEWS: [MainView, string][] = [
   ['3d', '3D'],
   ['plan', 'Plan'],
   ['elevation', 'Elevation'],
+  ['cutlist', 'Cut list'],
+  ['sheets', 'Sheets'],
+  ['materials', 'Materials & cost'],
 ];
 
 /** Application shell: cabinets and room, the main view, the editor / parts, shop outputs. */
@@ -47,6 +54,8 @@ export function App() {
   const result = useCabinetModel(cabinet, project);
   const models = useMemo(() => projectModels(project), [project]);
   const items = useMemo(() => projectLayout(project), [project]);
+  const outputs = useOutputs(project);
+  const partCount = outputs.cutList.parts.length;
   const filler =
     selection?.kind === 'filler' ? project.fillers.find((f) => f.id === selection.id) : undefined;
   const wallId =
@@ -185,7 +194,13 @@ export function App() {
             </button>
           ))}
         </div>
-        {main === 'plan' ? (
+        {main === 'cutlist' ? (
+          <CutListView project={project} cutList={outputs.cutList} />
+        ) : main === 'sheets' ? (
+          <SheetsView project={project} cutList={outputs.cutList} nests={outputs.nests} />
+        ) : main === 'materials' ? (
+          <MaterialsView project={project} estimate={outputs.estimate} />
+        ) : main === 'plan' ? (
           <PlanView
             project={project}
             items={items}
@@ -268,8 +283,28 @@ export function App() {
       </aside>
 
       <section className={styles.outputs} aria-label="Shop outputs">
-        <h2 className={styles.heading}>Cut list &amp; sheets</h2>
-        <p className={styles.empty}>The cut list and sheet layouts will appear here.</p>
+        <span>
+          <strong>{partCount}</strong> parts
+        </span>
+        {outputs.estimate.sheets.map((sh) => (
+          <span key={sh.materialId}>
+            {sh.name}: <strong>{sh.count}</strong> sheet{sh.count === 1 ? '' : 's'}
+          </span>
+        ))}
+        <span>
+          Estimate{' '}
+          <strong data-testid="summary-total">{formatMoney(outputs.estimate.total)}</strong>
+        </span>
+        <span className={styles.spacer} />
+        <button type="button" className={styles.linkButton} onClick={() => setMain('cutlist')}>
+          Cut list
+        </button>
+        <button type="button" className={styles.linkButton} onClick={() => setMain('sheets')}>
+          Sheets
+        </button>
+        <button type="button" className={styles.linkButton} onClick={() => setMain('materials')}>
+          Materials &amp; cost
+        </button>
       </section>
 
       <ProjectsDialog open={projectsOpen} onClose={() => setProjectsOpen(false)} />

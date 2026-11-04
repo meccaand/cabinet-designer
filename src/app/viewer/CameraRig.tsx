@@ -7,8 +7,8 @@ import { fitCamera } from './scene';
 
 export const FOV = 35;
 
-/** Height of the view toolbar overlay, kept clear when framing. */
-const TOOLBAR_PX = 48;
+/** Height of the view tabs and toolbar overlays, kept clear when framing. */
+const TOOLBAR_PX = 90;
 
 /**
  * Frames `bounds` (world coordinates) when a view is requested or `frameKey` changes (a

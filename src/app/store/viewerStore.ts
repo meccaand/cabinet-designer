@@ -9,8 +9,8 @@ export type Selection =
 
 export type Panel = 'edit' | 'parts';
 
-/** Main area: the 3D view, the plan (top-down) or a wall elevation. */
-export type MainView = '3d' | 'plan' | 'elevation';
+/** Main area: 3D, plan, a wall elevation, or one of the shop outputs. */
+export type MainView = '3d' | 'plan' | 'elevation' | 'cutlist' | 'sheets' | 'materials';
 
 /** How the 3D view is shown. Not part of the project document, so never undone or saved. */
 interface ViewerState {

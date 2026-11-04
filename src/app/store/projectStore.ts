@@ -2,7 +2,17 @@ import { produce, type Draft } from 'immer';
 import { create } from 'zustand';
 import { CABINET_TYPE_NAMES, createCabinet, TYPE_TRAITS } from '../../core/generate';
 import { gapsBeside, nextFreeOffset, type LayoutItem } from '../../core/layout';
-import type { Cabinet, CabinetType, Filler, Project, UnitSettings, Wall } from '../../core/model';
+import type {
+  Cabinet,
+  CabinetType,
+  ConstructionDefaults,
+  Filler,
+  MaterialLibrary,
+  Project,
+  ShopSettings,
+  UnitSettings,
+  Wall,
+} from '../../core/model';
 import { inch, type Mm } from '../../core/units';
 import { projectLayout } from '../models';
 import { createSampleProject } from '../sample';
@@ -44,6 +54,13 @@ export interface ProjectState {
   fillGap: (cabinetId: string, side: 'left' | 'right') => string | null;
   updateFiller: (id: string, recipe: (filler: Draft<Filler>) => void) => void;
   deleteFiller: (id: string) => void;
+
+  updateMaterials: (recipe: (materials: Draft<MaterialLibrary>) => void) => void;
+  updateShop: (recipe: (shop: Draft<ShopSettings>) => void) => void;
+  /** Project-wide default materials for each part role. */
+  setDefaultMaterial: (role: keyof ConstructionDefaults['materials'], id: string) => void;
+  /** Removes a library item unless a cabinet or default still uses it. Returns whether it did. */
+  removeMaterial: (id: string) => boolean;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -267,6 +284,31 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       edit((p) => {
         p.fillers = p.fillers.filter((f) => f.id !== id);
       }),
+
+    updateMaterials: (recipe) =>
+      edit((p) => {
+        recipe(p.materials);
+      }),
+    updateShop: (recipe) =>
+      edit((p) => {
+        recipe(p.shop);
+      }),
+    setDefaultMaterial: (role, id) =>
+      edit((p) => {
+        p.construction.materials[role] = id;
+      }),
+    removeMaterial: (id) => {
+      const { project } = get();
+      if (materialInUse(project, id)) return false;
+      edit((p) => {
+        const m = p.materials;
+        m.sheets = m.sheets.filter((x) => x.id !== id);
+        m.solids = m.solids.filter((x) => x.id !== id);
+        m.banding = m.banding.filter((x) => x.id !== id);
+        m.hardware = m.hardware.filter((x) => x.id !== id);
+      });
+      return true;
+    },
   };
 });
 
@@ -274,4 +316,10 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 function cabinetPlatform(project: Project, cabinet: Cabinet): Mm {
   if (!TYPE_TRAITS[cabinet.type].platform) return 0;
   return cabinet.construction.platform?.height ?? project.construction.platform.height;
+}
+
+/** Whether a library item is assigned anywhere (defaults or a cabinet's overrides). */
+export function materialInUse(project: Project, id: string): boolean {
+  if (Object.values(project.construction.materials).includes(id)) return true;
+  return project.cabinets.some((c) => Object.values(c.construction.materials ?? {}).includes(id));
 }
