@@ -1,0 +1,9 @@
+{
+  "//": "Pure domain logic: no DOM, no Node, no React. See docs/DECISIONS.md ADR-001.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/core"]
+}
