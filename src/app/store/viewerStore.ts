@@ -1,15 +1,27 @@
 import { create } from 'zustand';
 import type { PartGroup, View } from '../viewer/scene';
 
-export type Selection = { kind: 'cabinet'; id: string } | { kind: 'part'; id: string } | null;
+export type Selection =
+  | { kind: 'cabinet'; id: string }
+  | { kind: 'part'; id: string }
+  | { kind: 'filler'; id: string }
+  | null;
 
 export type Panel = 'edit' | 'parts';
+
+/** Main area: the 3D view, the plan (top-down) or a wall elevation. */
+export type MainView = '3d' | 'plan' | 'elevation';
 
 /** How the 3D view is shown. Not part of the project document, so never undone or saved. */
 interface ViewerState {
   selection: Selection;
   /** Right-hand panel tab. */
   panel: Panel;
+  main: MainView;
+  /** 3D: the active cabinet alone, or every cabinet in the room. */
+  scope: 'cabinet' | 'room';
+  /** Wall shown in the elevation view. */
+  elevationWall: string | null;
   /** Face-tree path of the opening being edited, or null. */
   opening: string | null;
   view: View;
@@ -22,6 +34,9 @@ interface ViewerState {
   hiddenGroups: Partial<Record<PartGroup, true>>;
   select: (selection: Selection) => void;
   setPanel: (panel: Panel) => void;
+  setMain: (main: MainView) => void;
+  setScope: (scope: 'cabinet' | 'room') => void;
+  setElevationWall: (id: string) => void;
   selectOpening: (path: string | null) => void;
   setView: (view: View) => void;
   toggle: (flag: 'exploded' | 'xray' | 'dimensions') => void;
@@ -33,6 +48,9 @@ interface ViewerState {
 export const useViewerStore = create<ViewerState>((set) => ({
   selection: null,
   panel: 'edit',
+  main: '3d',
+  scope: 'cabinet',
+  elevationWall: null,
   opening: null,
   view: 'iso',
   viewRequest: 0,
@@ -45,6 +63,9 @@ export const useViewerStore = create<ViewerState>((set) => ({
   select: (selection) =>
     set((s) => ({ selection, panel: selection?.kind === 'part' ? 'parts' : s.panel })),
   setPanel: (panel) => set({ panel }),
+  setMain: (main) => set({ main }),
+  setScope: (scope) => set((s) => ({ scope, viewRequest: s.viewRequest + 1 })),
+  setElevationWall: (elevationWall) => set({ elevationWall }),
   selectOpening: (opening) => set({ opening }),
   setView: (view) => set((s) => ({ view, viewRequest: s.viewRequest + 1 })),
   toggle: (flag) => set((s) => ({ [flag]: !s[flag] })),
