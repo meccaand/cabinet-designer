@@ -3,9 +3,15 @@ import type { PartGroup, View } from '../viewer/scene';
 
 export type Selection = { kind: 'cabinet'; id: string } | { kind: 'part'; id: string } | null;
 
+export type Panel = 'edit' | 'parts';
+
 /** How the 3D view is shown. Not part of the project document, so never undone or saved. */
 interface ViewerState {
   selection: Selection;
+  /** Right-hand panel tab. */
+  panel: Panel;
+  /** Face-tree path of the opening being edited, or null. */
+  opening: string | null;
   view: View;
   /** Bumped on every view request so pressing the same view again re-fits the camera. */
   viewRequest: number;
@@ -15,6 +21,8 @@ interface ViewerState {
   hiddenParts: Partial<Record<string, true>>;
   hiddenGroups: Partial<Record<PartGroup, true>>;
   select: (selection: Selection) => void;
+  setPanel: (panel: Panel) => void;
+  selectOpening: (path: string | null) => void;
   setView: (view: View) => void;
   toggle: (flag: 'exploded' | 'xray' | 'dimensions') => void;
   togglePart: (id: string) => void;
@@ -24,6 +32,8 @@ interface ViewerState {
 
 export const useViewerStore = create<ViewerState>((set) => ({
   selection: null,
+  panel: 'edit',
+  opening: null,
   view: 'iso',
   viewRequest: 0,
   exploded: false,
@@ -31,7 +41,11 @@ export const useViewerStore = create<ViewerState>((set) => ({
   dimensions: true,
   hiddenParts: {},
   hiddenGroups: {},
-  select: (selection) => set({ selection }),
+  // Picking a part shows its details; picking a cabinet keeps whichever tab is open.
+  select: (selection) =>
+    set((s) => ({ selection, panel: selection?.kind === 'part' ? 'parts' : s.panel })),
+  setPanel: (panel) => set({ panel }),
+  selectOpening: (opening) => set({ opening }),
   setView: (view) => set((s) => ({ view, viewRequest: s.viewRequest + 1 })),
   toggle: (flag) => set((s) => ({ [flag]: !s[flag] })),
   togglePart: (id) => set((s) => ({ hiddenParts: flip(s.hiddenParts, id) })),

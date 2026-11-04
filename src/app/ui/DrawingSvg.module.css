@@ -1,0 +1,47 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 340px;
+}
+
+.svg rect,
+.svg line {
+  stroke-width: var(--stroke);
+  vector-effect: none;
+}
+
+.kick {
+  fill: #b9a27f;
+  stroke: #5b5348;
+}
+.carcass {
+  fill: #e4d3b6;
+  stroke: #5b5348;
+}
+.frame {
+  fill: #d6b47e;
+  stroke: #5b5348;
+}
+.front {
+  fill: #f1ebe0;
+  stroke: #5b5348;
+}
+.panel {
+  fill: #e2d4bb;
+  stroke: #5b5348;
+}
+.interior {
+  fill: #e9dcc4;
+  stroke: #5b5348;
+}
+
+.dimension,
+.extension {
+  stroke: var(--muted);
+}
+
+.text {
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}

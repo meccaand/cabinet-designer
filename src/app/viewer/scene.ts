@@ -23,12 +23,15 @@ const GROUP_OF: Record<PartRole, PartGroup> = {
   top: 'carcass',
   stretcher: 'carcass',
   back: 'carcass',
+  hangingRail: 'carcass',
   platformRail: 'platform',
   platformCrossMember: 'platform',
   ffStile: 'faceFrame',
   ffRail: 'faceFrame',
   ffMullion: 'faceFrame',
   slabFront: 'fronts',
+  blindPanel: 'fronts',
+  filler: 'fronts',
   frontStile: 'fronts',
   frontRail: 'fronts',
   frontPanel: 'fronts',
@@ -83,6 +86,8 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
       return [outward * 180, 0, 0];
     case 'back':
       return [0, 0, -220];
+    case 'hangingRail':
+      return [0, 80, -120];
     case 'top':
     case 'stretcher':
       return [0, 160, 0];
@@ -95,7 +100,10 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
     case 'ffRail':
     case 'ffMullion':
       return [0, 0, 260];
+    case 'filler':
+      return [0, 0, 640];
     case 'slabFront':
+    case 'blindPanel':
     case 'frontStile':
     case 'frontRail':
     case 'frontPanel':

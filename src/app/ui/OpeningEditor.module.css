@@ -1,0 +1,18 @@
+.opening,
+.selected {
+  fill: transparent;
+  cursor: pointer;
+  stroke-width: calc(var(--stroke) * 3);
+}
+
+.opening:hover,
+.opening:focus-visible {
+  fill: rgb(199 106 28 / 0.12);
+  stroke: var(--accent);
+  outline: none;
+}
+
+.selected {
+  fill: rgb(199 106 28 / 0.22);
+  stroke: var(--accent);
+}

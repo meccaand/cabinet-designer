@@ -11,10 +11,12 @@ export function CabinetList({
   activeId: string | null;
   onSelect: (id: string) => void;
 }) {
-  if (project.cabinets.length === 0) return <p className={styles.empty}>No cabinets yet.</p>;
+  if (project.cabinets.length === 0) {
+    return <p className={styles.empty}>No cabinets yet. Add one below.</p>;
+  }
   const f = (v: number) => formatLength(v, project.units);
   return (
-    <ul className={styles.list}>
+    <ul className={styles.list} style={{ marginBottom: 12 }}>
       {project.cabinets.map((c) => (
         <li key={c.id}>
           <button
