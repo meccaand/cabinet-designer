@@ -14,6 +14,7 @@ import { useProjectStore } from '../store/projectStore';
 import styles from './Form.module.css';
 import { LengthInput } from './LengthInput';
 import { OpeningEditor } from './OpeningEditor';
+import { PositionSection } from './PositionSection';
 
 type Group = Exclude<keyof ConstructionDefaults, 'materials'>;
 
@@ -86,6 +87,8 @@ export function CabinetEditor({
           {traits.platform && ' Height includes the toe kick.'}
         </p>
       </section>
+
+      <PositionSection project={project} cabinet={cabinet} />
 
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>Construction</h3>

@@ -20,12 +20,26 @@ export function ViewToolbar() {
   const view = useViewerStore((s) => s.view);
   const setView = useViewerStore((s) => s.setView);
   const toggle = useViewerStore((s) => s.toggle);
+  const scope = useViewerStore((s) => s.scope);
+  const setScope = useViewerStore((s) => s.setScope);
   const flags = useViewerStore(
     useShallow((s) => ({ exploded: s.exploded, xray: s.xray, dimensions: s.dimensions })),
   );
 
   return (
     <div className={styles.toolbar} role="toolbar" aria-label="View">
+      <div className={styles.group} role="group" aria-label="Show">
+        {(
+          [
+            ['cabinet', 'Cabinet'],
+            ['room', 'Room'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" aria-pressed={scope === id} onClick={() => setScope(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div className={styles.group} role="group" aria-label="Camera">
         {VIEWS.map((v) => (
           <button

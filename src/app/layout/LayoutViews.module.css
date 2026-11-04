@@ -1,0 +1,111 @@
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 56px 16px 8px;
+  gap: 6px;
+}
+
+.svg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.svg * {
+  stroke-width: var(--stroke);
+}
+
+.wall {
+  fill: #cfc8bb;
+  stroke: #8d8679;
+}
+
+.label {
+  fill: var(--muted);
+}
+
+.item {
+  cursor: grab;
+}
+
+.item:active {
+  cursor: grabbing;
+}
+
+.cabinet {
+  fill: #e4d3b6;
+  stroke: #5b5348;
+}
+
+.upper {
+  fill: rgb(214 180 126 / 0.25);
+  stroke: #5b5348;
+  stroke-dasharray: calc(var(--stroke) * 6);
+}
+
+.filler {
+  fill: #8d7454;
+  stroke: #5b5348;
+}
+
+.selected {
+  stroke: var(--accent);
+  stroke-width: calc(var(--stroke) * 3);
+}
+
+.problem {
+  stroke: #c0392b;
+  stroke-width: calc(var(--stroke) * 3);
+}
+
+.front {
+  stroke: #3b352d;
+  stroke-width: calc(var(--stroke) * 3);
+}
+
+.itemLabel {
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.issues {
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: #c0392b;
+  font-size: 0.85rem;
+}
+
+.legend {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.bar {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hit,
+.hitSelected {
+  fill: transparent;
+  cursor: grab;
+}
+
+.hit:hover {
+  fill: rgb(199 106 28 / 0.1);
+}
+
+.hitSelected {
+  fill: rgb(199 106 28 / 0.15);
+  stroke: var(--accent);
+  stroke-width: calc(var(--stroke) * 3);
+}

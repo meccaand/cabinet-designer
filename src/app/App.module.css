@@ -125,3 +125,124 @@
     border-top: 1px solid var(--border);
   }
 }
+
+.projectButton {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.projectButton:hover {
+  border-color: var(--border);
+  background: var(--hover);
+}
+
+.status {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.history {
+  display: flex;
+  gap: 4px;
+}
+
+.history button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.history button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.banner {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  z-index: 50;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border-left: 3px solid #c0392b;
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+}
+
+.fillers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fillers button {
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fillers button[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--hover);
+}
+
+.room {
+  margin-top: 16px;
+}
+
+.room summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.mainTabs {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.mainTabs button {
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mainTabs button:last-child {
+  border-right: 0;
+}
+
+.mainTabs button[aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}

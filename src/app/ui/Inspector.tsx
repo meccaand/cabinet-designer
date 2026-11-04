@@ -125,6 +125,14 @@ function PartDetails({ part, project }: { part: Part; project: Project }) {
         <dd>{material?.name ?? part.materialId}</dd>
         <dt>Grain</dt>
         <dd>{part.grain ? 'Along the length' : 'None'}</dd>
+        {part.notch && (
+          <>
+            <dt>Notch</dt>
+            <dd>
+              {f(part.notch.height)} × {f(part.notch.depth)} at the bottom front (toe kick)
+            </dd>
+          </>
+        )}
         <dt>Edge banding</dt>
         <dd>
           {bandIds.length === 0

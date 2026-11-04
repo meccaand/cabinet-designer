@@ -13,20 +13,45 @@ const UNIT_BOX = new BoxGeometry(1, 1, 1);
 const ACCENT = '#c76a1c';
 const EDGE = '#4a4136';
 
-export function CabinetObject({ cabinet, model }: { cabinet: Cabinet; model: CabinetModel }) {
+export function CabinetObject({
+  cabinet,
+  model,
+  onActivate,
+}: {
+  cabinet: Cabinet;
+  model: CabinetModel;
+  onActivate: (cabinetId: string) => void;
+}) {
   const hiddenParts = useViewerStore((s) => s.hiddenParts);
   const hiddenGroups = useViewerStore((s) => s.hiddenGroups);
   const visible = visibleParts(model.parts, hiddenParts, hiddenGroups);
   return (
     <group name={cabinet.id}>
       {visible.map((p) => (
-        <PartMesh key={p.id} part={p} cabinet={cabinet} />
+        <PartMesh
+          key={p.id}
+          part={p}
+          ownerWidth={cabinet.width}
+          cabinetId={cabinet.id}
+          onActivate={onActivate}
+        />
       ))}
     </group>
   );
 }
 
-function PartMesh({ part, cabinet }: { part: Part; cabinet: Cabinet }) {
+/** One part. `cabinetId`/`onActivate` make it selectable; fillers in the room view are not. */
+export function PartMesh({
+  part,
+  ownerWidth,
+  cabinetId,
+  onActivate,
+}: {
+  part: Part;
+  ownerWidth: number;
+  cabinetId?: string;
+  onActivate?: (cabinetId: string) => void;
+}) {
   const ref = useRef<Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const exploded = useViewerStore((s) => s.exploded);
@@ -36,8 +61,9 @@ function PartMesh({ part, cabinet }: { part: Part; cabinet: Cabinet }) {
 
   const partSelected = selection?.kind === 'part' && selection.id === part.id;
   const cabinetSelected =
-    (selection?.kind === 'cabinet' && selection.id === cabinet.id) ||
-    (selection?.kind === 'part' && selection.id.startsWith(`${cabinet.id}/`));
+    cabinetId !== undefined &&
+    ((selection?.kind === 'cabinet' && selection.id === cabinetId) ||
+      (selection?.kind === 'part' && selection.id.startsWith(`${cabinetId}/`)));
 
   const { center, size } = useMemo(() => {
     const b = part.bounds;
@@ -52,9 +78,9 @@ function PartMesh({ part, cabinet }: { part: Part; cabinet: Cabinet }) {
   }, [part.bounds]);
   const target = useMemo(() => {
     const t = center.clone();
-    if (exploded) t.add(new Vector3(...explodeOffset(part, cabinet.width)));
+    if (exploded) t.add(new Vector3(...explodeOffset(part, ownerWidth)));
     return t;
-  }, [center, exploded, part, cabinet.width]);
+  }, [center, exploded, part, ownerWidth]);
 
   // Glide between assembled and exploded positions.
   useFrame((_, dt) => {
@@ -65,9 +91,14 @@ function PartMesh({ part, cabinet }: { part: Part; cabinet: Cabinet }) {
 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (cabinetId === undefined) return;
     // First click selects the cabinet; clicking again inside it picks the part (like
     // entering a group in SketchUp).
-    select(cabinetSelected ? { kind: 'part', id: part.id } : { kind: 'cabinet', id: cabinet.id });
+    if (cabinetSelected) select({ kind: 'part', id: part.id });
+    else {
+      onActivate?.(cabinetId);
+      select({ kind: 'cabinet', id: cabinetId });
+    }
   };
 
   return (
@@ -80,6 +111,7 @@ function PartMesh({ part, cabinet }: { part: Part; cabinet: Cabinet }) {
       onClick={onClick}
       onPointerOver={(e) => {
         e.stopPropagation();
+        if (cabinetId === undefined) return;
         setHovered(true);
         document.body.style.cursor = 'pointer';
       }}

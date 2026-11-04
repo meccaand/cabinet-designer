@@ -10,17 +10,20 @@ export function DrawingSvg({
   drawing,
   label,
   children,
+  tall = false,
 }: {
   drawing: Drawing;
   label: string;
   children?: ReactNode;
+  /** Fill the available height (main-area views) instead of a compact panel drawing. */
+  tall?: boolean;
 }) {
   const { x0, y0, x1, y1 } = drawing.bounds;
   const size = Math.max(x1 - x0, y1 - y0);
   const font = drawing.textSize;
   return (
     <svg
-      className={styles.svg}
+      className={tall ? styles.tall : styles.svg}
       viewBox={`${x0} ${-y1} ${x1 - x0} ${y1 - y0}`}
       role="img"
       aria-label={label}

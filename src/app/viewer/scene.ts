@@ -32,6 +32,7 @@ const GROUP_OF: Record<PartRole, PartGroup> = {
   slabFront: 'fronts',
   blindPanel: 'fronts',
   filler: 'fronts',
+  endPanel: 'fronts',
   frontStile: 'fronts',
   frontRail: 'fronts',
   frontPanel: 'fronts',
@@ -112,6 +113,8 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
     case 'drawerEnd':
     case 'drawerBottom':
       return [0, 0, 380];
+    case 'endPanel':
+      return [outward * 260, 0, 0];
     case 'slideSpacer':
       return [outward * 90, 0, 0];
     case 'shelfAdjustable':
