@@ -78,10 +78,14 @@ const cabinets = fc
       construction,
       side: fc.constantFrom('left' as const, 'right' as const),
       blindShare: fc.double({ min: 0.45, max: 0.7, noNaN: true }),
+      endPanels: fc.record({ left: fc.boolean(), right: fc.boolean() }),
     });
   })
-  .map(({ type, width, height, depth, construction, side, blindShare }) => {
-    const cab = createCabinet(project, type, { id: 'c', width, height, depth, construction });
+  .map(({ type, width, height, depth, construction, side, blindShare, endPanels }) => {
+    const cab = {
+      ...createCabinet(project, type, { id: 'c', width, height, depth, construction }),
+      endPanels,
+    };
     if (!cab.blind) return cab;
     // Blind width: between ~half and ~70% of the width, at least a stile wider than the side.
     const blindWidth = Math.max(

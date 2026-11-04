@@ -9,7 +9,7 @@ import {
 } from '../model';
 import { inch } from '../units';
 import { splitExtents } from './face';
-import { createBaseCabinet, generateCabinet } from './index';
+import { createBaseCabinet, createCabinet, generateCabinet } from './index';
 
 const project = createProject('p', 'Errors');
 const base = (over: Partial<Cabinet> = {}, p: Project = project): Cabinet => ({
@@ -218,16 +218,39 @@ describe('generateCabinet: rejected inputs', () => {
     expect(errorsOf(base({}, noBanding), noBanding).join()).toContain('No edge banding');
   });
 
-  it('warns that end panels are not generated yet', () => {
-    const r = generateCabinet(base({ endPanels: { left: true, right: false } }), project);
-    expect(r.ok && r.model.warnings).toEqual([
-      'End panels are not generated yet; they arrive with room layout.',
-    ]);
-  });
-
   it('rethrows programming errors', () => {
     const bad = { ...base(), face: { kind: 'mystery' } as unknown as OpeningNode };
     expect(() => generateCabinet(bad, project)).toThrow(TypeError);
+  });
+});
+
+describe('end panels', () => {
+  it('runs from the floor to the top and from the wall to the door faces, notched for the toe kick', () => {
+    const r = generateCabinet(base({ endPanels: { left: true, right: false } }), project);
+    if (!r.ok) throw new Error(r.errors.join());
+    const panels = r.model.parts.filter((p) => p.role === 'endPanel');
+    expect(panels.map((p) => p.id)).toEqual(['c/endPanel/L']);
+    const p = panels[0]!;
+    expect(p.finished.length).toBeCloseTo(inch(34.5), 6);
+    expect(p.finished.width).toBeCloseTo(inch(24) + 18, 6); // flush with 18 mm overlay doors
+    expect(p.finished.thickness).toBe(18);
+    expect(p.bounds.max.x).toBe(0);
+    // 4" high; from the door face (24" + 18 mm) back to the platform front (24" − 3").
+    expect(p.notch).toEqual({ height: inch(4), depth: inch(3) + 18 });
+    expect(r.model.warnings).toEqual([]);
+  });
+
+  it('has no notch on wall cabinets and clears a face-frame overhang', () => {
+    const wall = createCabinet(project, 'wall', {
+      id: 'w',
+      construction: { carcass: { style: 'faceFrame' }, faceFrame: { sideOverhang: inch(0.25) } },
+    });
+    const r = generateCabinet({ ...wall, endPanels: { left: false, right: true } }, project);
+    if (!r.ok) throw new Error(r.errors.join());
+    const p = r.model.parts.find((x) => x.role === 'endPanel')!;
+    expect(p.notch).toBeUndefined();
+    expect(p.bounds.min.x).toBeCloseTo(inch(30.25), 6);
+    expect(p.finished.length).toBeCloseTo(inch(30), 6);
   });
 });
 

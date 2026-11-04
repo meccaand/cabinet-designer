@@ -17,6 +17,7 @@ export default defineConfig({
         'src/core/model/**': { lines: 95, branches: 95, functions: 95, statements: 95 },
         'src/core/generate/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
         'src/core/drawing/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
+        'src/core/layout/**': { lines: 95, branches: 85, functions: 95, statements: 95 },
         'src/core/geometry/**': { lines: 95, branches: 95, functions: 95, statements: 95 },
         'src/core/hardware/**': { lines: 95, branches: 95, functions: 95, statements: 95 },
       },

@@ -108,7 +108,15 @@ describe('ProjectSchema cross-references', () => {
   it('rejects placements on missing walls', () => {
     const p = projectWith((p) => {
       p.cabinets.push(cabinet({ placement: { wallId: 'w9', offset: 0, elevation: 0 } }));
-      p.fillers.push({ id: 'f', wallId: 'w9', offset: 0, width: 50, height: 700, elevation: 0 });
+      p.fillers.push({
+        id: 'f',
+        wallId: 'w9',
+        offset: 0,
+        width: 50,
+        height: 700,
+        elevation: 0,
+        depth: 600,
+      });
     });
     expect(issues(p)).toEqual(['Wall "w9" does not exist.', 'Wall "w9" does not exist.']);
   });
@@ -117,7 +125,15 @@ describe('ProjectSchema cross-references', () => {
     const p = projectWith((p) => {
       p.room.walls.push({ id: 'w1', name: 'North', length: 3000, height: 2400, turn: 'left' });
       p.cabinets.push(cabinet({ placement: { wallId: 'w1', offset: 100, elevation: 0 } }));
-      p.fillers.push({ id: 'f', wallId: 'w1', offset: 0, width: 50, height: 700, elevation: 0 });
+      p.fillers.push({
+        id: 'f',
+        wallId: 'w1',
+        offset: 0,
+        width: 50,
+        height: 700,
+        elevation: 0,
+        depth: 600,
+      });
     });
     expect(issues(p)).toEqual([]);
   });
