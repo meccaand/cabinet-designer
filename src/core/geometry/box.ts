@@ -15,6 +15,14 @@ export interface Box {
   max: Vec3;
 }
 
+/** Axis-aligned rectangle on the cabinet face plane (x right, y up). */
+export interface Rect {
+  x0: Mm;
+  x1: Mm;
+  y0: Mm;
+  y1: Mm;
+}
+
 /** Overlaps thinner than this are treated as touching (values are quantized to 1e-6 mm). */
 const TOUCH_TOLERANCE = 5e-7;
 

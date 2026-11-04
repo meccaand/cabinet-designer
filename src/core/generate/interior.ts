@@ -14,11 +14,26 @@ export interface Bay {
   right: Part;
 }
 
-export function buildDividers(ctx: BuildContext, f: CarcassFrame, layout: FaceLayout): Bay[] {
+/** Vertical runs of interior between the bottom, fixed shelves at row splits, and the top. */
+export interface Interior {
+  bays: Bay[];
+  levels: { y0: Mm; y1: Mm }[];
+}
+
+/**
+ * Panels that divide the interior: vertical dividers between top-level columns, and fixed
+ * shelves at top-level row splits (frameless: centred on the gap between fronts; face frame:
+ * flush with the top of the rail so nothing catches on a lip).
+ */
+export function buildPartitions(ctx: BuildContext, f: CarcassFrame, layout: FaceLayout): Interior {
+  const frameless = ctx.c.carcass.style === 'frameless';
+  const banding = frameless
+    ? { banding: { role: 'carcassBanding' as const, edges: ['long1' as const] } }
+    : {};
+
   const bays: Bay[] = [];
   let x0 = f.t;
   let left = f.sides.left;
-  const frameless = ctx.c.carcass.style === 'frameless';
   layout.dividers.forEach((xc, i) => {
     const y0 = f.bottomTop - (f.midJoint ? f.engage : 0);
     const topHoused = f.top !== null && f.midJoint !== null;
@@ -28,10 +43,10 @@ export function buildDividers(ctx: BuildContext, f: CarcassFrame, layout: FaceLa
       role: 'divider',
       name: 'Divider',
       materialRole: 'carcass',
-      bounds: box(xc - f.t / 2, xc + f.t / 2, y0, y1, f.zBackInner, f.Dbox),
+      bounds: box(xc - f.t / 2, xc + f.t / 2, y0, y1, f.zInterior, f.Dbox),
       lengthAxis: 'y',
       thicknessAxis: 'x',
-      ...(frameless && { banding: { role: 'carcassBanding', edges: ['long1'] } }),
+      ...banding,
     });
     if (f.midJoint) ctx.joint(f.bottom, divider, 'dado', 'y', f.engage);
     if (topHoused && f.top) ctx.joint(f.top, divider, 'dado', 'y', f.engage);
@@ -41,7 +56,38 @@ export function buildDividers(ctx: BuildContext, f: CarcassFrame, layout: FaceLa
   });
   bays.push({ x0, x1: f.W - f.t, left, right: f.sides.right });
   for (const b of bays) check(b.x1 - b.x0 > 0, 'Dividers leave a bay with no width.');
-  return bays;
+
+  const ts = ctx.thickness('shelf');
+  const e = f.midJoint ? f.engage : 0;
+  const shelves = layout.rowDividers
+    .map((gap) => (frameless ? (gap.y0 + gap.y1) / 2 - ts / 2 : gap.y1 - ts))
+    .sort((a, b) => a - b)
+    .map((y, i) => {
+      const shelf = ctx.add({
+        id: `shelf/split/${i}`,
+        role: 'shelfFixed',
+        name: 'Fixed shelf',
+        materialRole: 'shelf',
+        bounds: box(f.t - e, f.W - f.t + e, y, y + ts, f.zInterior, f.Dbox),
+        lengthAxis: 'x',
+        thicknessAxis: 'y',
+        ...banding,
+      });
+      if (f.midJoint) {
+        ctx.joint(f.sides.left, shelf, 'dado', 'x', e);
+        ctx.joint(f.sides.right, shelf, 'dado', 'x', e);
+      }
+      return shelf.bounds;
+    });
+  const levels: Interior['levels'] = [];
+  let y = f.bottomTop;
+  for (const b of shelves) {
+    levels.push({ y0: y, y1: b.min.y });
+    y = b.max.y;
+  }
+  levels.push({ y0: y, y1: f.topUnderside });
+  for (const l of levels) check(l.y1 - l.y0 > 0, 'Fixed shelves leave a space with no height.');
+  return { bays, levels };
 }
 
 function bayFor(bays: Bay[], cell: LeafCell): Bay {
@@ -51,12 +97,20 @@ function bayFor(bays: Bay[], cell: LeafCell): Bay {
   return bay;
 }
 
-/** Vertical extent of a cell that lies inside the box (between bottom and top/stretchers). */
-function interiorSpan(f: CarcassFrame, cell: LeafCell): { y0: Mm; y1: Mm } {
-  return {
-    y0: Math.max(cell.rect.y0, f.bottomTop),
-    y1: Math.min(cell.rect.y1, f.topUnderside),
-  };
+/**
+ * Vertical extent of a cell that lies inside the box, within its level between fixed shelves.
+ * A cell whose centre is outside every level (e.g. a sliver of a front above the top panel)
+ * uses the nearest level; the span may then be empty, which the drawer/shelf checks report.
+ */
+function interiorSpan(interior: Interior, cell: LeafCell): { y0: Mm; y1: Mm } {
+  const yc = (cell.rect.y0 + cell.rect.y1) / 2;
+  // Levels are never empty (bottom to top at least); a containing level has distance 0.
+  const level = interior.levels.reduce((best, l) => (gapTo(l, yc) < gapTo(best, yc) ? l : best));
+  return { y0: Math.max(cell.rect.y0, level.y0), y1: Math.min(cell.rect.y1, level.y1) };
+}
+
+function gapTo(l: { y0: Mm; y1: Mm }, y: Mm): number {
+  return y < l.y0 ? l.y0 - y : y > l.y1 ? y - l.y1 : 0;
 }
 
 /**
@@ -67,13 +121,13 @@ export function buildDrawers(
   ctx: BuildContext,
   f: CarcassFrame,
   layout: FaceLayout,
-  bays: Bay[],
+  interior: Interior,
   zFrontInner: Mm,
 ): Mm[] {
   const d = ctx.c.drawer;
   const frameless = ctx.c.carcass.style === 'frameless';
   const slides: Mm[] = [];
-  const available = zFrontInner - f.zBackInner - d.rearClearance;
+  const available = zFrontInner - f.zInterior - d.rearClearance;
   const td = ctx.thickness('drawerBox');
   const tb = ctx.thickness('drawerBottom');
 
@@ -87,11 +141,11 @@ export function buildDrawers(
       );
       check(cell.columns.divided, `${where}: side-by-side drawers need a divider between them.`);
     }
-    const bay = bayFor(bays, cell);
+    const bay = bayFor(interior.bays, cell);
     // Slides mount on the bay walls; in a face frame they are packed out to the opening edges.
     const mountL = frameless ? bay.x0 : Math.max(bay.x0, cell.rect.x0);
     const mountR = frameless ? bay.x1 : Math.min(bay.x1, cell.rect.x1);
-    const span = interiorSpan(f, cell);
+    const span = interiorSpan(interior, cell);
 
     const bx0 = mountL + d.sideClearance;
     const bx1 = mountR - d.sideClearance;
@@ -192,7 +246,7 @@ export function buildShelves(
   ctx: BuildContext,
   f: CarcassFrame,
   layout: FaceLayout,
-  bays: Bay[],
+  interior: Interior,
   zFrontInner: Mm,
 ): number {
   const s = ctx.c.shelves;
@@ -209,9 +263,9 @@ export function buildShelves(
       cell.leaf.fill !== 'drawer' && cell.leaf.fill !== 'falseFront',
       `Opening ${cell.path}: shelves go behind doors or in open openings, not behind drawer or false fronts.`,
     );
-    const bay = bayFor(bays, cell);
-    const { y0, y1 } = interiorSpan(f, cell);
-    const key = `${bays.indexOf(bay)}:${y0}:${y1}`;
+    const bay = bayFor(interior.bays, cell);
+    const { y0, y1 } = interiorSpan(interior, cell);
+    const key = `${interior.bays.indexOf(bay)}:${y0}:${y1}`;
     const prev = groups.get(key);
     if (!prev || shelves.count > prev.count) {
       groups.set(key, {
@@ -244,7 +298,7 @@ export function buildShelves(
             g.bay.x1 - s.widthClearance / 2,
             yc - ts / 2,
             yc + ts / 2,
-            f.zBackInner,
+            f.zInterior,
             zFrontInner - s.depthSetback,
           ),
           lengthAxis: 'x',
@@ -263,7 +317,7 @@ export function buildShelves(
             g.bay.x1 + e,
             yc - ts / 2,
             yc + ts / 2,
-            f.zBackInner,
+            f.zInterior,
             zFrontInner,
           ),
           lengthAxis: 'x',

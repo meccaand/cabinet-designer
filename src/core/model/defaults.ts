@@ -89,6 +89,7 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     backGrooveDepth: inch(3 / 8),
     backGrooveSetback: inch(3 / 4),
     stretcherWidth: inch(4),
+    hangingRailWidth: inch(3),
   },
   platform: { height: inch(4), setback: inch(3), crossMemberSpacing: inch(24) },
   fronts: {

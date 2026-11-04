@@ -1,2 +1,9 @@
 export { generateCabinet, type GenerateResult } from './generate';
-export { createBaseCabinet, type BaseCabinetOptions } from './presets';
+export {
+  CABINET_TYPE_NAMES,
+  createBaseCabinet,
+  createCabinet,
+  type BaseCabinetOptions,
+  type CabinetOptions,
+} from './presets';
+export { TYPE_TRAITS, type TypeTraits } from './traits';

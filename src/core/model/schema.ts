@@ -136,6 +136,8 @@ const CarcassConventions = z.object({
   /** Distance from the back edge of the sides to the near face of the back groove. */
   backGrooveSetback: NonNegLength,
   stretcherWidth: PositiveLength,
+  /** Wall cabinets: width of the hanging rail under the top. */
+  hangingRailWidth: PositiveLength,
 });
 
 const PlatformConventions = z.object({

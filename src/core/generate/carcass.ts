@@ -6,6 +6,7 @@ import { box } from '../geometry';
 import type { Part } from '../parts';
 import { quantize, type Mm } from '../units';
 import { BuildError, type BuildContext } from './context';
+import { TYPE_TRAITS, type TypeTraits } from './traits';
 
 /** Derived carcass dimensions shared by the face, drawer and shelf steps. */
 export interface CarcassFrame {
@@ -24,8 +25,10 @@ export interface CarcassFrame {
   /** Inside faces of the box: x from t to W − t. */
   bottomTop: Mm;
   topUnderside: Mm;
-  /** Front face of the back panel (back of the usable interior). */
+  /** Front face of the back panel. */
   zBackInner: Mm;
+  /** Back of the usable interior: the back panel, or the hanging rail when it is inside. */
+  zInterior: Mm;
   /** How far top/bottom/shelves extend into the sides, 0 for butt/pocket. */
   engage: Mm;
   /** Joint kind for panels at the ends of the sides vs. between them. */
@@ -36,10 +39,12 @@ export interface CarcassFrame {
   /** Full top panel, or null when the top is two stretchers. */
   top: Part | null;
   back: Part;
+  traits: TypeTraits;
 }
 
 export function buildCarcass(ctx: BuildContext): CarcassFrame {
   const { cabinet, c } = ctx;
+  const traits = TYPE_TRAITS[cabinet.type];
   const W = cabinet.width;
   const H = cabinet.height;
   const D = cabinet.depth;
@@ -48,7 +53,7 @@ export function buildCarcass(ctx: BuildContext): CarcassFrame {
   const frameless = c.carcass.style === 'frameless';
   const ft = frameless ? 0 : ctx.thickness('faceFrame');
   const Dbox = quantize(D - ft);
-  const P = c.platform.height;
+  const P = traits.platform ? c.platform.height : 0;
   const y0 = P;
   const y1 = H;
 
@@ -125,7 +130,7 @@ export function buildCarcass(ctx: BuildContext): CarcassFrame {
 
   // Top: a full panel or front + back stretchers, both flat, flush with the side tops.
   let top: Part | null = null;
-  if (c.carcass.baseTop === 'full') {
+  if (!traits.counter || c.carcass.baseTop === 'full') {
     top = ctx.add({
       id: 'top',
       role: 'top',
@@ -207,7 +212,18 @@ export function buildCarcass(ctx: BuildContext): CarcassFrame {
     if (top) ctx.joint(top, backPart, 'groove', 'y', gd);
   }
 
-  buildPlatform(ctx, W, D, P);
+  if (traits.platform) buildPlatform(ctx, W, D, P);
+  const zInterior = traits.hangingRail
+    ? buildHangingRail(ctx, {
+        W,
+        t,
+        bottomTop,
+        topUnderside,
+        zBackInner,
+        groove: back === 'dado',
+        gs,
+      })
+    : zBackInner;
 
   return {
     W,
@@ -221,6 +237,7 @@ export function buildCarcass(ctx: BuildContext): CarcassFrame {
     bottomTop,
     topUnderside,
     zBackInner,
+    zInterior,
     engage,
     endJoint: housed ? 'rabbet' : null,
     midJoint: housed ? 'dado' : null,
@@ -228,7 +245,34 @@ export function buildCarcass(ctx: BuildContext): CarcassFrame {
     bottom,
     top,
     back: backPart,
+    traits,
   };
+}
+
+/**
+ * Wall cabinets hang from a rail screwed through into the studs, directly under the top and
+ * butted between the sides. With a grooved back it sits in the setback space behind the back
+ * (if that space is at least a panel thick); otherwise it sits in front of the back, and
+ * interior parts stop in front of it. Returns the back of the usable interior.
+ */
+function buildHangingRail(
+  ctx: BuildContext,
+  f: { W: Mm; t: Mm; bottomTop: Mm; topUnderside: Mm; zBackInner: Mm; groove: boolean; gs: Mm },
+): Mm {
+  const width = ctx.c.carcass.hangingRailWidth;
+  const behind = f.groove && f.gs >= f.t;
+  const z0 = behind ? f.gs - f.t : f.zBackInner;
+  check(f.topUnderside - width > f.bottomTop, 'Cabinet is too short for its hanging rail.');
+  ctx.add({
+    id: 'hangingRail',
+    role: 'hangingRail',
+    name: 'Hanging rail',
+    materialRole: 'carcass',
+    bounds: box(f.t, f.W - f.t, f.topUnderside - width, f.topUnderside, z0, z0 + f.t),
+    lengthAxis: 'x',
+    thicknessAxis: 'z',
+  });
+  return behind ? f.zBackInner : quantize(f.zBackInner + f.t);
 }
 
 /**

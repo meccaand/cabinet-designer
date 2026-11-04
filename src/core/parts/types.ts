@@ -1,5 +1,5 @@
-import type { Axis, Box } from '../geometry';
-import type { HardwareKind, MaterialRole } from '../model';
+import type { Axis, Box, Rect } from '../geometry';
+import type { HardwareKind, MaterialRole, OpeningFill } from '../model';
 import type { Mm } from '../units';
 
 export type PartRole =
@@ -8,12 +8,15 @@ export type PartRole =
   | 'top'
   | 'stretcher'
   | 'back'
+  | 'hangingRail'
   | 'platformRail'
   | 'platformCrossMember'
   | 'ffStile'
   | 'ffRail'
   | 'ffMullion'
   | 'slabFront'
+  | 'blindPanel'
+  | 'filler'
   | 'frontStile'
   | 'frontRail'
   | 'frontPanel'
@@ -86,10 +89,18 @@ export interface FrontSummary {
   height: Mm;
 }
 
+/** One leaf of the face tree, laid out: the front's cell (frameless) or the opening (face frame). */
+export interface OpeningCell {
+  path: string;
+  fill: OpeningFill;
+  rect: Rect;
+}
+
 /** Everything derived from one cabinet. */
 export interface CabinetModel {
   cabinetId: string;
   parts: Part[];
+  openings: OpeningCell[];
   joints: Joint[];
   fronts: FrontSummary[];
   /** Nominal slide length for each drawer (one pair per drawer). */

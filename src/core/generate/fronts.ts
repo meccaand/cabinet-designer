@@ -6,12 +6,27 @@ import type { CarcassFrame } from './carcass';
 import type { BuildContext } from './context';
 import type { FaceLayout, LeafCell, Rect } from './face';
 
-/** Face-frame outer stiles and rails, plus the rails/mullions between openings. */
-export function buildFaceFrame(ctx: BuildContext, f: CarcassFrame, layout: FaceLayout): void {
+/**
+ * Face-frame outer stiles and rails, plus the rails/mullions between openings. `stiles` are the
+ * outer stile widths measured from the frame's outside edge; a blind corner's blind-side stile
+ * is wide enough to cover the blind portion.
+ */
+export function buildFaceFrame(
+  ctx: BuildContext,
+  f: CarcassFrame,
+  layout: FaceLayout,
+  stiles: { left: Mm; right: Mm },
+): void {
   const { stileWidth: sw, railWidth: rw, sideOverhang: oh } = ctx.c.faceFrame;
   const x0 = -oh;
   const x1 = f.W + oh;
-  const member = (id: string, name: string, role: 'ffStile' | 'ffRail' | 'ffMullion', r: Rect) =>
+  const member = (
+    id: string,
+    name: string,
+    role: 'ffStile' | 'ffRail' | 'ffMullion',
+    r: Rect,
+    notes?: string[],
+  ) =>
     ctx.add({
       id,
       role,
@@ -20,18 +35,25 @@ export function buildFaceFrame(ctx: BuildContext, f: CarcassFrame, layout: FaceL
       bounds: box(r.x0, r.x1, r.y0, r.y1, f.Dbox, f.D),
       lengthAxis: role === 'ffRail' ? 'x' : 'y',
       thicknessAxis: 'z',
+      ...(notes && { notes }),
     });
-  member('ff/stile/L', 'Face frame stile', 'ffStile', { x0, x1: x0 + sw, y0: f.y0, y1: f.y1 });
-  member('ff/stile/R', 'Face frame stile', 'ffStile', { x0: x1 - sw, x1, y0: f.y0, y1: f.y1 });
+  const stile = (side: 'L' | 'R', width: Mm, r: Rect) =>
+    width > sw + 1e-6
+      ? member(`ff/stile/${side}`, 'Face frame blind stile', 'ffStile', r, [
+          'Wider than one board: glue up, or use a plywood panel edged with solid wood.',
+        ])
+      : member(`ff/stile/${side}`, 'Face frame stile', 'ffStile', r);
+  stile('L', stiles.left, { x0, x1: x0 + stiles.left, y0: f.y0, y1: f.y1 });
+  stile('R', stiles.right, { x0: x1 - stiles.right, x1, y0: f.y0, y1: f.y1 });
   member('ff/rail/top', 'Face frame top rail', 'ffRail', {
-    x0: x0 + sw,
-    x1: x1 - sw,
+    x0: x0 + stiles.left,
+    x1: x1 - stiles.right,
     y0: f.y1 - rw,
     y1: f.y1,
   });
   member('ff/rail/bottom', 'Face frame bottom rail', 'ffRail', {
-    x0: x0 + sw,
-    x1: x1 - sw,
+    x0: x0 + stiles.left,
+    x1: x1 - stiles.right,
     y0: f.y0,
     y1: f.y0 + rw,
   });

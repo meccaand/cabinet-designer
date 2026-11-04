@@ -3,6 +3,7 @@ export type {
   FrontSummary,
   HardwareLine,
   Joint,
+  OpeningCell,
   Part,
   PartEdges,
   PartRole,

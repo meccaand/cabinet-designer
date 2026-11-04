@@ -4,16 +4,12 @@
  * Frameless: each child's size is its front's size, and cells are separated by the reveal
  * between fronts. Face frame: sizes are openings, separated by rails and mullions.
  */
+import type { Rect } from '../geometry';
 import type { OpeningLeaf, OpeningNode } from '../model';
 import { quantize, type Mm } from '../units';
 import { BuildError } from './context';
 
-export interface Rect {
-  x0: Mm;
-  x1: Mm;
-  y0: Mm;
-  y1: Mm;
-}
+export type { Rect };
 
 export interface LeafCell {
   leaf: OpeningLeaf;
@@ -34,21 +30,23 @@ export interface FaceLayout {
   leaves: LeafCell[];
   /** Face-frame rails and mullions between openings (not the outer frame). */
   members: FaceMember[];
-  /** Centre x of each divider panel (top-level column splits only). */
+  /** Centre x of each vertical divider panel (top-level column split with `divider`). */
   dividers: Mm[];
+  /** The gap between rows where a fixed shelf goes (top-level row split with `divider`). */
+  rowDividers: Rect[];
 }
 
 export interface LayoutRules {
   /** Added to every child's size to get its cell (frameless inset: the gap around the front). */
   pad: Mm;
-  rowGap: Mm;
+  rowGap: (divided: boolean) => Mm;
   columnGap: (divided: boolean) => Mm;
   /** Face frame: rails and mullions fill the gaps. */
   members: boolean;
 }
 
 export function layoutFace(root: OpeningNode, rect: Rect, rules: LayoutRules): FaceLayout {
-  const out: FaceLayout = { leaves: [], members: [], dividers: [] };
+  const out: FaceLayout = { leaves: [], members: [], dividers: [], rowDividers: [] };
   visit(root, rect, '', null, rules, out);
   return out;
 }
@@ -67,13 +65,14 @@ function visit(
   }
   const rows = node.dir === 'rows';
   const divided = node.divider === true;
-  if (divided && (rows || path !== '')) {
-    throw new BuildError('Dividers are only supported between the top-level columns of a cabinet.');
+  if (divided && path !== '') {
+    throw new BuildError(
+      'Dividers and fixed shelves between openings are only supported at the top level of a cabinet.',
+    );
   }
   const total = rows ? rect.y1 - rect.y0 : rect.x1 - rect.x0;
-  const gap = rows ? rules.rowGap : rules.columnGap(divided);
-  if (divided && gap <= 0)
-    throw new BuildError('A divided column split needs room for the divider.');
+  const gap = rows ? rules.rowGap(divided) : rules.columnGap(divided);
+  if (divided && gap <= 0) throw new BuildError('A divided split needs room for the divider.');
   const cells = splitExtents(total, node.children, gap, rules.pad, rows ? 'height' : 'width');
 
   let cursor = rows ? rect.y1 : rect.x0;
@@ -92,7 +91,8 @@ function visit(
       : { x0: quantize(cursor - gap), x1: cursor, y0: rect.y0, y1: rect.y1 };
     if (rules.members)
       out.members.push({ kind: rows ? 'rail' : 'mullion', path: childPath, rect: between });
-    if (divided) out.dividers.push(quantize((between.x0 + between.x1) / 2));
+    if (divided && rows) out.rowDividers.push(between);
+    else if (divided) out.dividers.push(quantize((between.x0 + between.x1) / 2));
   });
 }
 
