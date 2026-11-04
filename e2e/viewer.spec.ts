@@ -7,7 +7,7 @@ const label = (page: Page, d: 'width' | 'height' | 'depth') =>
 /** A point on the cabinet. Measures the 3D view region: a fresh canvas briefly reports its
  * default 300 × 150 size before layout. */
 const canvasCentre = async (page: Page) => {
-  const box = (await page.getByRole('main', { name: '3D view' }).boundingBox())!;
+  const box = (await page.getByRole('main', { name: 'Main view' }).boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height * 0.6 };
 };
 
@@ -49,7 +49,7 @@ test('click selects the cabinet, a second click picks the part under the cursor'
   await expect(part.getByTestId('cut-size')).toHaveText('24 1/4" × 14 7/8" × ≈11/16"');
 
   // Clicking empty space clears the selection.
-  const view = (await page.getByRole('main', { name: '3D view' }).boundingBox())!;
+  const view = (await page.getByRole('main', { name: 'Main view' }).boundingBox())!;
   await page.mouse.click(view.x + 20, view.y + view.height - 20);
   await expect(page.getByText('Click the cabinet to select it')).toBeVisible();
 });

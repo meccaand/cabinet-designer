@@ -7,7 +7,7 @@ test('app shell loads with its work areas', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('Cabinet Designer');
   await expect(page.getByRole('complementary', { name: 'Cabinets' })).toBeVisible();
-  await expect(page.getByRole('main', { name: '3D view' })).toBeVisible();
+  await expect(page.getByRole('main', { name: 'Main view' })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Properties' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Shop outputs' })).toBeVisible();
   expect(errors).toEqual([]);

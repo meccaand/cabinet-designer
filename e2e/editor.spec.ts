@@ -72,7 +72,7 @@ test('openings can be refilled, split and removed', async ({ page }) => {
 test('an opening that does not fit is reported instead of drawn', async ({ page }) => {
   await page.getByRole('button', { name: 'Opening 1: Drawer' }).click();
   await setLength(page, 'Front height', '40');
-  await expect(page.getByRole('main', { name: '3D view' }).getByRole('alert')).toContainText(
+  await expect(page.getByRole('main', { name: 'Main view' }).getByRole('alert')).toContainText(
     "can't be built as specified",
   );
   await expect(editor(page).getByRole('alert').first()).toContainText('leave no room');
@@ -81,24 +81,24 @@ test('an opening that does not fit is reported instead of drawn', async ({ page 
 test('adds cabinets of every type, switches units, and deletes', async ({ page }) => {
   const sidebar = page.getByRole('complementary', { name: 'Cabinets' });
   await sidebar.getByLabel('Add a cabinet').selectOption('wall');
-  await expect(sidebar.getByRole('button', { name: /Wall cabinet 1/ })).toHaveAttribute(
+  await expect(sidebar.getByRole('button', { name: /Wall cabinet 2/ })).toHaveAttribute(
     'aria-current',
     'true',
   );
   await expect(label(page, 'depth')).toHaveText('12"');
-  await expect(field(page, 'Name')).toHaveValue('Wall cabinet 1');
+  await expect(field(page, 'Name')).toHaveValue('Wall cabinet 2');
 
   for (const type of ['blindBase', 'tall', 'openShelf', 'drawerBank', 'blindWall']) {
     await sidebar.getByLabel('Add a cabinet').selectOption(type);
     await expect(page.locator('canvas')).toBeVisible();
-    await expect(page.getByRole('main', { name: '3D view' }).getByRole('alert')).toHaveCount(0);
+    await expect(page.getByRole('main', { name: 'Main view' }).getByRole('alert')).toHaveCount(0);
   }
-  await expect(sidebar.getByRole('listitem')).toHaveCount(9);
+  await expect(sidebar.getByRole('listitem')).toHaveCount(10);
 
   await page.getByRole('combobox', { name: 'Units' }).selectOption('mm0');
   await expect(label(page, 'width')).toHaveText('≈914 mm'); // 36" = 914.4 mm
   await expect(field(page, 'Width')).toHaveValue('≈914 mm');
 
   await editor(page).getByRole('button', { name: 'Delete cabinet' }).click();
-  await expect(sidebar.getByRole('listitem')).toHaveCount(8);
+  await expect(sidebar.getByRole('listitem')).toHaveCount(9);
 });
