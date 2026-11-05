@@ -4,5 +4,12 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "eslint.config.js", "e2e"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.screenshots.config.ts",
+    "eslint.config.js",
+    "e2e",
+    "scripts"
+  ]
 }

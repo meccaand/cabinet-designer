@@ -446,3 +446,74 @@ The layout depends on screen width:
 **Touch.** Coarse pointers get 40 px targets on the header, tabs and 3D toolbar.
 
 The Playwright tests check an 820 × 1180 touch viewport, where no view scrolls sideways.
+
+## ADR-033: Performance with large projects
+
+**Status:** Accepted (M8)
+
+The benchmark is a 64-cabinet, four-wall kitchen (`src/core/__tests__/bigKitchen.ts`) with
+about 1,130 parts. Measured on an M1 with the GPU:
+
+| Step                         | Time                                              |
+| ---------------------------- | ------------------------------------------------- |
+| Generate all cabinets        | 5 ms                                              |
+| Cut list                     | 10 ms                                             |
+| Nesting (38 + 6 + 15 sheets) | about 200 ms in Node, about 100 ms in the browser |
+| Estimate                     | 1 ms                                              |
+| 3D room view                 | 60 fps while orbiting                             |
+
+Before this milestone, every edit blocked the page while the sheets were laid out again. That
+included moving a cabinet, so five arrow-key nudges took 570 ms. Three changes fixed it:
+
+1. **Nesting is cached by its exact inputs.** `cachingNester` is an LRU of 24 entries, keyed by
+   the parts, sheet and options. Moves, renames and price changes don't touch any part, so they
+   never re-nest. Five nudges went from 570 ms to 78 ms, with no long tasks.
+2. **Outputs follow a deferred project** (`useDeferredValue`). The editor and model repaint
+   first, so a width edit reaches the screen in 16–32 ms, and the ~100 ms layout pass runs
+   after the paint. A Web Worker would take that pass off the main thread entirely. It isn't
+   worth the async state and stale-layout handling at this size.
+3. **3D parts share their geometry.** They share one unit box and its outline, and drei's
+   `Edges` (one outline geometry per part) is gone. Parts subscribe to booleans ("am I
+   selected"), so selecting re-renders only the parts it changes. Opening the room view went
+   from 291 ms of long tasks to 59 ms.
+
+4. **The 3D view draws on demand** (`frameloop="demand"`), not 60 times a second. The camera,
+   prop changes and animation steps ask for frames, so an idle room costs no CPU or battery.
+   This matters on tablets, and in CI, where WebGL is software-rendered.
+
+The 3D chunk is still 260 KB compressed. It is almost all three.js, because React Three Fiber
+v9 registers the whole three.js namespace. It loads after the app shell, so first paint
+doesn't wait for it.
+
+Guards:
+
+- A core test runs the whole pipeline on the 64-cabinet kitchen, with a generous time budget
+  and yield within 15% of the area floor.
+- A cache test checks that a move reuses every layout.
+- A Playwright test imports the big kitchen, opens the room view, then nudges ten times (timed,
+  in plan) and resizes a cabinet.
+
+## ADR-034: Accessibility baseline
+
+**Status:** Accepted (M8)
+
+Every view and dialog passes axe (WCAG 2.1 AA plus best practices) in light and dark mode,
+checked in Playwright. The fixes:
+
+- **Contrast.** The accent darkened to `#a65a17`. Text on the accent uses an `--on-accent`
+  token (white in light mode, near-black in dark), and error text uses a `--danger` token that
+  lightens in dark mode.
+- **Roles.**
+  - Drawings with clickable parts (the front elevation, plan, wall elevation) are labelled
+    groups, not images.
+  - The 3D canvas is a labelled image. Its content is also reachable from the cabinet list and
+    the Parts tab.
+  - The app name is the page's `h1`.
+- **Keyboard.**
+  - Cabinets on the plan and wall elevation are focusable buttons: Enter or Space selects one,
+    and the arrow shortcuts move it (ADR-031).
+  - Scrollable output regions are focusable.
+  - Drawers move focus in when they open.
+
+Dragging stays mouse and touch only. The keyboard alternatives are the arrow keys and the
+"From wall start" field.

@@ -47,11 +47,11 @@ export default tseslint.config(
   },
   {
     // Tests index into fixtures they just built; a failed lookup fails the test anyway.
-    files: ['**/*.test.ts', '**/__tests__/**/*.ts', 'e2e/**/*.ts'],
+    files: ['**/*.test.ts', '**/__tests__/**/*.ts', 'e2e/**/*.ts', 'scripts/**/*.ts'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
-    files: ['*.config.{js,ts}', 'e2e/**/*.ts'],
+    files: ['*.config.{js,ts}', 'e2e/**/*.ts', 'scripts/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
 );

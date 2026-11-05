@@ -16,8 +16,8 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 4. Cabinet editor  | ✅ Done                  |
 | 5. Project layout  | ✅ Done                  |
 | 6. Outputs         | ✅ Done                  |
-| 7. Export & polish | ✅ Done, awaiting review |
-| 8. Hardening       | Next                     |
+| 7. Export & polish | ✅ Done                  |
+| 8. Hardening       | ✅ Done, awaiting review |
 
 ## Scope decisions from your answers
 
