@@ -2,8 +2,7 @@ import type { Draft } from 'immer';
 import { useState } from 'react';
 import type { Estimate } from '../../core/costing';
 import type { HardwareKind, MaterialRole, Project } from '../../core/model';
-import { formatLength } from '../../core/units';
-import { formatMoney, formatRun, formatThickness } from '../outputs';
+import { formatMoney, formatThickness, shoppingList } from '../../core/report';
 import { useProjectStore } from '../store/projectStore';
 import form from '../ui/Form.module.css';
 import { LengthInput } from '../ui/LengthInput';
@@ -15,7 +14,6 @@ const FT_PER_M = 3.28084;
 /** What to buy and what it costs, and the material library it's priced from. */
 export function MaterialsView({ project, estimate }: { project: Project; estimate: Estimate }) {
   const imperial = project.units.system === 'imperial';
-  const f = (v: number) => formatLength(v, project.units);
   return (
     <div className={styles.scroll} role="region" aria-label="Materials and cost">
       <section className={styles.group} aria-label="Estimate">
@@ -29,41 +27,11 @@ export function MaterialsView({ project, estimate }: { project: Project; estimat
             </tr>
           </thead>
           <tbody>
-            {estimate.sheets.map((s) => (
-              <tr key={s.materialId}>
-                <td>{s.name}</td>
-                <td className={styles.num}>
-                  {s.count} sheet{s.count === 1 ? '' : 's'} ({Math.round(s.yield * 100)}% used)
-                </td>
-                <td className={styles.num}>{formatMoney(s.cost)}</td>
-              </tr>
-            ))}
-            {estimate.solids.map((s) => (
-              <tr key={s.materialId}>
-                <td>{s.name}</td>
-                <td className={styles.num}>
-                  {s.boardFeet.toFixed(1)} bd ft (incl.{' '}
-                  {Math.round(project.shop.boardFootWaste * 100)}% waste) ·{' '}
-                  {formatRun(s.length, project.units)} of parts
-                </td>
-                <td className={styles.num}>{formatMoney(s.cost)}</td>
-              </tr>
-            ))}
-            {estimate.banding.map((b) => (
-              <tr key={b.bandingId}>
-                <td>{b.name}</td>
-                <td className={styles.num}>{formatRun(b.length, project.units)}</td>
-                <td className={styles.num}>{formatMoney(b.cost)}</td>
-              </tr>
-            ))}
-            {estimate.hardware.map((h) => (
-              <tr key={`${h.kind}-${h.itemId}-${h.length ?? ''}`}>
-                <td>
-                  {h.name}
-                  {h.length !== undefined && `, ${f(h.length)}`}
-                </td>
-                <td className={styles.num}>{h.qty}</td>
-                <td className={styles.num}>{formatMoney(h.cost)}</td>
+            {shoppingList(project, estimate).map((l) => (
+              <tr key={l.key}>
+                <td>{l.item}</td>
+                <td className={styles.num}>{l.quantity}</td>
+                <td className={styles.num}>{formatMoney(l.cost)}</td>
               </tr>
             ))}
             <tr className={styles.total}>

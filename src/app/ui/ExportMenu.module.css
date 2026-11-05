@@ -1,0 +1,75 @@
+.trigger {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  background: var(--hover);
+}
+
+/* A popover sits in the top layer; pin it under the header's right-hand controls. */
+.menu {
+  position: fixed;
+  inset: 52px 12px auto auto;
+  width: min(300px, calc(100vw - 24px));
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--hover);
+}
+
+.item:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.status,
+.error {
+  margin: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.error {
+  color: #b03a2e;
+}

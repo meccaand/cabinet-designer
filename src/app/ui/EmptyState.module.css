@@ -1,0 +1,41 @@
+.empty {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.empty p {
+  margin: 0 0 8px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.actions button {
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actions button:first-child {
+  background: var(--accent);
+  color: #fff;
+}

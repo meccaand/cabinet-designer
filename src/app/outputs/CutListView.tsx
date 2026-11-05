@@ -1,22 +1,8 @@
-import type { CutList, CutListRow } from '../../core/cutlist';
+import type { CutList } from '../../core/cutlist';
 import type { Project } from '../../core/model';
+import { bandingText, formatThickness, grainText, rowNotes } from '../../core/report';
 import { formatLength } from '../../core/units';
-import { formatThickness } from '../outputs';
 import styles from './Outputs.module.css';
-
-/** Banded edges in words: "2 long, 1 end, PVC 2 mm". */
-function banding(row: CutListRow, project: Project): string {
-  const e = row.edges;
-  const long = [e.long1, e.long2].filter(Boolean).length;
-  const ends = [e.end1, e.end2].filter(Boolean).length;
-  if (long + ends === 0) return '—';
-  const id = e.long1 ?? e.long2 ?? e.end1 ?? e.end2;
-  const name = project.materials.banding.find((b) => b.id === id)?.name ?? '';
-  const parts = [long && `${long} long`, ends && `${ends} end${ends > 1 ? 's' : ''}`].filter(
-    Boolean,
-  );
-  return `${parts.join(', ')} · ${name}`;
-}
 
 /** The cut list, by material: what to cut, how many, and where each goes. */
 export function CutListView({ project, cutList }: { project: Project; cutList: CutList }) {
@@ -62,18 +48,9 @@ export function CutListView({ project, cutList }: { project: Project; cutList: C
                     <td className={styles.num}>{f(r.length)}</td>
                     <td className={styles.num}>{f(r.width)}</td>
                     <td className={styles.num}>{formatThickness(r.thickness, project.units)}</td>
-                    <td>{r.grain ? 'Along length' : 'Any'}</td>
-                    <td>{banding(r, project)}</td>
-                    <td className={styles.notes}>
-                      {[
-                        ...(r.notch
-                          ? [
-                              `Notch ${f(r.notch.height)} × ${f(r.notch.depth)} at the bottom front for the toe kick.`,
-                            ]
-                          : []),
-                        ...r.notes,
-                      ].join(' ')}
-                    </td>
+                    <td>{grainText(r)}</td>
+                    <td>{bandingText(r, project.materials)}</td>
+                    <td className={styles.notes}>{rowNotes(r, project.units)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -171,4 +171,35 @@ describe('projectStore', () => {
     expect(s().removeMaterial('shelf-pin-5')).toBe(true);
     expect(s().project.materials.hardware.map((h) => h.id)).not.toContain('shelf-pin-5');
   });
+
+  it('nudges along the wall, not past its start; a run of nudges is one undo step', () => {
+    const offset = () => s().project.cabinets.find((c) => c.id === 'shaker-base')!.placement.offset;
+    const start = offset();
+    const history = s().past.length;
+    s().nudgeItem('shaker-base', inch(1));
+    s().nudgeItem('shaker-base', inch(1));
+    s().nudgeItem('shaker-base', inch(-1 / 16));
+    expect(offset()).toBeCloseTo(start + inch(2 - 1 / 16), 9);
+    expect(s().past).toHaveLength(history + 1);
+    s().undo();
+    expect(offset()).toBe(start);
+
+    // Another edit in between starts a new step; so does nudging something else.
+    s().nudgeItem('shaker-base', inch(1));
+    s().rename('Renamed');
+    s().nudgeItem('shaker-base', inch(1));
+    s().nudgeItem('sink-base', inch(1));
+    expect(s().past).toHaveLength(history + 4);
+
+    s().nudgeItem('sink-base', -inch(1000));
+    expect(s().project.cabinets.find((c) => c.id === 'sink-base')!.placement.offset).toBe(0);
+
+    const filler = s().fillGap('drawer-base', 'right')!;
+    const before = s().project.fillers.find((f) => f.id === filler)!.offset;
+    s().nudgeItem(filler, inch(1 / 2));
+    expect(s().project.fillers.find((f) => f.id === filler)!.offset).toBeCloseTo(
+      before + inch(0.5),
+      9,
+    );
+  });
 });

@@ -19,7 +19,12 @@ import { useCabinetModel } from './useCabinetModel';
 import { CutListView } from './outputs/CutListView';
 import { MaterialsView } from './outputs/MaterialsView';
 import { SheetsView } from './outputs/SheetsView';
-import { formatMoney, useOutputs } from './outputs';
+import { useOutputs } from './outputs';
+import { useShortcuts } from './shortcuts';
+import { EmptyState, StartButtons } from './ui/EmptyState';
+import { ExportMenu } from './ui/ExportMenu';
+import { ShortcutsDialog } from './ui/ShortcutsDialog';
+import { formatMoney } from '../core/report';
 import { formatLength } from '../core/units';
 
 // three.js is most of the bundle; load it after the shell so the app appears immediately.
@@ -46,7 +51,9 @@ export function App() {
   const panel = useViewerStore((s) => s.panel);
   const main = useViewerStore((s) => s.main);
   const elevationWall = useViewerStore((s) => s.elevationWall);
-  const { select, selectOpening, setPanel, setMain, setElevationWall } = useViewerStore.getState();
+  const drawer = useViewerStore((s) => s.drawer);
+  const { select, selectOpening, setPanel, setMain, setElevationWall, setDrawer, setHelp } =
+    useViewerStore.getState();
   const save = useSaveStatus();
   const [projectsOpen, setProjectsOpen] = useState(false);
 
@@ -70,27 +77,19 @@ export function App() {
     inspector.current?.scrollTo(0, 0);
   }, [activeId]);
 
-  // Undo/redo shortcuts, except while typing (inputs keep their own undo).
+  useShortcuts();
+
+  // An opened side panel (narrow screens) takes the focus, so keyboard users land in it.
+  const shell = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-      const key = e.key.toLowerCase();
-      if (key === 'z' && !e.shiftKey) undo();
-      else if ((key === 'z' && e.shiftKey) || key === 'y') redo();
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo]);
+    if (drawer) shell.current?.querySelector<HTMLElement>(`[data-close="${drawer}"]`)?.focus();
+  }, [drawer]);
 
   const show = (id: string) => {
     setActiveCabinet(id);
     select(null);
     selectOpening(null);
+    setDrawer(null);
   };
   const pickItem = (item: LayoutItem | null) => {
     if (!item) return select(null);
@@ -101,8 +100,16 @@ export function App() {
   };
 
   return (
-    <div className={styles.shell}>
+    <div ref={shell} className={styles.shell} data-drawer={drawer ?? undefined}>
       <header className={styles.header}>
+        <button
+          type="button"
+          className={`${styles.toggle} ${styles.cabinetsToggle}`}
+          aria-expanded={drawer === 'cabinets'}
+          onClick={() => setDrawer(drawer === 'cabinets' ? null : 'cabinets')}
+        >
+          ☰ Cabinets
+        </button>
         <span className={styles.brand}>Cabinet Designer</span>
         <button
           type="button"
@@ -129,7 +136,7 @@ export function App() {
             aria-label="Undo"
             title="Undo (⌘Z / Ctrl+Z)"
           >
-            ↶ Undo
+            ↶<span className={styles.label}> Undo</span>
           </button>
           <button
             type="button"
@@ -138,10 +145,28 @@ export function App() {
             aria-label="Redo"
             title="Redo (⇧⌘Z / Ctrl+Y)"
           >
-            ↷ Redo
+            ↷<span className={styles.label}> Redo</span>
           </button>
         </div>
+        <ExportMenu project={project} outputs={outputs} />
         <UnitsSelect units={project.units} onChange={setUnits} />
+        <button
+          type="button"
+          className={styles.toggle}
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+          onClick={() => setHelp(true)}
+        >
+          ?
+        </button>
+        <button
+          type="button"
+          className={`${styles.toggle} ${styles.propertiesToggle}`}
+          aria-expanded={drawer === 'properties'}
+          onClick={() => setDrawer(drawer === 'properties' ? null : 'properties')}
+        >
+          Properties
+        </button>
       </header>
       {save.status === 'error' && save.message && (
         <p className={styles.banner} role="alert">
@@ -149,8 +174,17 @@ export function App() {
         </p>
       )}
 
+      {drawer && (
+        <div className={styles.backdrop} aria-hidden="true" onClick={() => setDrawer(null)} />
+      )}
+
       <aside className={styles.sidebar} aria-label="Cabinets">
-        <h2 className={styles.heading}>Cabinets</h2>
+        <div className={styles.drawerHead}>
+          <h2 className={styles.heading}>Cabinets</h2>
+          <button type="button" data-close="cabinets" onClick={() => setDrawer(null)}>
+            Close
+          </button>
+        </div>
         <CabinetList project={project} activeId={activeId} onSelect={show} />
         <AddCabinet onAdd={(type) => show(addCabinet(type))} />
         {project.fillers.length > 0 && (
@@ -164,7 +198,10 @@ export function App() {
                   <button
                     type="button"
                     aria-current={selection?.kind === 'filler' && selection.id === f.id}
-                    onClick={() => select({ kind: 'filler', id: f.id })}
+                    onClick={() => {
+                      select({ kind: 'filler', id: f.id });
+                      setDrawer(null);
+                    }}
                   >
                     Filler {formatLength(f.width, project.units)} ·{' '}
                     {project.room.walls.find((w) => w.id === f.wallId)?.name ?? '—'}
@@ -194,7 +231,17 @@ export function App() {
             </button>
           ))}
         </div>
-        {main === 'cutlist' ? (
+        {project.cabinets.length === 0 &&
+        (main === '3d' || main === 'cutlist' || main === 'sheets') ? (
+          <EmptyState title="No cabinets yet">
+            <p>
+              Add a cabinet to start. Each new cabinet goes on the wall after the last one; set up
+              your walls under Room &amp; walls.
+            </p>
+            <p>The cut list, sheet layouts and shop packet build themselves as you go.</p>
+            <StartButtons />
+          </EmptyState>
+        ) : main === 'cutlist' ? (
           <CutListView project={project} cutList={outputs.cutList} />
         ) : main === 'sheets' ? (
           <SheetsView project={project} cutList={outputs.cutList} nests={outputs.nests} />
@@ -220,7 +267,9 @@ export function App() {
             onMove={(id, offset) => moveItem(id, { offset })}
           />
         ) : !cabinet || !result ? (
-          <p className={styles.empty}>Add a cabinet to see it here in 3D.</p>
+          <EmptyState title="No cabinet selected">
+            <p>Pick a cabinet from the list to see it here in 3D.</p>
+          </EmptyState>
         ) : result.ok ? (
           <Suspense fallback={<p className={styles.empty}>Loading 3D view…</p>}>
             <Viewer
@@ -241,6 +290,12 @@ export function App() {
       </main>
 
       <aside ref={inspector} className={styles.inspector} aria-label="Properties">
+        <div className={styles.drawerHead}>
+          <h2 className={styles.heading}>Properties</h2>
+          <button type="button" data-close="properties" onClick={() => setDrawer(null)}>
+            Close
+          </button>
+        </div>
         {filler ? (
           <FillerEditor project={project} filler={filler} />
         ) : cabinet && result ? (
@@ -278,7 +333,11 @@ export function App() {
             )}
           </>
         ) : (
-          <p className={styles.empty}>Add a cabinet to edit it.</p>
+          <p className={styles.empty}>
+            {project.cabinets.length
+              ? 'Pick a cabinet to edit its size, construction and fronts.'
+              : 'Once you add a cabinet, its size, construction and fronts are edited here.'}
+          </p>
         )}
       </aside>
 
@@ -308,6 +367,7 @@ export function App() {
       </section>
 
       <ProjectsDialog open={projectsOpen} onClose={() => setProjectsOpen(false)} />
+      <ShortcutsDialog />
     </div>
   );
 }

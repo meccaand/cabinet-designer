@@ -13,7 +13,7 @@ import type {
   UnitSettings,
   Wall,
 } from '../../core/model';
-import { inch, type Mm } from '../../core/units';
+import { inch, quantize, type Mm } from '../../core/units';
 import { projectLayout } from '../models';
 import { createSampleProject } from '../sample';
 
@@ -44,6 +44,9 @@ export interface ProjectState {
   deleteCabinet: (id: string) => void;
   /** Move a cabinet or filler along its wall (or onto another wall). */
   moveItem: (id: string, placement: { wallId?: string; offset?: Mm; elevation?: Mm }) => void;
+  /** Move a cabinet or filler along its wall by `delta` (not past the wall start). Repeated
+   * nudges of the same item are one undo step. */
+  nudgeItem: (id: string, delta: Mm) => void;
 
   addWall: () => void;
   updateWall: (id: string, recipe: (wall: Draft<Wall>) => void) => void;
@@ -66,16 +69,23 @@ export interface ProjectState {
 export const useProjectStore = create<ProjectState>((set, get) => {
   const initial = createSampleProject();
 
-  /** Apply an undoable edit to the document. */
-  const edit = (recipe: (p: Draft<Project>) => void) =>
+  /** The last coalescing edit (ADR-003): its key and the document it produced. */
+  let coalescing: { key: string; project: Project } | null = null;
+
+  /**
+   * Apply an undoable edit to the document. Consecutive edits with the same `key`, with nothing
+   * else in between (no other edit, undo or redo), share one undo step.
+   */
+  const edit = (recipe: (p: Draft<Project>) => void, key?: string) =>
     set((s) => {
       const next = produce(s.project, recipe);
       if (next === s.project) return {};
-      return {
-        project: next,
-        past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.project],
-        future: [],
-      };
+      const merge =
+        key !== undefined && coalescing?.key === key && coalescing.project === s.project;
+      coalescing = key === undefined ? null : { key, project: next };
+      return merge
+        ? { project: next, future: [] }
+        : { project: next, past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.project], future: [] };
     });
   /** Keep the active cabinet pointing at something that exists. */
   const fixActive = (project: Project, preferred: string | null) =>
@@ -211,6 +221,13 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           if (placement.elevation !== undefined) filler.elevation = placement.elevation;
         }
       }),
+
+    nudgeItem: (id, delta) =>
+      edit((p) => {
+        const item =
+          p.cabinets.find((c) => c.id === id)?.placement ?? p.fillers.find((f) => f.id === id);
+        if (item) item.offset = Math.max(0, quantize(item.offset + delta));
+      }, `nudge:${id}`),
 
     addWall: () =>
       edit((p) => {

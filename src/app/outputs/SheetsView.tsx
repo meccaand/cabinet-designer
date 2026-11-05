@@ -1,9 +1,11 @@
-import { useId } from 'react';
 import type { CutList } from '../../core/cutlist';
+import { sheetDrawing } from '../../core/drawing';
 import type { Project } from '../../core/model';
-import type { Cut, MaterialNest, SheetLayout } from '../../core/nesting';
+import type { MaterialNest } from '../../core/nesting';
+import { cutStep } from '../../core/report';
 import { formatLength } from '../../core/units';
 import { useProjectStore } from '../store/projectStore';
+import { DrawingSvg } from '../ui/DrawingSvg';
 import { LengthInput } from '../ui/LengthInput';
 import styles from './Outputs.module.css';
 
@@ -63,12 +65,10 @@ export function SheetsView({
             )}
             {sheets.map((s, i) => (
               <div key={i} className={styles.sheetRow}>
-                <SheetDiagram
-                  layout={s}
-                  length={sheet.length}
-                  width={sheet.width}
-                  trim={project.shop.sheetEdgeTrim}
+                <DrawingSvg
+                  drawing={sheetDrawing(s, sheet, project.shop.sheetEdgeTrim)}
                   label={`${n.materialName}, sheet ${i + 1} of ${sheets.length}`}
+                  className={styles.sheetSvg}
                 />
                 <div>
                   <strong>
@@ -76,7 +76,7 @@ export function SheetsView({
                   </strong>
                   <ol className={styles.steps} aria-label={`Cuts for sheet ${i + 1}`}>
                     {s.cuts.map((c) => (
-                      <li key={c.n}>{step(c, s, f)}</li>
+                      <li key={c.n}>{cutStep(c, s, project.units)}</li>
                     ))}
                     {s.cuts.length === 0 && <li>No cuts: the part is the whole sheet.</li>}
                   </ol>
@@ -97,145 +97,5 @@ export function SheetsView({
         rows). Red numbers are the cut order.
       </p>
     </div>
-  );
-}
-
-/** A cut in shop language. */
-function step(c: Cut, s: SheetLayout, f: (v: number) => string): string {
-  const verb = c.kind === 'rip' ? 'Rip' : 'Crosscut';
-  const label = s.placements.find((p) => p.partId === c.partId)?.label;
-  switch (c.stage) {
-    case 0:
-      return `Trim ${f(c.size)} off a factory edge (${c.kind}).`;
-    case 1:
-      return `${verb} a strip ${f(c.size)} wide off the sheet.`;
-    case 2:
-      return `${verb} a ${f(c.size)} section off the strip.`;
-    case 3:
-      return `${verb} part #${label} off the section at ${f(c.size)}.`;
-    case 4:
-      return `Trim part #${label} to ${f(c.size)} (${c.kind}).`;
-  }
-}
-
-function SheetDiagram({
-  layout,
-  length,
-  width,
-  trim,
-  label,
-}: {
-  layout: SheetLayout;
-  length: number;
-  width: number;
-  trim: number;
-  label: string;
-}) {
-  const text = width * 0.04;
-  const badge = width * 0.022;
-  const hatch = useId();
-  return (
-    <svg
-      className={styles.sheetSvg}
-      viewBox={`0 0 ${length} ${width}`}
-      role="img"
-      aria-label={label}
-    >
-      <defs>
-        <pattern
-          id={hatch}
-          width={width * 0.03}
-          height={width * 0.03}
-          patternUnits="userSpaceOnUse"
-          patternTransform="rotate(45)"
-        >
-          <line
-            x1="0"
-            y1="0"
-            x2="0"
-            y2={width * 0.03}
-            stroke="#c9bda5"
-            strokeWidth={width * 0.006}
-          />
-        </pattern>
-      </defs>
-      <rect
-        x={0}
-        y={0}
-        width={length}
-        height={width}
-        className={trim > 0 ? styles.trim : styles.sheet}
-        strokeWidth={width * 0.002}
-      />
-      {trim > 0 && (
-        <rect
-          x={trim}
-          y={trim}
-          width={length - 2 * trim}
-          height={width - 2 * trim}
-          className={styles.sheet}
-          strokeWidth={width * 0.002}
-        />
-      )}
-      {layout.offcut && (
-        <rect
-          x={layout.offcut.x}
-          y={layout.offcut.y}
-          width={layout.offcut.w}
-          height={layout.offcut.h}
-          className={styles.offcut}
-          fill={`url(#${CSS.escape(hatch)})`}
-        />
-      )}
-      {layout.placements.map((p) => (
-        <g key={p.partId}>
-          <rect
-            x={p.x}
-            y={p.y}
-            width={p.w}
-            height={p.h}
-            className={styles.part}
-            strokeWidth={width * 0.003}
-          />
-          <text
-            x={p.x + p.w / 2}
-            y={p.y + p.h / 2}
-            fontSize={Math.min(text, p.h * 0.6, p.w * 0.4)}
-            textAnchor="middle"
-            dominantBaseline="middle"
-          >
-            #{p.label}
-          </text>
-        </g>
-      ))}
-      {layout.cuts.map((c) => (
-        <g key={c.n}>
-          <line
-            x1={c.x1}
-            y1={c.y1}
-            x2={c.x2}
-            y2={c.y2}
-            className={styles.cutLine}
-            strokeWidth={width * 0.003}
-          />
-          <circle
-            cx={(c.x1 + c.x2) / 2}
-            cy={(c.y1 + c.y2) / 2}
-            r={badge}
-            className={styles.cutBadge}
-          />
-          <text
-            x={(c.x1 + c.x2) / 2}
-            y={(c.y1 + c.y2) / 2}
-            fontSize={badge * 1.2}
-            textAnchor="middle"
-            dominantBaseline="central"
-            className={styles.cutBadgeText}
-          >
-            {c.n}
-          </text>
-        </g>
-      ))}
-    </svg>
   );
 }

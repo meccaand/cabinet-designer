@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createProject, loadProject, type Project } from '../../core/model';
+import { downloadProjectJson } from '../download';
 import { repository } from '../persistence/session';
 import type { ProjectSummary } from '../persistence/repository';
 import { createSampleProject } from '../sample';
@@ -56,15 +57,6 @@ export function ProjectsDialog({ open, onClose }: { open: boolean; onClose: () =
     }
   };
 
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${project.name.replace(/[^\w -]+/g, '').trim() || 'project'}.cabinets.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
   const importJson = async (file: File) => {
     let raw: unknown;
     try {
@@ -119,7 +111,7 @@ export function ProjectsDialog({ open, onClose }: { open: boolean; onClose: () =
         >
           New sample project
         </button>
-        <button type="button" className={form.button} onClick={exportJson}>
+        <button type="button" className={form.button} onClick={() => downloadProjectJson(project)}>
           Export JSON
         </button>
         <label className={form.button}>

@@ -12,10 +12,8 @@
   min-height: 0;
 }
 
-.svg rect,
-.svg line,
-.tall rect,
-.tall line {
+.drawing rect,
+.drawing line {
   stroke-width: var(--stroke);
   vector-effect: none;
 }
@@ -55,7 +53,48 @@
   font-variant-numeric: tabular-nums;
 }
 
+.onFill {
+  fill: #2c2721;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
 .wall {
   fill: #f4f1ea;
   stroke: #9a9389;
+}
+
+/* Sheet diagrams */
+.sheet {
+  fill: #f0e6d2;
+  stroke: #5b5348;
+}
+.trim {
+  fill: #d8ccb6;
+  stroke: #5b5348;
+}
+.part {
+  fill: #e2c99c;
+  stroke: #5b5348;
+  stroke-width: calc(var(--stroke) * 1.5) !important;
+}
+.offcut {
+  stroke: none;
+}
+.hatch {
+  stroke: #c9bda5;
+  stroke-width: calc(var(--stroke) * 2) !important;
+}
+.cut {
+  stroke: #b03a2e;
+  stroke-width: calc(var(--stroke) * 1.5) !important;
+  stroke-dasharray: 6 4;
+}
+.badge {
+  fill: #b03a2e;
+}
+.badgeText {
+  fill: #fff;
+  font-weight: 700;
+  pointer-events: none;
 }

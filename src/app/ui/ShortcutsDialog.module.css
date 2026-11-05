@@ -1,0 +1,52 @@
+.groups {
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.groups h3 {
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.row {
+  display: contents;
+}
+
+.row dt {
+  white-space: nowrap;
+}
+
+.row dd {
+  margin: 0;
+}
+
+.row kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}

@@ -112,21 +112,12 @@
   color: var(--muted);
 }
 
-@media (max-width: 900px) {
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(300px, 1fr) auto auto auto;
-    grid-template-areas: 'header' 'viewport' 'sidebar' 'inspector' 'outputs';
-  }
-
-  .sidebar,
-  .inspector {
-    border: 0;
-    border-top: 1px solid var(--border);
-  }
-}
-
 .projectButton {
+  min-width: 0;
+  overflow: hidden;
+  max-width: 40vw;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
@@ -221,6 +212,8 @@
   left: 10px;
   z-index: 30;
   display: flex;
+  max-width: calc(100% - 20px);
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
@@ -228,6 +221,8 @@
 }
 
 .mainTabs button {
+  flex: none;
+  white-space: nowrap;
   border: 0;
   border-right: 1px solid var(--border);
   background: transparent;
@@ -262,4 +257,177 @@
   font: inherit;
   cursor: pointer;
   padding: 2px 4px;
+}
+
+/* ---- Side panels as drawers on tablets and phones (ADR-032) ------------------------------- */
+
+.toggle {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cabinetsToggle,
+.propertiesToggle,
+.backdrop,
+.drawerHead button,
+.inspector .drawerHead {
+  display: none;
+}
+
+.drawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.drawerHead .heading {
+  margin: 0;
+}
+
+.drawerHead button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgb(0 0 0 / 0.3);
+}
+
+/* Tablet landscape: the cabinet list slides in from the left. */
+@media (max-width: 1199px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-areas:
+      'header header'
+      'viewport inspector'
+      'outputs inspector';
+  }
+
+  .cabinetsToggle,
+  .backdrop,
+  .sidebar .drawerHead button {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(320px, 88vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s;
+    box-shadow: 4px 0 24px rgb(0 0 0 / 0.18);
+  }
+
+  /* Visible at once when opening (so focus can move in); hidden after the slide when closing. */
+  .shell[data-drawer='cabinets'] .sidebar {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease;
+  }
+}
+
+/* Tablet portrait and phones: the properties panel slides in from the right too. */
+@media (max-width: 899px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'header' 'viewport' 'outputs';
+  }
+
+  .header {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .brand,
+  .label {
+    display: none;
+  }
+
+  .propertiesToggle,
+  .inspector .drawerHead button {
+    display: block;
+  }
+
+  .inspector .drawerHead {
+    display: flex;
+  }
+
+  .inspector {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(380px, 92vw);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s;
+    box-shadow: -4px 0 24px rgb(0 0 0 / 0.18);
+  }
+
+  /* Visible at once when opening (so focus can move in); hidden after the slide when closing. */
+  .shell[data-drawer='properties'] .inspector {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease;
+  }
+
+  .outputs {
+    gap: 4px 12px;
+    padding: 8px 12px;
+  }
+}
+
+/* Phones: the header wraps rather than scrolling the page sideways. */
+@media (max-width: 599px) {
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .status {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .inspector {
+    transition: none !important;
+  }
+}
+
+/* Fingers need bigger targets than a mouse pointer. */
+@media (pointer: coarse) {
+  .mainTabs button,
+  .history button,
+  .toggle,
+  .drawerHead button,
+  .projectButton {
+    min-height: 40px;
+  }
 }

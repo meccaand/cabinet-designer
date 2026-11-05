@@ -82,46 +82,9 @@
 }
 
 .sheetSvg {
+  display: block;
   width: 100%;
   height: auto;
-  background: var(--surface);
-}
-
-.sheetSvg text {
-  fill: #2c2721;
-  pointer-events: none;
-}
-
-.sheet {
-  fill: #f0e6d2;
-  stroke: #5b5348;
-}
-
-.trim {
-  fill: #d8ccb6;
-}
-
-.part {
-  fill: #e2c99c;
-  stroke: #5b5348;
-}
-
-.offcut {
-  stroke: none;
-}
-
-.cutLine {
-  stroke: #b03a2e;
-  stroke-dasharray: 6 4;
-}
-
-.cutBadge {
-  fill: #b03a2e;
-}
-
-.cutBadgeText {
-  fill: #fff !important;
-  font-weight: 700;
 }
 
 .steps {
