@@ -15,9 +15,9 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 3. 3D viewer       | ✅ Done                  |
 | 4. Cabinet editor  | ✅ Done                  |
 | 5. Project layout  | ✅ Done                  |
-| 6. Outputs         | ✅ Done, awaiting review |
-| 7. Export & polish | Next                     |
-| 8. Hardening       | Not started              |
+| 6. Outputs         | ✅ Done                  |
+| 7. Export & polish | ✅ Done, awaiting review |
+| 8. Hardening       | Next                     |
 
 ## Scope decisions from your answers
 

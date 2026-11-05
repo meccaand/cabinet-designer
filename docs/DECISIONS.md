@@ -45,7 +45,7 @@ cut list needs exact equality, and the cut list must never round silently.
 
 ## ADR-003: Undo/redo via immer snapshots
 
-**Status:** Accepted (implemented in M5)
+**Status:** Accepted (implemented in M5; coalescing by key added in M7, see ADR-031)
 
 Snapshots of the whole project with structural sharing, capped at 200, coalesced by transaction
 key (e.g. while typing in a field). Simpler than inverse patches and has fewer bug classes; the
@@ -63,14 +63,14 @@ because zod can't infer recursive types.
 
 ## ADR-005: jsPDF + jspdf-autotable for the PDF shop packet
 
-**Status:** Accepted (planned for M7)
+**Status:** Accepted (implemented in M7; see ADR-028)
 
 jsPDF has vector drawing primitives (sheet diagrams, elevations) and autotable handles cut-list
 pagination. pdf-lib targets editing existing PDFs and would need hand-built table layout.
 
 ## ADR-006: Shared 2D drawing primitives
 
-**Status:** Accepted (planned for M4/M6)
+**Status:** Accepted (elevations M4–M5, sheet diagrams moved into core in M7, see ADR-029)
 
 Elevations and sheet diagrams are produced in core as primitives (line, rect, text, dimension)
 and rendered to SVG on screen and to jsPDF for print, so screen and paper can't drift apart.
@@ -103,7 +103,7 @@ Used for round-trip properties in units now, and for the M2 part-generation inva
 
 ## ADR-010: Persistence behind `ProjectRepository`, IndexedDB via `idb`
 
-**Status:** Accepted (implemented in M5)
+**Status:** Accepted (implemented in M5; coalescing by key added in M7, see ADR-031)
 
 Interface `{ list, load, save, delete }` with debounced autosave. A sync backend can implement the
 same interface later.
@@ -336,3 +336,113 @@ strip shows part count, sheets per material and the total.
 The material library, shop settings and project default materials are edited in Materials &
 cost. A material can't be removed while a default or any cabinet still uses it. Prices are
 assumed to be in dollars. Banding is stored per metre and shown per foot in imperial projects.
+
+## ADR-028: The shop packet is built in the browser from the live outputs
+
+**Status:** Accepted (M7)
+
+The PDF is made client-side with jsPDF and autotable from the same cut list, nests, estimate
+and core drawings the screen shows (`src/app/pdf/shopPacket.ts`). jsPDF is loaded only when you
+export, so it stays out of the main bundle. The packet contains:
+
+- a cover with the summary, units, kerf and trim, and a contents list with page numbers
+- one elevation page per wall that has something on it
+- cabinets, two to a page, with type, size, construction and front elevation
+- the cut list by material, with headers repeated on each page and rows that never split
+- one page per sheet: the diagram, plus its numbered cuts in shop language
+- the shopping list and estimate
+
+Every page has a footer with the project name, date and "Page n of N".
+
+**Page size.** Pages are landscape: Letter for inch projects, A4 for metric ones.
+
+**Fonts.** The standard PDF fonts cover only Windows-1252, so `≈` (rounded) prints as `~`. The
+cover explains this, and the CSV keeps the exact decimals. Embedding a Unicode font would add
+about 300 KB for one character.
+
+**Tests.** They read the text drawn on every page from jsPDF's content streams. They check the
+contents page numbers, every cut list row and its sizes, every numbered cut, the footers, A4
+for metric projects, and empty and unbuildable projects. A human check renders the PDF to PNG.
+
+## ADR-029: Sheet diagrams and shop text live in core
+
+**Status:** Accepted (M7)
+
+The sheet diagram moved from an SVG component into `core/drawing/sheet.ts`, so the PDF draws
+exactly what the screen shows. This added the following to the primitives:
+
+- fills for sheet, trim, part and offcut
+- a `cut` line style
+- per-text `size`, plus `onFill` for labels that stay dark on a filled shape
+- a `badge` (a numbered circle)
+
+Shop-language text is now in `core/report`, shared by the screen, PDF and CSV:
+
+- thickness at 1/32"
+- banding in words
+- notes and notch
+- cut steps
+- money
+- shopping-list lines
+
+## ADR-030: CSV exports for spreadsheets and cut optimizers
+
+**Status:** Accepted (M7)
+
+There are two CSVs: the cut list (one line per row) and the shopping list (one line per item,
+plus a total). Both are RFC 4180 with CRLF line endings. The download adds a UTF-8 byte-order
+mark so Excel reads `≈` and `×`.
+
+**Sizes.** Each size appears twice: as shop text (`30 1/2"`) for reading, and as a plain
+decimal in the project's unit (inches to 4 places, mm to 2) for other tools.
+
+**Formula injection.** Cabinet and material names are typed by the user. So any text cell that
+starts with `=`, `+`, `-`, `@`, a tab or a CR gets an apostrophe prefix, which stops a
+spreadsheet from running it as a formula.
+
+## ADR-031: One shortcut table drives the keys and the help
+
+**Status:** Accepted (M7)
+
+`src/app/shortcuts.ts` lists each shortcut with the keys shown in the help, a matcher and an
+action. The key handler and the help dialog (`?`) both read it.
+
+**When shortcuts don't apply.**
+
+- They pause while focus is in a field or a dialog, so fields keep their own undo and
+  arrow keys.
+- Editing keys (arrows, ⌘D, Delete) only work in 3D, plan and elevation, so in the cut list
+  the arrow keys still scroll and Delete can't remove a cabinet unseen.
+- Camera keys only work in 3D.
+
+**Nudge steps.** Arrows move the selected filler or the active cabinet by 1/16" (1 mm), or by
+1" (10 mm) with Shift.
+
+**Undo.** A run of nudges on one item is a single undo step. This is the coalescing ADR-003
+planned: an edit with a key merges with the previous edit if that edit had the same key and
+nothing else happened in between.
+
+## ADR-032: Side panels become drawers on tablets
+
+**Status:** Accepted (M7)
+
+The layout depends on screen width:
+
+| Width                            | Layout                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| 1200 px and up                   | Three columns                                                            |
+| Below 1200 px (tablet landscape) | The cabinet list becomes a drawer from the left, opened by "☰ Cabinets" |
+| Below 900 px (tablet portrait)   | The properties panel also becomes a drawer from the right ("Properties") |
+| Below 600 px (phones)            | The header wraps                                                         |
+
+**How the drawers work.**
+
+- Drawers are pure CSS keyed on one `drawer` state. When they aren't drawers, that state does
+  nothing.
+- A backdrop, Esc or Close dismisses a drawer. Picking a cabinet closes the list drawer.
+- An opened drawer takes the focus.
+- A closed drawer is `visibility: hidden`, so it's out of the tab order.
+
+**Touch.** Coarse pointers get 40 px targets on the header, tabs and 3D toolbar.
+
+The Playwright tests check an 820 × 1180 touch viewport, where no view scrolls sideways.
