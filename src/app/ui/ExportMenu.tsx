@@ -1,5 +1,4 @@
 import { useId, useRef, useState } from 'react';
-import type { Project } from '../../core/model';
 import { cutListCsv, shoppingListCsv } from '../../core/report';
 import { csvBlob, download, downloadProjectJson, fileBase } from '../download';
 import { projectModels } from '../models';
@@ -7,7 +6,9 @@ import type { Outputs } from '../outputs';
 import styles from './ExportMenu.module.css';
 
 /** Header menu: the shop packet PDF, the cut and shopping lists as CSV, the project as JSON. */
-export function ExportMenu({ project, outputs }: { project: Project; outputs: Outputs }) {
+export function ExportMenu({ outputs }: { outputs: Outputs }) {
+  // Export exactly what the outputs were derived from.
+  const project = outputs.project;
   const id = useId();
   const menu = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,12 +29,7 @@ export function ExportMenu({ project, outputs }: { project: Project; outputs: Ou
     try {
       // jsPDF is only needed here; load it on demand to keep it out of the main bundle.
       const { shopPacket, packetFileName } = await import('../pdf/shopPacket');
-      const doc = shopPacket({
-        project,
-        models: projectModels(project),
-        ...outputs,
-        date: new Date(),
-      });
+      const doc = shopPacket({ ...outputs, models: projectModels(project), date: new Date() });
       download(packetFileName(project), doc.output('blob'));
     } finally {
       setBusy(false);

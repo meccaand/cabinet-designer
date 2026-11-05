@@ -41,6 +41,7 @@ export function CameraRig({ bounds, frameKey }: { bounds: Box; frameKey: string 
     cam.updateProjectionMatrix();
     controls.target.set(...fit.target);
     controls.update();
+    get().invalidate();
   }, [request, view, frameKey, camera, controls, width, height, get]);
 
   return null;

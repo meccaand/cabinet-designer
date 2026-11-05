@@ -4,9 +4,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import { buildCutList, cutName } from '../cutlist';
+import { bigKitchen } from '../__tests__/bigKitchen';
 import { modelsOf, sample } from '../__tests__/sampleKitchen';
 import { createBaseCabinet, createCabinet } from '../generate';
 import { createProject } from '../model';
+import { layoutItems, layoutIssues } from '../layout';
 import { nestCutList } from '../nesting';
 import { inch } from '../units';
 import { BANDING_ALLOWANCE, estimate } from './index';
@@ -189,6 +191,36 @@ describe('nesting benchmark: a 14-cabinet kitchen', () => {
     expect(sheets('ply-12').sheets.length).toBeLessThanOrEqual(2);
     expect(sheets('ply-5').sheets.length).toBeLessThanOrEqual(5);
     expect(ms).toBeLessThan(500);
+  });
+});
+
+describe('scale: a 64-cabinet kitchen', () => {
+  it('builds, lays out and nests every part well within a frame budget', () => {
+    const p = bigKitchen();
+    const start = Date.now();
+    const models = modelsOf(p);
+    const list = buildCutList(p, models);
+    const nests = nestCutList(p, list);
+    const e = estimate(p, list, nests, models);
+    const ms = Date.now() - start;
+
+    expect([...models.values()].every(Boolean)).toBe(true);
+    expect(layoutIssues(p, layoutItems(p, models))).toEqual([]);
+    expect(list.parts.length).toBeGreaterThan(1000);
+    for (const n of nests) {
+      expect(n.result.unplaced).toEqual([]);
+      const area = list.parts
+        .filter(({ part }) => part.materialId === n.materialId)
+        .reduce((s, { part }) => s + part.cut.length * part.cut.width, 0);
+      const floor = Math.ceil(area / (n.result.sheet.length * n.result.sheet.width));
+      // Within 15% (and one sheet) of the area floor for every material.
+      expect(n.result.sheets.length, n.materialName).toBeLessThanOrEqual(
+        Math.max(floor + 1, Math.ceil(floor * 1.15)),
+      );
+    }
+    expect(e.total).toBeGreaterThan(0);
+    // ~220 ms on an M1; the budget leaves room for slow CI runners.
+    expect(ms).toBeLessThan(2000);
   });
 });
 

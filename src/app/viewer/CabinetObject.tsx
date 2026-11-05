@@ -1,19 +1,25 @@
-import { Edges } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useMemo, useRef, useState } from 'react';
-import { BoxGeometry, Vector3, type Mesh } from 'three';
+import { memo, useMemo, useRef, useState } from 'react';
+import { BoxGeometry, EdgesGeometry, LineBasicMaterial, Vector3, type Mesh } from 'three';
 import { extent } from '../../core/geometry';
 import type { Cabinet } from '../../core/model';
 import type { CabinetModel, Part } from '../../core/parts';
 import { useViewerStore } from '../store/viewerStore';
 import { explodeOffset, partColor, visibleParts } from './scene';
 
-/** One shared unit cube; each part scales it to its size. */
+/**
+ * One shared unit cube and its outline; each part scales them to its size. A room of 60
+ * cabinets has ~1,400 parts, so nothing per part is built that can be shared (ADR-033).
+ */
 const UNIT_BOX = new BoxGeometry(1, 1, 1);
+const UNIT_EDGES = new EdgesGeometry(UNIT_BOX);
 const ACCENT = '#c76a1c';
-const EDGE = '#4a4136';
+const EDGE_LINE = new LineBasicMaterial({ color: '#4a4136' });
+const SELECTED_LINE = new LineBasicMaterial({ color: ACCENT });
+/** Outlines are drawn, never picked: clicks go to the part's faces. */
+const noRaycast = () => undefined;
 
-export function CabinetObject({
+export const CabinetObject = memo(function CabinetObject({
   cabinet,
   model,
   onActivate,
@@ -38,10 +44,10 @@ export function CabinetObject({
       ))}
     </group>
   );
-}
+});
 
 /** One part. `cabinetId`/`onActivate` make it selectable; fillers in the room view are not. */
-export function PartMesh({
+export const PartMesh = memo(function PartMesh({
   part,
   ownerWidth,
   cabinetId,
@@ -56,14 +62,16 @@ export function PartMesh({
   const [hovered, setHovered] = useState(false);
   const exploded = useViewerStore((s) => s.exploded);
   const xray = useViewerStore((s) => s.xray);
-  const selection = useViewerStore((s) => s.selection);
-  const select = useViewerStore((s) => s.select);
-
-  const partSelected = selection?.kind === 'part' && selection.id === part.id;
-  const cabinetSelected =
-    cabinetId !== undefined &&
-    ((selection?.kind === 'cabinet' && selection.id === cabinetId) ||
-      (selection?.kind === 'part' && selection.id.startsWith(`${cabinetId}/`)));
+  // Booleans, so a new selection re-renders only the parts it changes.
+  const partSelected = useViewerStore(
+    (s) => s.selection?.kind === 'part' && s.selection.id === part.id,
+  );
+  const cabinetSelected = useViewerStore(
+    (s) =>
+      cabinetId !== undefined &&
+      ((s.selection?.kind === 'cabinet' && s.selection.id === cabinetId) ||
+        (s.selection?.kind === 'part' && s.selection.id.startsWith(`${cabinetId}/`))),
+  );
 
   const { center, size } = useMemo(() => {
     const b = part.bounds;
@@ -83,10 +91,11 @@ export function PartMesh({
   }, [center, exploded, part, ownerWidth]);
 
   // Glide between assembled and exploded positions.
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const mesh = ref.current;
     if (!mesh || mesh.position.distanceToSquared(target) < 0.01) return;
     mesh.position.lerp(target, 1 - Math.exp(-dt * 10));
+    state.invalidate(); // on-demand rendering: ask for the next step
   });
 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
@@ -94,6 +103,7 @@ export function PartMesh({
     if (cabinetId === undefined) return;
     // First click selects the cabinet; clicking again inside it picks the part (like
     // entering a group in SketchUp).
+    const { select } = useViewerStore.getState();
     if (cabinetSelected) select({ kind: 'part', id: part.id });
     else {
       onActivate?.(cabinetId);
@@ -130,7 +140,11 @@ export function PartMesh({
         opacity={xray ? (partSelected ? 0.75 : 0.14) : 1}
         depthWrite={!xray}
       />
-      <Edges color={cabinetSelected ? ACCENT : EDGE} threshold={15} />
+      <lineSegments
+        geometry={UNIT_EDGES}
+        material={cabinetSelected ? SELECTED_LINE : EDGE_LINE}
+        raycast={noRaycast}
+      />
     </mesh>
   );
-}
+});

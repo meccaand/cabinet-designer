@@ -110,7 +110,7 @@ export function App() {
         >
           ☰ Cabinets
         </button>
-        <span className={styles.brand}>Cabinet Designer</span>
+        <h1 className={styles.brand}>Cabinet Designer</h1>
         <button
           type="button"
           className={styles.projectButton}
@@ -148,7 +148,7 @@ export function App() {
             ↷<span className={styles.label}> Redo</span>
           </button>
         </div>
-        <ExportMenu project={project} outputs={outputs} />
+        <ExportMenu outputs={outputs} />
         <UnitsSelect units={project.units} onChange={setUnits} />
         <button
           type="button"

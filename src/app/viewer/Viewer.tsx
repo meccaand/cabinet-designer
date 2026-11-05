@@ -10,7 +10,7 @@ import { useViewerStore } from '../store/viewerStore';
 import { CabinetObject, PartMesh } from './CabinetObject';
 import { CameraRig, FOV } from './CameraRig';
 import { Dimensions } from './Dimensions';
-import { DIMENSION_OFFSET, unionBounds, type DimensionLine } from './scene';
+import { DIMENSION_OFFSET, explodeOffset, unionBounds, type DimensionLine } from './scene';
 import styles from './Viewer.module.css';
 import { ViewToolbar } from './ViewToolbar';
 
@@ -56,7 +56,17 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
     }
     if (!cabinet || !model)
       return { min: { x: -500, y: 0, z: -500 }, max: { x: 500, y: 900, z: 500 } };
-    const b = unionBounds(model.parts.map((p) => p.bounds));
+    // Exploded, the parts' resting places are framed so nothing flies out of view.
+    const b = unionBounds(
+      model.parts.map((p) => {
+        if (!exploded) return p.bounds;
+        const [x, y, z] = explodeOffset(p, cabinet.width);
+        return {
+          min: { x: p.bounds.min.x + x, y: p.bounds.min.y + y, z: p.bounds.min.z + z },
+          max: { x: p.bounds.max.x + x, y: p.bounds.max.y + y, z: p.bounds.max.z + z },
+        };
+      }),
+    );
     const extra = showDimensions ? DIMENSION_ROOM : 0;
     const dx = -cabinet.width / 2;
     const dz = -cabinet.depth / 2;
@@ -64,7 +74,7 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
       min: { x: b.min.x + dx, y: b.min.y, z: b.min.z + dz },
       max: { x: b.max.x + dx + extra, y: b.max.y + extra, z: b.max.z + dz },
     };
-  }, [room, frames, project.room.walls, cabinet, model, showDimensions]);
+  }, [room, frames, project.room.walls, cabinet, model, showDimensions, exploded]);
 
   const dims = cabinet
     ? { width: cabinet.width, height: cabinet.height, depth: cabinet.depth }
@@ -76,7 +86,11 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
       <Canvas
         className={styles.canvas}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
+        // Draw only when something changes (camera, props, an animation step), not 60 times a
+        // second: an idle room costs no CPU or battery (ADR-033).
+        frameloop="demand"
         onPointerMissed={() => select(null)}
+        role="img"
         aria-label={
           room ? `3D model of ${project.name}` : `3D model of ${cabinet?.name ?? 'cabinet'}`
         }
@@ -87,7 +101,10 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
           <PerspectiveCamera makeDefault fov={FOV} near={10} far={100_000} />
         )}
         <OrbitControls makeDefault enableDamping={false} />
-        <CameraRig bounds={bounds} frameKey={room ? 'room' : (activeId ?? '')} />
+        <CameraRig
+          bounds={bounds}
+          frameKey={room ? 'room' : `${activeId ?? ''}${exploded ? ':exploded' : ''}`}
+        />
 
         <hemisphereLight args={['#ffffff', '#8a7b66', 1.6]} />
         <directionalLight position={[1500, 3000, 2500]} intensity={1.8} />
