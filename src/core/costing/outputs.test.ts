@@ -4,57 +4,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { buildCutList, cutName } from '../cutlist';
-import { createBaseCabinet, createCabinet, generateCabinet } from '../generate';
-import { createProject, type Cabinet, type Project } from '../model';
+import { modelsOf, sample } from '../__tests__/sampleKitchen';
+import { createBaseCabinet, createCabinet } from '../generate';
+import { createProject } from '../model';
 import { nestCutList } from '../nesting';
-import type { CabinetModel } from '../parts';
 import { inch } from '../units';
 import { BANDING_ALLOWANCE, estimate } from './index';
-
-function modelsOf(p: Project): Map<string, CabinetModel | null> {
-  return new Map(
-    p.cabinets.map((c) => {
-      const r = generateCabinet(c, p);
-      return [c.id, r.ok ? r.model : null];
-    }),
-  );
-}
-
-/** The app's sample kitchen, built here from core only. */
-function sample(): Project {
-  const p = createProject('s', 'Sample');
-  const at = (c: Cabinet, offset: number): Cabinet => ({
-    ...c,
-    placement: { ...c.placement, wallId: 'wall-1', offset: inch(offset) },
-  });
-  p.cabinets = [
-    at(createBaseCabinet(p, { id: 'sink', name: 'Sink', width: inch(30) }), 0),
-    at(
-      createBaseCabinet(p, {
-        id: 'shaker',
-        name: 'Shaker',
-        width: inch(24),
-        construction: {
-          carcass: { style: 'faceFrame', joinery: 'pocket', back: 'applied', baseTop: 'full' },
-          fronts: { style: 'shaker' },
-        },
-      }),
-      30,
-    ),
-    at(
-      createBaseCabinet(p, {
-        id: 'drawers',
-        name: 'Drawers',
-        width: inch(18),
-        layout: 'drawers',
-        construction: { carcass: { joinery: 'butt', back: 'dado' } },
-      }),
-      54,
-    ),
-    at(createCabinet(p, 'wall', { id: 'upper', name: 'Upper' }), 0),
-  ];
-  return p;
-}
 
 describe('buildCutList', () => {
   it('merges identical parts across cabinets and lists where they go', () => {

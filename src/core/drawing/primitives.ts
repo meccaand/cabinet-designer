@@ -5,11 +5,23 @@
  */
 import type { Mm } from '../units';
 
-export type Fill = 'kick' | 'carcass' | 'frame' | 'front' | 'panel' | 'interior' | 'wall';
+export type Fill =
+  | 'kick'
+  | 'carcass'
+  | 'frame'
+  | 'front'
+  | 'panel'
+  | 'interior'
+  | 'wall'
+  // Sheet diagrams: the sheet, its trimmed factory edges, parts, and the reusable offcut.
+  | 'sheet'
+  | 'trim'
+  | 'part'
+  | 'offcut';
 
 export type Primitive =
   | { kind: 'rect'; x: Mm; y: Mm; w: Mm; h: Mm; fill: Fill }
-  | { kind: 'line'; x1: Mm; y1: Mm; x2: Mm; y2: Mm; style: 'dimension' | 'extension' }
+  | { kind: 'line'; x1: Mm; y1: Mm; x2: Mm; y2: Mm; style: 'dimension' | 'extension' | 'cut' }
   | {
       kind: 'text';
       x: Mm;
@@ -18,7 +30,13 @@ export type Primitive =
       anchor: 'start' | 'middle' | 'end';
       /** Degrees counter-clockwise (90 = reads bottom to top). */
       rotate: number;
-    };
+      /** Overrides the drawing's text size (e.g. a label shrunk to fit a small part). */
+      size?: Mm;
+      /** Drawn on a filled shape, so it stays dark ink whatever the page colour. */
+      onFill?: boolean;
+    }
+  /** A numbered marker: a filled circle with a number, e.g. the order of a saw cut. */
+  | { kind: 'badge'; x: Mm; y: Mm; r: Mm; text: string };
 
 export interface Drawing {
   primitives: Primitive[];

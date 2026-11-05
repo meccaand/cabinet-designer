@@ -21,6 +21,7 @@ export default defineConfig({
         'src/core/nesting/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
         'src/core/cutlist/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
         'src/core/costing/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
+        'src/core/report/**': { lines: 95, branches: 90, functions: 95, statements: 95 },
         'src/core/geometry/**': { lines: 95, branches: 95, functions: 95, statements: 95 },
         'src/core/hardware/**': { lines: 95, branches: 95, functions: 95, statements: 95 },
       },
