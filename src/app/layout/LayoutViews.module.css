@@ -58,7 +58,7 @@
 }
 
 .problem {
-  stroke: #c0392b;
+  stroke: var(--danger);
   stroke-width: calc(var(--stroke) * 3);
 }
 
@@ -75,7 +75,7 @@
 .issues {
   margin: 0;
   padding: 0 0 0 18px;
-  color: #c0392b;
+  color: var(--danger);
   font-size: 0.85rem;
 }
 
@@ -108,4 +108,12 @@
   fill: rgb(199 106 28 / 0.15);
   stroke: var(--accent);
   stroke-width: calc(var(--stroke) * 3);
+}
+
+/* Cabinets on the plan and elevation are keyboard-focusable: Enter selects, arrows move. */
+.item:focus-visible,
+.hit:focus-visible,
+.hitSelected:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

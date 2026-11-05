@@ -69,7 +69,7 @@ export function PlanView({
         ref={svg}
         className={styles.svg}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
-        role="img"
+        role="group"
         aria-label={`Plan of ${project.name}`}
         style={{ ['--stroke' as string]: `${size * 0.0016}` }}
         onPointerDown={() => onSelect(null)}
@@ -133,6 +133,12 @@ export function PlanView({
                 aria-label={`${item.name} on plan`}
                 aria-pressed={item.id === selectedId}
                 className={styles.item}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  onSelect(item);
+                }}
                 onPointerDown={(e) => drag.start(e, item)}
                 onPointerMove={(e) => drag.move(e, item)}
                 onPointerUp={(e) => drag.end(e, item)}

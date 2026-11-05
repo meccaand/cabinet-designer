@@ -30,7 +30,8 @@ export function DrawingSvg({
     <svg
       className={`${className ?? (tall ? styles.tall : styles.svg)} ${styles.drawing}`}
       viewBox={`${x0} ${-y1} ${x1 - x0} ${y1 - y0}`}
-      role="img"
+      // With interactive children (openings, cabinets) it is a group of controls, not a picture.
+      role={children ? 'group' : 'img'}
       aria-label={label}
       style={{ ['--stroke' as string]: `${size * 0.0018}` }}
     >

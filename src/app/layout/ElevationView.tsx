@@ -103,6 +103,12 @@ export function ElevationView({
               role="button"
               aria-label={`${item.name} on elevation`}
               aria-pressed={item.id === selectedId}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                onSelect(item);
+              }}
               onPointerDown={(e) => drag.start(e, item)}
               onPointerMove={(e) => drag.move(e, item)}
               onPointerUp={(e) => drag.end(e, item)}

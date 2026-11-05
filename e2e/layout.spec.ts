@@ -77,7 +77,7 @@ test('walls can be added and are drawn in plan and elevation', async ({ page }) 
   await sidebar(page).getByText('Room & walls').click();
   await sidebar(page).getByRole('button', { name: 'Add wall' }).click();
   await page.getByRole('tab', { name: 'Plan' }).click();
-  await expect(page.getByRole('img', { name: 'Plan of Sample kitchen' })).toContainText(
+  await expect(page.getByRole('group', { name: 'Plan of Sample kitchen' })).toContainText(
     'Wall 2 · 96"',
   );
   await page.getByRole('tab', { name: 'Elevation' }).click();
@@ -85,7 +85,7 @@ test('walls can be added and are drawn in plan and elevation', async ({ page }) 
     .getByRole('main', { name: 'Main view' })
     .getByLabel('Wall', { exact: true })
     .selectOption({ label: 'Wall 2' });
-  await expect(page.getByRole('img', { name: 'Elevation of Wall 2' })).toContainText('96"');
+  await expect(page.getByRole('group', { name: 'Elevation of Wall 2' })).toContainText('96"');
 });
 
 test('work is saved in the browser and survives a reload', async ({ page }) => {

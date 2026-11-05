@@ -4,7 +4,11 @@
   --text: #22201c;
   --muted: #6d675d;
   --border: #dedad2;
-  --accent: #b5651d;
+  /* Text on --accent uses --on-accent; both pairs meet WCAG AA (4.5:1). */
+  --accent: #a65a17;
+  --on-accent: #ffffff;
+  /* Errors and destructive actions. */
+  --danger: #b03a2e;
   --hover: #f1ece4;
   color-scheme: light;
   font-family:
@@ -25,6 +29,8 @@
     --muted: #a39d92;
     --border: #3a3732;
     --accent: #e08a3c;
+    --on-accent: #1b1a18;
+    --danger: #f08a7e;
     --hover: #2e2b27;
     color-scheme: dark;
   }

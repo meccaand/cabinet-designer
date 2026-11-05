@@ -22,7 +22,7 @@ export function SheetsView({
   const updateShop = useProjectStore((s) => s.updateShop);
   const f = (v: number) => formatLength(v, project.units);
   return (
-    <div className={styles.scroll} role="region" aria-label="Sheet layouts">
+    <div className={styles.scroll} tabIndex={0} role="region" aria-label="Sheet layouts">
       <div className={styles.settings}>
         <LengthInput
           label="Saw kerf"

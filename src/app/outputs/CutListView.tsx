@@ -11,7 +11,7 @@ export function CutListView({ project, cutList }: { project: Project; cutList: C
     return <p className={styles.empty}>Add cabinets to build a cut list.</p>;
   }
   return (
-    <div className={styles.scroll} aria-label="Cut list" role="region">
+    <div className={styles.scroll} tabIndex={0} aria-label="Cut list" role="region">
       <p className={styles.note}>
         Sizes are cut sizes: banding marked "subtract" is already taken off. Length runs with the
         grain.

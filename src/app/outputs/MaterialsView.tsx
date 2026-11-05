@@ -15,7 +15,7 @@ const FT_PER_M = 3.28084;
 export function MaterialsView({ project, estimate }: { project: Project; estimate: Estimate }) {
   const imperial = project.units.system === 'imperial';
   return (
-    <div className={styles.scroll} role="region" aria-label="Materials and cost">
+    <div className={styles.scroll} tabIndex={0} role="region" aria-label="Materials and cost">
       <section className={styles.group} aria-label="Estimate">
         <h3>Shopping list &amp; estimate</h3>
         <table className={styles.table}>
