@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { gapsBeside } from '../../core/layout';
+import { gapsBeside, returnWall, wallFrames } from '../../core/layout';
 import type { Cabinet, Project } from '../../core/model';
 import { formatLength } from '../../core/units';
 import { projectLayout } from '../models';
@@ -19,6 +19,10 @@ export function PositionSection({ project, cabinet }: { project: Project; cabine
   const item = items.find((i) => i.id === cabinet.id);
   const gaps = item ? gapsBeside(item, project, items) : null;
   const f = (v: number) => formatLength(v, project.units);
+  const frames = wallFrames(project.room);
+  const frame = frames.find((w) => w.wall.id === cabinet.placement.wallId);
+  const next = frame && returnWall(frame, frames);
+  const corner = frame && next ? { wall: frame.wall.name, next: next.wall.name } : null;
 
   return (
     <section className={styles.section}>
@@ -40,13 +44,15 @@ export function PositionSection({ project, cabinet }: { project: Project; cabine
             ))}
           </select>
         </div>
-        <LengthInput
-          label="From wall start"
-          value={cabinet.placement.offset}
-          units={project.units}
-          allowZero
-          onCommit={(offset) => moveItem(cabinet.id, { offset })}
-        />
+        {!cabinet.corner && (
+          <LengthInput
+            label="From wall start"
+            value={cabinet.placement.offset}
+            units={project.units}
+            allowZero
+            onCommit={(offset) => moveItem(cabinet.id, { offset })}
+          />
+        )}
         <LengthInput
           label="Off the floor"
           value={cabinet.placement.elevation}
@@ -55,6 +61,13 @@ export function PositionSection({ project, cabinet }: { project: Project; cabine
           onCommit={(elevation) => moveItem(cabinet.id, { elevation })}
         />
       </div>
+      {cabinet.corner && (
+        <p className={styles.hint}>
+          {corner
+            ? `In the corner at the end of ${corner.wall}; its return runs along ${corner.next}.`
+            : 'L-shaped cabinets go in an inside corner: pick a wall whose end turns into one.'}
+        </p>
+      )}
       <div className={styles.row}>
         {(['left', 'right'] as const).map((side) => (
           <label key={side} className={styles.check}>
@@ -65,7 +78,9 @@ export function PositionSection({ project, cabinet }: { project: Project; cabine
                 update(cabinet.id, (c) => void (c.endPanels[side] = e.target.checked))
               }
             />
-            {side === 'left' ? 'Left' : 'Right'} end panel
+            {cabinet.corner
+              ? `End panel on the ${side === 'left' ? 'run' : 'return'}`
+              : `${side === 'left' ? 'Left' : 'Right'} end panel`}
           </label>
         ))}
       </div>

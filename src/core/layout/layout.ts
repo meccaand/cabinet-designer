@@ -7,7 +7,7 @@
  * wall line and their fronts face along the wall's `normal`.
  */
 import { box } from '../geometry';
-import type { Filler, Project, Wall } from '../model';
+import type { Cabinet, Filler, Project, Wall } from '../model';
 
 type Room = Project['room'];
 import type { CabinetModel, Part } from '../parts';
@@ -92,28 +92,72 @@ export interface LayoutItem {
   x1: Mm;
   depth: Mm;
   height: Mm;
+  /** An L-shaped cabinet: it sits in a corner, so it is not dragged along its wall. */
+  inCorner?: true;
+  /** An L-shaped cabinet's return, on the wall after the cabinet's own: the same cabinet seen
+   * from that wall. */
+  isReturn?: true;
 }
 
-/** Every cabinet (sized from its generated parts when it builds) and filler. */
+/** The wall after `frame`, when they meet at an inside corner: where an L-shaped cabinet turns. */
+export function returnWall(frame: WallFrame, frames: WallFrame[]): WallFrame | undefined {
+  return frame.endCorner === 'inside' ? frames[frame.index + 1] : undefined;
+}
+
+/**
+ * Where a cabinet's left edge is along its wall. An L-shaped cabinet always sits in the corner
+ * at the end of its wall, so its offset follows the wall's length (ADR-037).
+ */
+export function placedOffset(cabinet: Cabinet, frames: WallFrame[]): Mm {
+  const frame = frames.find((f) => f.wall.id === cabinet.placement.wallId);
+  if (!cabinet.corner || !frame) return cabinet.placement.offset;
+  return quantize(frame.wall.length - cabinet.width);
+}
+
+/**
+ * Every cabinet (sized from its generated parts when it builds) and filler. An L-shaped
+ * cabinet is an item on its own wall (the run) and, at an inside corner, one on the next wall
+ * (the return).
+ */
 export function layoutItems(
   project: Project,
   models: ReadonlyMap<string, CabinetModel | null>,
 ): LayoutItem[] {
-  const cabinets = project.cabinets.map((c): LayoutItem => {
-    const parts = models.get(c.id)?.parts ?? [];
+  const frames = wallFrames(project.room);
+  const cabinets = project.cabinets.flatMap((c): LayoutItem[] => {
+    const all = models.get(c.id)?.parts ?? [];
+    const parts = all.filter((p) => p.wing !== 'return');
     const xs = parts.flatMap((p) => [p.bounds.min.x, p.bounds.max.x]);
-    return {
+    const item: LayoutItem = {
       kind: 'cabinet',
       id: c.id,
       name: c.name,
       wallId: c.placement.wallId,
-      offset: c.placement.offset,
+      offset: placedOffset(c, frames),
       elevation: c.placement.elevation,
       x0: Math.min(0, ...xs),
       x1: Math.max(c.width, ...xs),
       depth: Math.max(c.depth, ...parts.map((p) => p.bounds.max.z)),
       height: c.height,
+      ...(c.corner && { inCorner: true as const }),
     };
+    const frame = frames.find((f) => f.wall.id === c.placement.wallId);
+    const next = frame && returnWall(frame, frames);
+    if (!c.corner || !next) return [item];
+    // Seen from the next wall: along it is the cabinet's z, out from it is width − x.
+    const turned = all.filter((p) => p.wing === 'return');
+    return [
+      item,
+      {
+        ...item,
+        wallId: next.wall.id,
+        offset: 0,
+        x0: 0,
+        x1: Math.max(c.corner.returnWidth, ...turned.map((p) => p.bounds.max.z)),
+        depth: Math.max(c.corner.returnDepth, ...turned.map((p) => c.width - p.bounds.min.x)),
+        isReturn: true,
+      },
+    ];
   });
   const fillers = project.fillers.map((f): LayoutItem => ({
     kind: 'filler',
@@ -169,6 +213,15 @@ export interface LayoutIssue {
 export function layoutIssues(project: Project, items: LayoutItem[]): LayoutIssue[] {
   const frames = wallFrames(project.room);
   const issues: LayoutIssue[] = [];
+  for (const c of project.cabinets) {
+    const f = frames.find((w) => w.wall.id === c.placement.wallId);
+    if (c.corner && f && !returnWall(f, frames)) {
+      issues.push({
+        ids: [c.id],
+        message: `${c.name} needs an inside corner at the end of ${f.wall.name}.`,
+      });
+    }
+  }
   for (const it of items) {
     const f = frames.find((w) => w.wall.id === it.wallId);
     if (!f) continue;
@@ -176,15 +229,21 @@ export function layoutIssues(project: Project, items: LayoutItem[]): LayoutIssue
       issues.push({ ids: [it.id], message: `${it.name} runs past the end of ${f.wall.name}.` });
     }
   }
+  // An L-shaped cabinet's run and return can both hit the same neighbour: report it once.
+  const reported = new Set<string>();
   for (const [i, a] of items.entries()) {
     for (const b of items.slice(i + 1)) {
-      if (!verticalOverlap(a, b)) continue;
+      // An L-shaped cabinet's run and return share the corner.
+      if (a.id === b.id || !verticalOverlap(a, b)) continue;
       const fa = footprint(a, frames);
       const fb = footprint(b, frames);
       const w = Math.min(fa.x1, fb.x1) - Math.max(fa.x0, fb.x0);
       const d = Math.min(fa.z1, fb.z1) - Math.max(fa.z0, fb.z0);
-      if (w > EPS && d > EPS)
+      const pair = [a.id, b.id].sort().join('|');
+      if (w > EPS && d > EPS && !reported.has(pair)) {
+        reported.add(pair);
         issues.push({ ids: [a.id, b.id], message: `${a.name} overlaps ${b.name}.` });
+      }
     }
   }
   return issues;

@@ -81,7 +81,23 @@ export function CabinetEditor({
             update(cabinet.id, (cab) => void (cab.height = v)),
           )}
           {length('Depth', cabinet.depth, (v) => update(cabinet.id, (cab) => void (cab.depth = v)))}
+          {cabinet.corner && (
+            <>
+              {length('Return width', cabinet.corner.returnWidth, (v) =>
+                update(cabinet.id, (cab) => void (cab.corner && (cab.corner.returnWidth = v))),
+              )}
+              {length('Return depth', cabinet.corner.returnDepth, (v) =>
+                update(cabinet.id, (cab) => void (cab.corner && (cab.corner.returnDepth = v))),
+              )}
+            </>
+          )}
         </div>
+        {cabinet.corner && (
+          <p className={styles.hint}>
+            Width and depth are along this cabinet's wall; the return runs along the next wall. Both
+            widths are measured into the corner.
+          </p>
+        )}
         <p className={styles.hint}>
           Depth includes the back{frameless ? '' : ' and face frame'} but not the doors.
           {traits.platform &&

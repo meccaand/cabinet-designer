@@ -8,18 +8,21 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 
 ## Status
 
-| Milestone          | State   |
-| ------------------ | ------- |
-| 1. Foundation      | ✅ Done |
-| 2. Core engine     | ✅ Done |
-| 3. 3D viewer       | ✅ Done |
-| 4. Cabinet editor  | ✅ Done |
-| 5. Project layout  | ✅ Done |
-| 6. Outputs         | ✅ Done |
-| 7. Export & polish | ✅ Done |
-| 8. Hardening       | ✅ Done |
+| Milestone           | State                    |
+| ------------------- | ------------------------ |
+| 1. Foundation       | ✅ Done                  |
+| 2. Core engine      | ✅ Done                  |
+| 3. 3D viewer        | ✅ Done                  |
+| 4. Cabinet editor   | ✅ Done                  |
+| 5. Project layout   | ✅ Done                  |
+| 6. Outputs          | ✅ Done                  |
+| 7. Export & polish  | ✅ Done                  |
+| 8. Hardening        | ✅ Done                  |
+| 9. L-shaped corners | ✅ Done, awaiting review |
 
-Since M8:
+M9 adds an L-shaped base and L-shaped open shelving for inside corners (ADR-037).
+
+Small changes since M8:
 
 - A new project sets up its room before cabinets are added (ADR-035).
 - Any floor cabinet can do without its toe kick; the box then fills the height (ADR-036).

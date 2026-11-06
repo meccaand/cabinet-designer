@@ -18,7 +18,8 @@ const GENERIC: Record<HardwareKind, string> = {
 /**
  * Hardware for one cabinet: hinges by door height (hinge tiers), one slide pair per drawer
  * grouped by length, one pull per door and drawer front (two when wider than `twoPullsOver`;
- * none on false fronts), and shelf pins per adjustable shelf.
+ * none on false fronts or the cabinet-hinged leaf of a bi-fold), and shelf pins per adjustable
+ * shelf.
  */
 export function hardwareFor(
   input: HardwareInput,
@@ -51,7 +52,9 @@ export function hardwareFor(
     (n, f) =>
       n +
       (f.kind === 'door'
-        ? 1
+        ? f.noPull
+          ? 0
+          : 1
         : f.kind === 'drawer'
           ? f.width > c.hardware.twoPullsOver
             ? 2

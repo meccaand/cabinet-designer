@@ -33,6 +33,8 @@ export function useWallDrag(opts: {
   const start = (e: ReactPointerEvent<Element>, item: LayoutItem) => {
     if (e.button !== 0 || !item.wallId) return;
     e.stopPropagation();
+    // L-shaped cabinets stay in their corner: a press only selects them.
+    if (item.inCorner) return opts.onSelect(item);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     drag.current = {
       id: item.id,

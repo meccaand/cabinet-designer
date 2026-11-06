@@ -161,7 +161,13 @@ export function fitCamera(
   fovDegrees: number,
   /** Pixels covered by overlays at the top of the canvas (the toolbar); content stays below. */
   insetTop = 0,
+  /** Iso and side views from the left: an L-shaped cabinet's fronts face the inside corner,
+   * front and left. */
+  fromLeft = false,
 ): CameraFit {
+  const dir: [number, number, number] = fromLeft
+    ? [-ISO_DIRECTION[0], ISO_DIRECTION[1], ISO_DIRECTION[2]]
+    : ISO_DIRECTION;
   const c: [number, number, number] = [
     (bounds.min.x + bounds.max.x) / 2,
     (bounds.min.y + bounds.max.y) / 2,
@@ -181,13 +187,13 @@ export function fitCamera(
     // Fit the bounding sphere in whichever of the vertical/horizontal fields is tighter.
     const tightest = Math.min(Math.tan(halfFov), Math.tan(halfFov) * aspect);
     const distance = radius / Math.sin(Math.atan(tightest)) / margin;
-    const n = Math.hypot(...ISO_DIRECTION);
+    const n = Math.hypot(...dir);
     return {
       orthographic: false,
       position: [
-        c[0] + (ISO_DIRECTION[0] / n) * distance,
-        c[1] + (ISO_DIRECTION[1] / n) * distance,
-        c[2] + (ISO_DIRECTION[2] / n) * distance,
+        c[0] + (dir[0] / n) * distance,
+        c[1] + (dir[1] / n) * distance,
+        c[2] + (dir[2] / n) * distance,
       ],
       target: c,
       zoom: 1,
@@ -209,7 +215,7 @@ export function fitCamera(
       ? [target[0], target[1], target[2] + far]
       : view === 'top'
         ? [target[0], target[1] + far, target[2] + 1] // a hair forward: screen-up = cabinet back
-        : [target[0] + far, target[1], target[2]];
+        : [target[0] + (fromLeft ? -far : far), target[1], target[2]];
   return { orthographic: true, position, target, zoom };
 }
 

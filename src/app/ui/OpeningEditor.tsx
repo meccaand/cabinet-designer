@@ -31,6 +31,11 @@ const FILLS: { id: OpeningFill; label: string }[] = [
   { id: 'falseFront', label: 'False front' },
   { id: 'open', label: 'Open' },
 ];
+/** L-shaped cabinets: one face around the corner, with a bi-fold pair or open (ADR-037). */
+const CORNER_FILLS: { id: OpeningFill; label: string }[] = [
+  { id: 'door', label: 'Bi-fold doors' },
+  { id: 'open', label: 'Open' },
+];
 const FILL_NAME: Record<OpeningFill, string> = {
   door: 'Door',
   doorPair: 'Pair of doors',
@@ -159,13 +164,15 @@ function OpeningControls({
   const current = (along === 'width' ? measured.x1 - measured.x0 : measured.y1 - measured.y0) - pad;
   const sizeLabel = `${frameless ? 'Front' : 'Opening'} ${along}`;
   const shelvable = node.fill === 'door' || node.fill === 'doorPair' || node.fill === 'open';
-  const shelves = node.shelves ?? { count: 0, adjustable: true };
+  // L-shaped cabinets' shelves are fixed: two pieces joined at the corner.
+  const corner = cabinet.corner !== undefined;
+  const shelves = node.shelves ?? { count: 0, adjustable: !corner };
 
   return (
     <section className={styles.section} aria-label="Selected opening">
       <h4 className={styles.sectionTitle}>{title}</h4>
       <div className={styles.segmented} role="group" aria-label="Fill">
-        {FILLS.map((f) => (
+        {(corner ? CORNER_FILLS : FILLS).map((f) => (
           <button
             key={f.id}
             type="button"
@@ -178,7 +185,7 @@ function OpeningControls({
       </div>
 
       <div className={styles.grid} style={{ marginTop: 10 }}>
-        {node.fill === 'door' && (
+        {node.fill === 'door' && !corner && (
           <div className={styles.field}>
             <span className={styles.label}>Hinged on</span>
             <div className={styles.segmented} role="group" aria-label="Hinge side">
@@ -212,22 +219,26 @@ function OpeningControls({
                 }}
               />
             </div>
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={shelves.adjustable}
-                disabled={shelves.count === 0}
-                onChange={(e) =>
-                  editFace((face) =>
-                    setShelves(face, path, { ...shelves, adjustable: e.target.checked }),
-                  )
-                }
-              />
-              Adjustable
-            </label>
+            {!corner && (
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={shelves.adjustable}
+                  disabled={shelves.count === 0}
+                  onChange={(e) =>
+                    editFace((face) =>
+                      setShelves(face, path, { ...shelves, adjustable: e.target.checked }),
+                    )
+                  }
+                />
+                Adjustable
+              </label>
+            )}
           </>
         )}
       </div>
+
+      {corner && <p className={styles.hint}>Fixed shelves, each in two pieces.</p>}
 
       {size !== null && (
         <div className={styles.grid} style={{ marginTop: 8 }}>
@@ -254,34 +265,36 @@ function OpeningControls({
         </div>
       )}
 
-      <div className={styles.row}>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => editFace((f) => splitOpening(f, path, 'rows'))}
-        >
-          Split into rows
-        </button>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => editFace((f) => splitOpening(f, path, 'columns'))}
-        >
-          Split into columns
-        </button>
-        {path !== '' && (
+      {!corner && (
+        <div className={styles.row}>
           <button
             type="button"
-            className={`${styles.button} ${styles.danger}`}
-            onClick={() => {
-              editFace((f) => removeOpening(f, path));
-              onRemoved();
-            }}
+            className={styles.button}
+            onClick={() => editFace((f) => splitOpening(f, path, 'rows'))}
           >
-            Remove
+            Split into rows
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => editFace((f) => splitOpening(f, path, 'columns'))}
+          >
+            Split into columns
+          </button>
+          {path !== '' && (
+            <button
+              type="button"
+              className={`${styles.button} ${styles.danger}`}
+              onClick={() => {
+                editFace((f) => removeOpening(f, path));
+                onRemoved();
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

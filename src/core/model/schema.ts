@@ -313,9 +313,12 @@ export const CabinetTypeSchema = z.enum([
   'openShelf',
   'blindBase',
   'blindWall',
+  'lBase',
+  'lShelf',
 ]);
 export type CabinetType = z.infer<typeof CabinetTypeSchema>;
 const BLIND_TYPES: readonly CabinetType[] = ['blindBase', 'blindWall'];
+const L_TYPES: readonly CabinetType[] = ['lBase', 'lShelf'];
 
 export const CabinetSchema = z
   .object({
@@ -329,7 +332,8 @@ export const CabinetSchema = z
     placement: z.object({
       /** null = not yet placed on a wall. */
       wallId: Id.nullable(),
-      /** Distance from the wall's start to the cabinet's left edge. */
+      /** Distance from the wall's start to the cabinet's left edge. L-shaped cabinets ignore it:
+       * they always sit in the corner at the end of their wall (ADR-037). */
       offset: Length,
       /** Floor to the bottom of the cabinet (0 for base/tall). */
       elevation: NonNegLength,
@@ -345,10 +349,24 @@ export const CabinetSchema = z
         pullFillerWidth: NonNegLength,
       })
       .optional(),
+    /**
+     * L-shaped cabinets: the wing along the next wall (the "return"). `width` and `depth` are
+     * the wing along the cabinet's own wall (the "run"); both widths are measured to the corner.
+     */
+    corner: z
+      .object({
+        returnWidth: PositiveLength,
+        returnDepth: PositiveLength,
+      })
+      .optional(),
   })
   .refine((c) => BLIND_TYPES.includes(c.type) === (c.blind !== undefined), {
     message: 'Blind corner cabinets need blind settings; other types must not have them.',
     path: ['blind'],
+  })
+  .refine((c) => L_TYPES.includes(c.type) === (c.corner !== undefined), {
+    message: 'L-shaped cabinets need return settings; other types must not have them.',
+    path: ['corner'],
   });
 export type Cabinet = z.infer<typeof CabinetSchema>;
 

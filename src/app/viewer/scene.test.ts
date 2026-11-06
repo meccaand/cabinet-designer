@@ -94,6 +94,14 @@ describe('explodeOffset', () => {
 });
 
 describe('fitCamera', () => {
+  it('looks from the left for L-shaped cabinets, whose fronts face the inside corner', () => {
+    const b = { min: { x: -500, y: 0, z: -500 }, max: { x: 500, y: 900, z: 500 } };
+    const v = { width: 800, height: 600 };
+    expect(fitCamera(b, 'iso', v, 35, 0, true).position[0]).toBeLessThan(0);
+    expect(fitCamera(b, 'iso', v, 35).position[0]).toBeGreaterThan(0);
+    expect(fitCamera(b, 'side', v, 35, 0, true).position[0]).toBeLessThan(-1000);
+  });
+
   const bounds = box(-400, 400, 0, 900, -300, 300);
   const viewport = { width: 800, height: 600 };
 

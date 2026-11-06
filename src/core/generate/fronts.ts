@@ -4,7 +4,7 @@ import type { FrontSummary } from '../parts';
 import { quantize, type Mm } from '../units';
 import type { CarcassFrame } from './carcass';
 import type { BuildContext } from './context';
-import type { FaceLayout, LeafCell, Rect } from './face';
+import type { FaceLayout, Rect } from './face';
 
 /**
  * Face-frame outer stiles and rails, plus the rails/mullions between openings. `stiles` are the
@@ -98,7 +98,7 @@ export function buildFronts(ctx: BuildContext, f: CarcassFrame, layout: FaceLayo
           ]
         : [['', r]];
     for (const [suffix, fr] of rects) {
-      const thickness = buildFront(ctx, f, cell, kind, suffix, fr, inset);
+      const thickness = buildFront(ctx, f.D, cell.path, kind, suffix, fr, inset);
       if (inset) zFrontInner = Math.min(zFrontInner, quantize(f.D - thickness));
       summaries.push({ kind, width: quantize(fr.x1 - fr.x0), height: quantize(fr.y1 - fr.y0) });
     }
@@ -108,20 +108,24 @@ export function buildFronts(ctx: BuildContext, f: CarcassFrame, layout: FaceLayo
 
 const FRONT_NAMES = { door: 'Door', drawer: 'Drawer front', falseFront: 'False front' } as const;
 
-/** One front: slab, or a 5-piece shaker (butt-jointed frame, panel in a groove). Returns thickness. */
-function buildFront(
+/**
+ * One front on a face `D` from the wall: slab, or a 5-piece shaker (butt-jointed frame, panel in
+ * a groove). Returns its thickness.
+ */
+export function buildFront(
   ctx: BuildContext,
-  f: CarcassFrame,
-  cell: LeafCell,
+  D: Mm,
+  path: string,
   kind: FrontSummary['kind'],
   suffix: string,
   r: Rect,
   inset: boolean,
+  notes: string[] = [],
 ): Mm {
   const sh = ctx.c.shaker;
   const w = r.x1 - r.x0;
   const h = r.y1 - r.y0;
-  const id = `front/${cell.path || 'root'}${suffix ? `/${suffix}` : ''}`;
+  const id = `front/${path || 'root'}${suffix ? `/${suffix}` : ''}`;
   const name = FRONT_NAMES[kind] + (suffix ? ` (${suffix})` : '');
   // Doors: vertical grain. Drawer and false fronts: grain runs across.
   const grainAxis: Axis = kind === 'door' ? 'y' : 'x';
@@ -129,7 +133,7 @@ function buildFront(
   const shaker = ctx.c.fronts.style === 'shaker' && !panelTooSmall;
 
   const thickness = ctx.thickness(shaker ? 'frontFrame' : 'door');
-  const z0 = inset ? f.D - thickness : f.D;
+  const z0 = inset ? D - thickness : D;
   const z1 = z0 + thickness;
 
   if (!shaker) {
@@ -142,9 +146,12 @@ function buildFront(
       lengthAxis: grainAxis,
       thicknessAxis: 'z',
       banding: { role: 'frontBanding', edges: ['long1', 'long2', 'end1', 'end2'] },
-      ...(ctx.c.fronts.style === 'shaker' && {
-        notes: ['Made slab: a shaker panel would be smaller than the minimum panel size.'],
-      }),
+      notes: [
+        ...(ctx.c.fronts.style === 'shaker'
+          ? ['Made slab: a shaker panel would be smaller than the minimum panel size.']
+          : []),
+        ...notes,
+      ],
     });
     return thickness;
   }
@@ -162,6 +169,7 @@ function buildFront(
       thicknessAxis: 'z',
     });
   const stileL = frame('stile/L', 'frontStile', 'stile', { ...r, x1: r.x0 + ssw });
+  if (notes.length) stileL.notes.push(...notes);
   const stileR = frame('stile/R', 'frontStile', 'stile', { ...r, x0: r.x1 - ssw });
   const railT = frame('rail/top', 'frontRail', 'rail', {
     x0: r.x0 + ssw,

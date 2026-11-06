@@ -42,21 +42,37 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
     0,
     ...parts.filter((p) => frontRoles.includes(p.role)).map((p) => p.finished.thickness),
   );
-  const endT = (side: 'L' | 'R') =>
-    parts.find((p) => p.id === `${cabinet.id}/endPanel/${side}`)?.finished.thickness ?? 0;
-  const endL = endT('L');
-  const endR = endT('R');
+  const endT = (id: string) =>
+    parts.find((p) => p.id === `${cabinet.id}/${id}`)?.finished.thickness ?? 0;
+  const endL = endT('endPanel/L');
+  const endR = endT('endPanel/R');
   // A blind corner's pull filler stands out from the face by its width.
   const zMax = cabinet.depth + maxFront + (cabinet.blind?.pullFillerWidth ?? 0);
+  type Env = { x0: number; x1: number; z0: number; z1: number };
+  // An L-shaped cabinet: the run's envelope, or the return's (ending at the corner line).
+  const envelopes: Env[] = cabinet.corner
+    ? [
+        { x0: -oh - endL, x1: cabinet.width, z0: 0, z1: zMax },
+        {
+          x0: cabinet.width - cabinet.corner.returnDepth - maxFront,
+          x1: cabinet.width,
+          z0: 0,
+          z1: cabinet.corner.returnWidth + oh + endT('return/endPanel/R'),
+        },
+      ]
+    : [{ x0: -oh - endL, x1: cabinet.width + oh + endR, z0: 0, z1: zMax }];
   for (const p of parts) {
     const b = p.bounds;
     const inside =
-      b.min.x >= -oh - endL - EPS &&
-      b.max.x <= cabinet.width + oh + endR + EPS &&
       b.min.y >= -EPS &&
       b.max.y <= cabinet.height + EPS &&
-      b.min.z >= -EPS &&
-      b.max.z <= zMax + EPS;
+      envelopes.some(
+        (v) =>
+          b.min.x >= v.x0 - EPS &&
+          b.max.x <= v.x1 + EPS &&
+          b.min.z >= v.z0 - EPS &&
+          b.max.z <= v.z1 + EPS,
+      );
     if (!inside) out.push(`${p.id}: outside the cabinet envelope`);
   }
 
@@ -89,12 +105,14 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
     if (j.depth <= 0) out.push(`${j.kind} ${j.host}/${j.guest}: non-positive depth`);
   }
 
-  // Panels between the sides span exactly the interior plus the joint engagement
+  // Panels between the sides span exactly the interior plus the joint engagement (L-shaped
+  // cabinets' two-piece panels are checked by their own tests)
   const t = project.materials.sheets.find((s) => s.id === c.materials.carcass)!.thickness;
   const housed = c.carcass.joinery === 'dado' || c.carcass.joinery === 'rabbet';
   const expected = cabinet.width - 2 * t + (housed ? 2 * c.carcass.dadoDepth : 0);
   for (const p of parts.filter((x) => ['bottom', 'top', 'stretcher'].includes(x.role))) {
-    if (Math.abs(extent(p.bounds, 'x') - expected) > EPS) out.push(`${p.id}: width sum is off`);
+    if (!cabinet.corner && Math.abs(extent(p.bounds, 'x') - expected) > EPS)
+      out.push(`${p.id}: width sum is off`);
   }
 
   // Drawer boxes use a real slide length, one slide pair per box

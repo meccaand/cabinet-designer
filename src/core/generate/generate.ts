@@ -7,11 +7,13 @@ import type { Cabinet, Project } from '../model';
 import type { CabinetModel } from '../parts';
 import { blindPlan, buildBlindParts } from './blind';
 import { buildCarcass, check, type CarcassFrame } from './carcass';
+import { buildCorner } from './corner';
 import { buildEndPanels } from './endPanels';
 import { BuildContext, BuildError } from './context';
 import { layoutFace, type LayoutRules, type Rect } from './face';
 import { buildFaceFrame, buildFronts } from './fronts';
 import { buildDrawers, buildPartitions, buildShelves } from './interior';
+import { TYPE_TRAITS } from './traits';
 
 export type GenerateResult = { ok: true; model: CabinetModel } | { ok: false; errors: string[] };
 
@@ -25,6 +27,7 @@ export function generateCabinet(cabinet: Cabinet, project: Project): GenerateRes
 }
 
 function build(ctx: BuildContext): CabinetModel {
+  if (TYPE_TRAITS[ctx.cabinet.type].corner) return buildCorner(ctx);
   const f = buildCarcass(ctx);
   const frameless = ctx.c.carcass.style === 'frameless';
   const blind = blindPlan(ctx.cabinet, f);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCabinet, generateCabinet } from '../generate';
 import { createProject, type Project, type Wall } from '../model';
+import { wallElevation } from '../drawing';
 import type { CabinetModel } from '../parts';
 import { inch } from '../units';
 import {
@@ -10,6 +11,7 @@ import {
   layoutIssues,
   layoutItems,
   nextFreeOffset,
+  placedOffset,
   placementTransform,
   roomBounds,
   snapOffset,
@@ -235,5 +237,64 @@ describe('layoutItems and fillerPart', () => {
       grain: true,
       cut: { thickness: inch(0.75) },
     });
+  });
+});
+
+describe('L-shaped cabinets in a room', () => {
+  const room = project([wall('A', 120), wall('B', 96)]);
+  const corner = {
+    ...createCabinet(room, 'lBase', { id: 'L' }),
+    placement: { wallId: 'A', offset: 5, elevation: 0 },
+  };
+  const next = {
+    ...createCabinet(room, 'base', { id: 'n' }),
+    placement: { wallId: 'B', offset: 0, elevation: 0 },
+  };
+  const p: Project = { ...room, cabinets: [corner, next] };
+  const models = new Map<string, CabinetModel | null>(
+    p.cabinets.map((c) => {
+      const r = generateCabinet(c, p);
+      return [c.id, r.ok ? r.model : null];
+    }),
+  );
+
+  it('sit in the corner at the end of their wall, whatever the stored offset', () => {
+    const frames = wallFrames(p.room);
+    expect(placedOffset(corner, frames)).toBeCloseTo(inch(120 - 36), 6);
+    expect(placedOffset(next, frames)).toBe(0);
+  });
+
+  it('are an item on their wall and a return on the next, which neighbours keep clear of', () => {
+    const items = layoutItems(p, models).filter((i) => i.id === 'L');
+    expect(items).toMatchObject([{ wallId: 'A' }, { wallId: 'B', offset: 0, isReturn: true }]);
+    const [run, ret] = items;
+    expect(run!.isReturn).toBeUndefined();
+    expect(run!.x1 - run!.x0).toBeCloseTo(inch(36), 6);
+    expect(run!.depth).toBeCloseTo(inch(24) + 18, 6); // the run's doors, not the return
+    expect(ret!.x1).toBeCloseTo(inch(36), 6);
+    expect(ret!.depth).toBeCloseTo(inch(24) + 18, 6);
+    const all = layoutItems(p, models);
+    const n = all.find((i) => i.id === 'n')!;
+    expect(nextFreeOffset(n, 'B', p, all)).toBeCloseTo(inch(36), 6);
+    // The base on wall B overlaps the return; the L's own run and return don't count.
+    expect(layoutIssues(p, all).map((i) => i.message)).toEqual([
+      'L-shaped base overlaps Base cabinet.',
+    ]);
+  });
+
+  it('need an inside corner at the end of their wall', () => {
+    const straight = { ...p, room: { walls: [wall('A', 120)] }, cabinets: [corner] };
+    const items = layoutItems(straight, models);
+    expect(items).toHaveLength(1);
+    expect(layoutIssues(straight, items).map((i) => i.message)).toEqual([
+      'L-shaped base needs an inside corner at the end of A.',
+    ]);
+  });
+
+  it('show their return on the next wall elevation', () => {
+    const b = wallElevation(p, 'B', models);
+    const rects = b.primitives.filter((x) => x.kind === 'rect');
+    // The wall, the return seen from wall B, and the base cabinet.
+    expect(rects.length).toBeGreaterThan(models.get('L')!.parts.length);
   });
 });

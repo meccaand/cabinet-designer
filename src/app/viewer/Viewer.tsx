@@ -2,7 +2,7 @@ import { Grid, OrbitControls, OrthographicCamera, PerspectiveCamera } from '@rea
 import { Canvas } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import type { Box } from '../../core/geometry';
-import { fillerPart, placementTransform, wallFrames } from '../../core/layout';
+import { fillerPart, placedOffset, placementTransform, wallFrames } from '../../core/layout';
 import type { Project } from '../../core/model';
 import type { CabinetModel } from '../../core/parts';
 import { formatLength } from '../../core/units';
@@ -106,6 +106,7 @@ export function Viewer({ project, models, activeId, onActivate, roomOnly = false
         <OrbitControls makeDefault enableDamping={false} />
         <CameraRig
           bounds={bounds}
+          fromLeft={!room && cabinet?.corner !== undefined}
           frameKey={
             roomOnly
               ? `room:${project.room.walls.map((w) => `${w.length}x${w.height}`).join()}`
@@ -126,7 +127,7 @@ export function Viewer({ project, models, activeId, onActivate, roomOnly = false
               if (!m) return null;
               const t = placementTransform(
                 frames.find((f) => f.wall.id === c.placement.wallId),
-                c.placement.offset,
+                placedOffset(c, frames),
                 c.placement.elevation,
               );
               return (

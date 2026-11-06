@@ -12,16 +12,20 @@ export interface TypeTraits {
   hangingRail: boolean;
   /** One end of the face is a blind panel hidden by the run that meets it at a corner. */
   blind: boolean;
+  /** L-shaped: a run along its wall and a return along the next, around an inside corner. */
+  corner: boolean;
 }
 
 export const TYPE_TRAITS: Record<CabinetType, TypeTraits> = {
-  base: { platform: true, counter: true, hangingRail: false, blind: false },
-  drawerBank: { platform: true, counter: true, hangingRail: false, blind: false },
-  blindBase: { platform: true, counter: true, hangingRail: false, blind: true },
-  tall: { platform: true, counter: false, hangingRail: false, blind: false },
-  openShelf: { platform: true, counter: false, hangingRail: false, blind: false },
-  wall: { platform: false, counter: false, hangingRail: true, blind: false },
-  blindWall: { platform: false, counter: false, hangingRail: true, blind: true },
+  base: { platform: true, counter: true, hangingRail: false, blind: false, corner: false },
+  drawerBank: { platform: true, counter: true, hangingRail: false, blind: false, corner: false },
+  blindBase: { platform: true, counter: true, hangingRail: false, blind: true, corner: false },
+  tall: { platform: true, counter: false, hangingRail: false, blind: false, corner: false },
+  openShelf: { platform: true, counter: false, hangingRail: false, blind: false, corner: false },
+  wall: { platform: false, counter: false, hangingRail: true, blind: false, corner: false },
+  blindWall: { platform: false, counter: false, hangingRail: true, blind: true, corner: false },
+  lBase: { platform: true, counter: true, hangingRail: false, blind: false, corner: true },
+  lShelf: { platform: true, counter: false, hangingRail: false, blind: false, corner: true },
 };
 
 /** Whether a cabinet stands on a toe-kick platform: a floor type with its toe kick on. Without

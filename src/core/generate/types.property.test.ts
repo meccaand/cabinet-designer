@@ -48,6 +48,17 @@ const RANGES: Record<CabinetType, [[number, number], [number, number], [number, 
     [15, 42],
     [10, 15],
   ],
+  // L-shaped: the width range is the run's; the return is drawn from the same range.
+  lBase: [
+    [30, 48],
+    [30, 38],
+    [21, 24],
+  ],
+  lShelf: [
+    [24, 42],
+    [30, 96],
+    [10, 15],
+  ],
 };
 
 const sixteenths = ([lo, hi]: [number, number]) =>
@@ -77,14 +88,29 @@ const cabinets = fc
       depth: sixteenths(d),
       construction,
       side: fc.constantFrom('left' as const, 'right' as const),
+      returnWidth: sixteenths(w),
+      returnDepth: sixteenths(d),
+      toeKick: fc.boolean(),
       blindShare: fc.double({ min: 0.45, max: 0.7, noNaN: true }),
       endPanels: fc.record({ left: fc.boolean(), right: fc.boolean() }),
     });
   })
-  .map(({ type, width, height, depth, construction, side, blindShare, endPanels }) => {
+  .map((r) => {
+    const { type, width, height, depth, side, blindShare, endPanels } = r;
+    // Frameless L-shaped cabinets take overlay doors only (they have no corner post).
+    const lFrameless = TYPE_TRAITS[type].corner && r.construction.carcass?.style === 'frameless';
+    const construction = {
+      ...r.construction,
+      platform: { enabled: r.toeKick },
+      ...(lFrameless && { fronts: { ...r.construction.fronts, mount: 'overlay' as const } }),
+    };
+    const created = createCabinet(project, type, { id: 'c', width, height, depth, construction });
     const cab = {
-      ...createCabinet(project, type, { id: 'c', width, height, depth, construction }),
+      ...created,
       endPanels,
+      ...(created.corner && {
+        corner: { returnWidth: r.returnWidth, returnDepth: r.returnDepth },
+      }),
     };
     if (!cab.blind) return cab;
     // Blind width: between ~half and ~70% of the width, at least a stile wider than the side.
@@ -105,7 +131,10 @@ describe('every cabinet type (property-based)', () => {
 
         const parts = result.model.parts;
         const traits = TYPE_TRAITS[cabinet.type];
-        expect(parts.some((p) => p.role === 'platformRail')).toBe(traits.platform);
+        expect(parts.some((p) => p.role === 'platformRail')).toBe(
+          traits.platform && cabinet.construction.platform?.enabled !== false,
+        );
+        expect(parts.some((p) => p.wing === 'return')).toBe(traits.corner);
         expect(parts.some((p) => p.role === 'hangingRail')).toBe(traits.hangingRail);
         expect(parts.some((p) => p.role === 'filler')).toBe(traits.blind);
         if (!traits.counter) expect(parts.some((p) => p.role === 'top')).toBe(true);

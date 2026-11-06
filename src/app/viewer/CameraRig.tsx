@@ -14,7 +14,16 @@ const TOOLBAR_PX = 90;
  * Frames `bounds` (world coordinates) when a view is requested or `frameKey` changes (a
  * different cabinet, or switching to the room), not on every edit.
  */
-export function CameraRig({ bounds, frameKey }: { bounds: Box; frameKey: string }) {
+export function CameraRig({
+  bounds,
+  frameKey,
+  fromLeft = false,
+}: {
+  bounds: Box;
+  frameKey: string;
+  /** See fitCamera: for L-shaped cabinets. */
+  fromLeft?: boolean;
+}) {
   // Subscribed so a projection switch re-frames; mutated through get() as R3F intends.
   const camera = useThree((s) => s.camera);
   const get = useThree((s) => s.get);
@@ -34,7 +43,7 @@ export function CameraRig({ bounds, frameKey }: { bounds: Box; frameKey: string 
 
   useEffect(() => {
     if (!controls || width === 0 || height === 0) return;
-    const fit = fitCamera(latest.current, view, { width, height }, FOV, TOOLBAR_PX);
+    const fit = fitCamera(latest.current, view, { width, height }, FOV, TOOLBAR_PX, fromLeft);
     const cam = get().camera;
     cam.position.set(...fit.position);
     if (cam instanceof OrthographicCamera) cam.zoom = fit.zoom;
@@ -42,7 +51,7 @@ export function CameraRig({ bounds, frameKey }: { bounds: Box; frameKey: string 
     controls.target.set(...fit.target);
     controls.update();
     get().invalidate();
-  }, [request, view, frameKey, camera, controls, width, height, get]);
+  }, [request, view, frameKey, camera, controls, width, height, get, fromLeft]);
 
   return null;
 }

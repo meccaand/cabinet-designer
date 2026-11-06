@@ -570,3 +570,76 @@ in use, so breaking changes now migrate.
 The property tests now turn the toe kick on and off at random. A unit test checks a
 no-toe-kick base by hand: 34 1/2" sides, the bottom at the floor, fronts at the edge reveal, a
 full-height end panel with no notch, and every floor type without platform parts.
+
+## ADR-037: L-shaped base and L-shaped open shelving
+
+**Status:** Accepted (M9, at Andrew's request)
+
+Two new types fill an inside corner: an **L-shaped base** and **L-shaped open shelving**. The
+shelving stands on the floor, is 84" tall by default and has no doors. Andrew chose the
+construction:
+
+- **Two-piece L panels.** The bottom, top and shelves are two rectangles butted at the corner,
+  not one notched piece. Every part stays a rectangle, so the cut list, sheet layouts, 3D view
+  and overlap checks need no new geometry.
+- **A bi-fold pair** on the base.
+- **Frameless and face frame**, like every other type.
+
+**Model.**
+
+- **Shape.** `width` and `depth` are the run, along the cabinet's wall. A new `corner`
+  (`returnWidth`, `returnDepth`) is the return, along the next wall. Both widths are measured
+  into the corner. Schema validation requires `corner` exactly on the L types. No migration is
+  needed: existing projects can't contain the new types.
+- **Face.** A single leaf: `door` means the bi-fold pair, or `open`. Shelves are fixed only, and
+  splits and drawers are rejected: drawers would collide in the corner. The opening editor
+  shows only what applies.
+
+**Generator.** The return is built by the same code as the run, in its own coordinates (along
+its wall from its outer end, and out from the wall). A quarter-turn frame on `BuildContext`
+maps those coordinates into the cabinet's, and prefixes the return's part ids and names. The
+door, toe-kick ladder and end-panel builders are reused unchanged. The run owns the corner
+square, and the return's pieces butt against it. Exact formulas and two golden cut lists to
+verify are in CONSTRUCTION.md.
+
+**Choices made without asking (please check):**
+
+- **The corner is held by the backs.** There is no corner post or cleat; the backs and the
+  two-piece panels meet there. With 1/4" backs, a cleat or a thicker back may be wanted.
+- **The run's door is the one hinged to the cabinet.** It has no pull, and the return's door
+  carries the pull near its free end.
+- **Frameless overlay doors.** The run's door stops door thickness + `revealBetween` short of
+  the return's door face. The return's door runs to the run's face plane.
+- **Frameless inset is rejected,** because there is no post for the doors to close against.
+- **Face frame.** The run's corner stile is wider by the frame thickness, and the return's frame
+  butts against its face. The overlay doors must clear each other: `stileWidth` ≥ overlay +
+  door thickness.
+- **Default sizes.** The base is 36 × 34½ × 24 with a 36 × 24 return. The shelving is 30 × 84 ×
+  12 with a 30 × 12 return. A face must be at least 6" wide.
+
+**Layout.**
+
+- **Placement.** An L-shaped cabinet always sits in the corner at the end of its wall, so its
+  offset is derived from the wall length (`placedOffset`). It can't be dragged or nudged.
+- **The return item.** `layoutItems` adds a return item on the next wall, so neighbours,
+  snapping, gaps and the next wall's elevation all see it. The run and the return don't count
+  as overlapping each other, and a neighbour that hits both is reported once.
+- **No inside corner.** If the wall doesn't end in an inside corner, a layout problem says so.
+- **Adding cabinets.** A new L cabinet goes to the active cabinet's wall if that wall turns into
+  an inside corner, or else to the first wall that does. A cabinet added after an L continues
+  along its return's wall.
+
+**Views.**
+
+- **Plan.** The plan draws an L.
+- **Front elevation.** It shows the run and the return side by side.
+- **3D.** A single L cabinet is viewed from the front-left (iso and side), where its fronts
+  face.
+
+**Tests.**
+
+- **Golden cut lists:** G7 (frameless) and G8 (face frame).
+- **Every combination:** all 192 constructions × both types, with and without end panels,
+  through the invariants. The invariants now know the L envelope.
+- **Property tests:** random L cabinets with random returns and the toe kick on or off.
+- **Layout, store, PDF and Playwright** tests for the flow.

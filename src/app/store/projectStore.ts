@@ -1,7 +1,13 @@
 import { produce, type Draft } from 'immer';
 import { create } from 'zustand';
 import { CABINET_TYPE_NAMES, createCabinet, hasToeKick } from '../../core/generate';
-import { gapsBeside, nextFreeOffset, type LayoutItem } from '../../core/layout';
+import {
+  gapsBeside,
+  nextFreeOffset,
+  returnWall,
+  wallFrames,
+  type LayoutItem,
+} from '../../core/layout';
 import {
   resolveConstruction,
   type Cabinet,
@@ -157,11 +163,21 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         id,
         name: `${CABINET_TYPE_NAMES[type]} ${n}`,
       });
-      // Next to the active cabinet's run, after whatever is already there at that height.
+      // Next to the active cabinet's run, after whatever is already there at that height. An
+      // L-shaped cabinet goes in an inside corner: the active cabinet's wall if it ends in one.
       const active = project.cabinets.find((c) => c.id === activeCabinetId);
-      const wallId = active?.placement.wallId ?? project.room.walls[0]?.id ?? null;
+      // After an L-shaped cabinet, the run carries on along its return's wall.
+      const frames = wallFrames(project.room);
+      let wallId = active?.placement.wallId ?? project.room.walls[0]?.id ?? null;
+      const activeFrame = frames.find((f) => f.wall.id === wallId);
+      if (cabinet.corner) {
+        const turns = frames.filter((f) => returnWall(f, frames)).map((f) => f.wall.id);
+        wallId = turns.includes(wallId ?? '') ? wallId : (turns[0] ?? wallId);
+      } else if (active?.corner && activeFrame) {
+        wallId = returnWall(activeFrame, frames)?.wall.id ?? wallId;
+      }
       let placed: Cabinet = { ...cabinet, placement: { ...cabinet.placement, wallId } };
-      if (wallId) {
+      if (wallId && !cabinet.corner) {
         const trial = produce(project, (p) => void p.cabinets.push(placed));
         const items = projectLayout(trial);
         const item = items.find((i) => i.id === id);
@@ -214,7 +230,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         const cabinet = p.cabinets.find((c) => c.id === id);
         if (cabinet) {
           if (placement.wallId !== undefined) cabinet.placement.wallId = placement.wallId;
-          if (placement.offset !== undefined) cabinet.placement.offset = placement.offset;
+          // L-shaped cabinets sit in their corner; their offset follows the wall.
+          if (placement.offset !== undefined && !cabinet.corner)
+            cabinet.placement.offset = placement.offset;
           if (placement.elevation !== undefined) cabinet.placement.elevation = placement.elevation;
           return;
         }
@@ -228,8 +246,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     nudgeItem: (id, delta) =>
       edit((p) => {
-        const item =
-          p.cabinets.find((c) => c.id === id)?.placement ?? p.fillers.find((f) => f.id === id);
+        const cabinet = p.cabinets.find((c) => c.id === id);
+        if (cabinet?.corner) return;
+        const item = cabinet?.placement ?? p.fillers.find((f) => f.id === id);
         if (item) item.offset = Math.max(0, quantize(item.offset + delta));
       }, `nudge:${id}`),
 

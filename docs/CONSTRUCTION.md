@@ -61,6 +61,8 @@ x runs left → right, y floor → up, z back → front (z = 0 is the back of th
 | Open shelving     | yes      | full               | —            | no fronts                                       | 36 × 84 × 12: 4 adjustable shelves                            |
 | Wall              | no       | full               | hanging rail | `revealEdge` all round                          | 30 × 30 × 12: doors, 2 adjustable shelves                     |
 | Blind corner wall | no       | full               | hanging rail | `revealEdge` all round, minus the blind portion | 36 × 30 × 12: blind 13" left, door                            |
+| L-shaped base     | yes      | stretchers or full | —            | bi-fold pair (see below)                        | 36 × 34½ × 24, return 36 × 24: bi-fold doors, 1 fixed shelf   |
+| L-shaped shelving | yes      | full               | —            | no fronts                                       | 30 × 84 × 12, return 30 × 12: 4 fixed shelves                 |
 
 Doors wider than 21" default to a pair. Wall cabinets default to 54" off the floor (used by room
 layout).
@@ -86,6 +88,52 @@ layout).
     otherwise) stands out from the face, perpendicular to it, one door gap beyond the nearest
     door edge. It is cut to the height of the fronts (frameless) or of the box (face frame).
   - Blind cabinets can't have drawers: the box would hit the blind side.
+
+## L-shaped cabinets
+
+An L-shaped cabinet fills an inside corner. Its **run** is along its own wall and its **return**
+is along the next wall. W and D are the run's width and depth, and Wr and Dr the return's. Both
+widths are measured into the corner, so the two wings share the corner square (Dr × D).
+
+- **Placement.** It always sits in the corner at the end of its wall: offset = wall length − W.
+  It needs an inside corner there (a layout problem otherwise), and it can't be dragged or
+  nudged. The return shows on the next wall's plan and elevation, and cabinets added after it
+  continue along that wall.
+- **One box, two wings.** Each wing is built like the other cabinets (same joinery, back, top,
+  toe kick and face rules), with an end side at its outer end only. The corner is closed by
+  the backs. The **run owns the corner square**:
+  - **Backs.** The run's back runs to the corner (to `backGrooveSetback` from it for a grooved
+    back). The return's back butts against the run's back face.
+  - **Two-piece panels.** The run's bottom, top, back stretcher and shelves reach the return's
+    back. The return's pieces butt against their front edges, and each note says to join the
+    two pieces at the corner. Run pieces: from the end side (plus its joint) to W − (back
+    thickness; 0 for a grooved back), and the bottom's depth is the usual Dbox − back. Return
+    pieces: from the end side to Wr − Dbox(run).
+  - **Front stretchers.** The run's runs to W − Dr(box) + `stretcherWidth`, past the inside
+    corner, and the return's butts against it.
+  - **Toe kick.** Two ladders. The run's is W long. The return's starts at the front of the
+    run's: Wr − (D − setback) long.
+- **Fronts: a bi-fold pair.** One door on each face, hinged to each other at the corner. The
+  run's door is hinged to the cabinet at its outer end, and the return's door carries the pull,
+  near its free edge. Hinges: the usual count for the door height, on each door (the pair is
+  joined with bi-fold hinges). One pull.
+  - **Frameless overlay.** The return's door runs from the edge reveal to the run's face plane
+    (Wr − D along the return). The run's door stops the door thickness plus `revealBetween`
+    short of the return's door face (W − Dr − door − gap), so the two clear each other.
+  - **Face frame.** Each wing has an end stile, a corner stile and two rails. The run's corner
+    stile is wider by the frame thickness, because the return's frame butts against its face.
+    Openings: from the end stile to `stileWidth` before the inside corner. The overlay doors
+    clear each other when `stileWidth` ≥ overlay + door thickness (checked).
+  - **Frameless inset is not offered.** There is no corner post for inset doors to close
+    against.
+  - The face can't be split (no drawers: they would collide in the corner). It is bi-fold
+    doors or open.
+- **Shelves are fixed.** Each is two pieces, like the bottom, in dados in the end sides with
+  dado/rabbet joinery. They run from the back to the box front, as on other cabinets.
+- **End panels.** "Run" is on the run's outer end and "return" on the return's outer end, with
+  the toe-kick notch.
+- **Sizes.** The run must be at least 6" wider than the return's depth, and vice versa, to leave
+  a face.
 
 ## End panels and fillers
 
@@ -327,3 +375,55 @@ Notes:
 
 - The G4 shelves are shallower by the hanging rail (inset back, so the rail is inside the box).
 - The G6 pull filler stands 3" proud of the blind panel at the edge of the door opening.
+
+### G7: Frameless L-shaped base 36" × 34½", return 36", both 24" deep: dado joinery, inset back, stretchers, slab bi-fold pair, 1 fixed shelf
+
+| Part                           | Qty | Length     | Width      | Thickness | mm (L × W × T)          |
+| ------------------------------ | --- | ---------- | ---------- | --------- | ----------------------- |
+| End side                       | 2   | 30 1/2"    | 24"        | ≈23/32"   | 774.70 × 609.60 × 18.00 |
+| Bottom (run)                   | 1   | ≈35 11/32" | ≈23 25/32" | ≈23/32"   | 897.55 × 604.40 × 18.00 |
+| Bottom (return)                | 1   | ≈11 17/32" | ≈23 25/32" | ≈23/32"   | 293.15 × 604.40 × 18.00 |
+| Front stretcher (run)          | 1   | ≈15 17/32" | 4"         | ≈23/32"   | 394.75 × 101.60 × 18.00 |
+| Front stretcher (return)       | 1   | ≈11 17/32" | 4"         | ≈23/32"   | 293.15 × 101.60 × 18.00 |
+| Back stretcher (run)           | 1   | ≈35 11/32" | 4"         | ≈23/32"   | 897.55 × 101.60 × 18.00 |
+| Back stretcher (return)        | 1   | ≈31 11/32" | 4"         | ≈23/32"   | 795.95 × 101.60 × 18.00 |
+| Back (run)                     | 1   | 30 1/2"    | ≈35 21/32" | ≈7/32"    | 774.70 × 905.92 × 5.20  |
+| Back (return)                  | 1   | 30 1/2"    | ≈35 15/32" | ≈7/32"    | 774.70 × 900.73 × 5.20  |
+| Platform rail                  | 2   | 36"        | 4"         | ≈23/32"   | 914.40 × 101.60 × 18.00 |
+| Platform cross member          | 3   | ≈19 19/32" | 4"         | ≈23/32"   | 497.40 × 101.60 × 18.00 |
+| Platform rail (return)         | 2   | 15"        | 4"         | ≈23/32"   | 381.00 × 101.60 × 18.00 |
+| Platform cross member (return) | 2   | ≈19 19/32" | 4"         | ≈23/32"   | 497.40 × 101.60 × 18.00 |
+| Door (run)                     | 1   | 30 3/8"    | ≈11 3/32"  | ≈23/32"   | 771.52 × 282.04 × 18.00 |
+| Door (return)                  | 1   | 30 3/8"    | 11 15/16"  | ≈23/32"   | 771.52 × 303.21 × 18.00 |
+| Fixed shelf (run)              | 1   | ≈35 11/32" | ≈23 25/32" | ≈23/32"   | 897.55 × 604.40 × 18.00 |
+| Fixed shelf (return)           | 1   | ≈11 17/32" | ≈23 25/32" | ≈23/32"   | 293.15 × 604.40 × 18.00 |
+
+How the key sizes come about (t = 18 mm, back 5.2 mm, dado 1/4", rabbet 3/8"):
+
+- **Run bottom:** 36" − t + 1/4" − back = 897.55 mm.
+- **Return bottom:** 36" − t + 1/4" − 24" (the run's front edge) = 293.15 mm.
+- **Run back:** 36" − t + 3/8". **Return back:** that, less the run back's thickness.
+- **Doors.** Run door: 1/16" to 36" − 24" − 18 mm − 1/8" = 282.04 mm wide. Return door: from
+  24" to 36" − 1/16" = 11 15/16".
+
+### G8: Face-frame L-shaped base: as G7 with a 3/4" face frame (1 1/2" stiles and rails, 1/2" overlay)
+
+| Part                          | Qty | Length     | Width     | Thickness | mm (L × W × T)          |
+| ----------------------------- | --- | ---------- | --------- | --------- | ----------------------- |
+| End side                      | 2   | 30 1/2"    | 23 1/4"   | ≈23/32"   | 774.70 × 590.55 × 18.00 |
+| Bottom (run)                  | 1   | ≈35 11/32" | ≈23 1/32" | ≈23/32"   | 897.55 × 585.35 × 18.00 |
+| Bottom (return)               | 1   | ≈12 9/32"  | ≈23 1/32" | ≈23/32"   | 312.20 × 585.35 × 18.00 |
+| Front stretcher (run)         | 1   | ≈16 9/32"  | 4"        | ≈23/32"   | 413.80 × 101.60 × 18.00 |
+| Front stretcher (return)      | 1   | ≈12 9/32"  | 4"        | ≈23/32"   | 312.20 × 101.60 × 18.00 |
+| Face frame stile              | 3   | 30 1/2"    | 1 1/2"    | 3/4"      | 774.70 × 38.10 × 19.05  |
+| Face frame corner stile (run) | 1   | 30 1/2"    | 2 1/4"    | 3/4"      | 774.70 × 57.15 × 19.05  |
+| Face frame rail               | 4   | 9"         | 1 1/2"    | 3/4"      | 228.60 × 38.10 × 19.05  |
+| Door                          | 2   | 28 1/2"    | 10"       | ≈23/32"   | 723.90 × 254.00 × 18.00 |
+| Fixed shelf (run)             | 1   | ≈35 11/32" | ≈23 1/32" | ≈23/32"   | 897.55 × 585.35 × 18.00 |
+| Fixed shelf (return)          | 1   | ≈12 9/32"  | ≈23 1/32" | ≈23/32"   | 312.20 × 585.35 × 18.00 |
+
+The back stretchers, backs and toe kick are as G7. Openings are 9" × 27 1/2" (36" − 24" − two
+1 1/2" stiles; the bottom rail sits on the toe kick), and the doors overlay them by 1/2" all
+round.
+
+Hardware: G7 and G8 each have 4 hinges (two on each leaf of the bi-fold) and 1 pull.

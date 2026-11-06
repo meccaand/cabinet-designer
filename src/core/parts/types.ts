@@ -69,6 +69,8 @@ export interface Part {
   notes: string[];
   /** A rectangle cut from the bottom front corner (end panels: the toe kick). */
   notch?: { height: Mm; depth: Mm };
+  /** L-shaped cabinets: the part belongs to the return, the wing along the next wall. */
+  wing?: 'return';
 }
 
 /**
@@ -90,6 +92,8 @@ export interface FrontSummary {
   kind: 'door' | 'drawer' | 'falseFront';
   width: Mm;
   height: Mm;
+  /** The leaf of a bi-fold pair hinged to the cabinet: opened by the pull on the other leaf. */
+  noPull?: true;
 }
 
 /** One leaf of the face tree, laid out: the front's cell (frameless) or the opening (face frame). */

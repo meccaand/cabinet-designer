@@ -28,6 +28,14 @@ const SIZES: Record<CabinetType, [number, number, number]> = {
   openShelf: [36, 84, 12],
   wall: [30, 30, 12],
   blindWall: [36, 30, 12],
+  lBase: [36, 34.5, 24],
+  lShelf: [30, 84, 12],
+};
+
+/** L-shaped cabinets' return (width, depth) in inches: the same as the run by default. */
+const RETURNS: Partial<Record<CabinetType, [number, number]>> = {
+  lBase: [36, 24],
+  lShelf: [30, 12],
 };
 
 export const CABINET_TYPE_NAMES: Record<CabinetType, string> = {
@@ -38,6 +46,8 @@ export const CABINET_TYPE_NAMES: Record<CabinetType, string> = {
   openShelf: 'Open shelving',
   wall: 'Wall cabinet',
   blindWall: 'Blind corner wall',
+  lBase: 'L-shaped base',
+  lShelf: 'L-shaped open shelving',
 };
 
 /** Doors wider than this become a pair. */
@@ -104,7 +114,15 @@ export function createCabinet(project: Project, type: CabinetType, opts: Cabinet
     case 'blindWall':
       face = doors(2);
       break;
+    // L-shaped: one face around the corner. 'door' is the bi-fold pair (ADR-037).
+    case 'lBase':
+      face = { kind: 'leaf', fill: 'door', shelves: { count: 1, adjustable: false } };
+      break;
+    case 'lShelf':
+      face = { kind: 'leaf', fill: 'open', shelves: { count: 4, adjustable: false } };
+      break;
   }
+  const ret = RETURNS[type];
 
   return {
     id: opts.id,
@@ -122,6 +140,7 @@ export function createCabinet(project: Project, type: CabinetType, opts: Cabinet
     face,
     endPanels: { left: false, right: false },
     ...(blind && { blind }),
+    ...(ret && { corner: { returnWidth: inch(ret[0]), returnDepth: inch(ret[1]) } }),
   };
 }
 

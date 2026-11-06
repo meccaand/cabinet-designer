@@ -6,10 +6,12 @@ const ORDER: CabinetType[] = [
   'base',
   'drawerBank',
   'blindBase',
+  'lBase',
   'wall',
   'blindWall',
   'tall',
   'openShelf',
+  'lShelf',
 ];
 
 /**

@@ -281,7 +281,7 @@ function buildHangingRail(
  * ends and at most `crossMemberSpacing` apart (centre to centre). Front face sits `setback`
  * behind the cabinet front.
  */
-function buildPlatform(ctx: BuildContext, W: Mm, D: Mm, P: Mm): void {
+export function buildPlatform(ctx: BuildContext, W: Mm, D: Mm, P: Mm): void {
   const { setback, crossMemberSpacing } = ctx.c.platform;
   const tp = ctx.thickness('platform');
   const zFront = D - setback;

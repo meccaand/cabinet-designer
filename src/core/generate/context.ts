@@ -19,12 +19,23 @@ export interface StockInfo {
   grain: boolean;
 }
 
+/**
+ * The return wing of an L-shaped cabinet is built in its own coordinates, exactly as if it were
+ * a cabinet on the next wall (x along that wall, z out from it), and mapped into the cabinet's.
+ * The map is a quarter turn, so boxes stay axis-aligned boxes.
+ */
+export interface WingFrame {
+  map: (b: Box) => Box;
+  axis: (a: Axis) => Axis;
+}
+
 /** Everything a generator step needs: the cabinet, its resolved conventions and materials. */
 export class BuildContext {
   readonly c: ConstructionDefaults;
   readonly parts: Part[] = [];
   readonly joints: Joint[] = [];
   readonly warnings: string[] = [];
+  private wing: WingFrame | null = null;
 
   constructor(
     readonly cabinet: Cabinet,
@@ -53,11 +64,24 @@ export class BuildContext {
     return this.stock(role).thickness;
   }
 
+  /** Build an L-shaped cabinet's return: parts added by `build` are mapped by `frame`, their
+   * ids are prefixed `return/` and their names end "(return)". */
+  inReturn<T>(frame: WingFrame, build: () => T): T {
+    this.wing = frame;
+    try {
+      return build();
+    } finally {
+      this.wing = null;
+    }
+  }
+
   /** Add a part. Sizes come from its bounds, so geometry and cut list cannot disagree. */
   add(spec: PartSpec): Part {
     const stock = this.stock(spec.materialRole);
-    const { bounds, thicknessAxis } = spec;
-    let lengthAxis = spec.lengthAxis;
+    const w = this.wing;
+    const bounds = w ? w.map(spec.bounds) : spec.bounds;
+    const thicknessAxis = w ? w.axis(spec.thicknessAxis) : spec.thicknessAxis;
+    let lengthAxis = w ? w.axis(spec.lengthAxis) : spec.lengthAxis;
     const widthAxis = otherAxis(lengthAxis, thicknessAxis);
     // Grainless material: "length" is simply the longer side.
     if (!stock.grain && extent(bounds, widthAxis) > extent(bounds, lengthAxis))
@@ -80,10 +104,10 @@ export class BuildContext {
       thickness: extent(bounds, thicknessAxis),
     };
     const part: Part = {
-      id: `${this.cabinet.id}/${spec.id}`,
+      id: `${this.cabinet.id}/${w ? 'return/' : ''}${spec.id}`,
       cabinetId: this.cabinet.id,
       role: spec.role,
-      name: spec.name,
+      name: w ? `${spec.name} (return)` : spec.name,
       materialRole: spec.materialRole,
       materialId: stock.id,
       bounds,
@@ -99,6 +123,7 @@ export class BuildContext {
       edges,
       notes: spec.notes ?? [],
       ...(spec.notch && { notch: spec.notch }),
+      ...(w && { wing: 'return' as const }),
     };
     for (const [label, v] of Object.entries(part.cut)) {
       if (!(v > 0)) throw new BuildError(`${spec.name}: ${label} works out to ${v.toFixed(2)} mm.`);
@@ -109,7 +134,8 @@ export class BuildContext {
 
   /** Record that `guest` sits `depth` deep in a recess of `host` along `axis`. */
   joint(host: Part, guest: Part, kind: Joint['kind'], axis: Axis, depth: Mm): void {
-    this.joints.push({ host: host.id, guest: guest.id, kind, axis, depth: quantize(depth) });
+    const a = this.wing ? this.wing.axis(axis) : axis;
+    this.joints.push({ host: host.id, guest: guest.id, kind, axis: a, depth: quantize(depth) });
   }
 }
 

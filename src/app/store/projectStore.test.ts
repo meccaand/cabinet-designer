@@ -110,6 +110,24 @@ describe('projectStore', () => {
     expect(s().duplicateCabinet('missing')).toBeNull();
   });
 
+  it('puts an L-shaped cabinet in an inside corner, and carries on along its return', () => {
+    s().openProject({ ...s().project, room: { walls: [] }, cabinets: [], fillers: [] });
+    s().createRoom([inch(120), inch(96)], inch(96));
+    const [w1, w2] = s().project.room.walls;
+    const l = s().addCabinet('lBase');
+    expect(s().project.cabinets.find((c) => c.id === l)!.placement.wallId).toBe(w1!.id);
+    // Nudges and moves along the wall don't apply: it stays in the corner.
+    const before = s().project;
+    s().nudgeItem(l, inch(1));
+    s().moveItem(l, { offset: inch(3) });
+    expect(s().project).toBe(before);
+    const next = s().addCabinet('base');
+    expect(s().project.cabinets.find((c) => c.id === next)!.placement).toMatchObject({
+      wallId: w2!.id,
+      offset: inch(36),
+    });
+  });
+
   it('lays out a room as walls joined at inside corners, in one undo step', () => {
     s().openProject({ ...s().project, room: { walls: [] } });
     s().createRoom([inch(120), inch(96)], inch(90));

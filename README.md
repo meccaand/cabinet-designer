@@ -11,7 +11,8 @@ saved in the browser.
 
 **Cabinets.**
 
-- Types: base, drawer base, wall, tall, open shelving, and blind corner base and wall.
+- Types: base, drawer base, wall, tall, open shelving, blind corner base and wall, and
+  L-shaped base (bi-fold doors) and open shelving for inside corners.
 - Frameless or face frame, with dado, rabbet, butt or pocket-screw joinery.
 - Inset, applied or grooved backs; slab or shaker fronts.
 - Every construction convention (reveals, toe kick, drawer clearances, banding and so on) can

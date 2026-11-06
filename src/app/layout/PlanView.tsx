@@ -107,7 +107,16 @@ export function PlanView({
         {[...items]
           .sort((a, c) => a.elevation - c.elevation)
           .map((item) => {
-            const shown = { ...item, offset: drag.offsetOf(item) };
+            // An L-shaped cabinet's return is drawn from the front of its run, so the two
+            // rectangles make an L instead of overlapping in the corner.
+            const run = item.isReturn
+              ? items.find((i) => i.id === item.id && !i.isReturn)
+              : undefined;
+            const shown = {
+              ...item,
+              offset: drag.offsetOf(item),
+              ...(run && { x0: run.depth }),
+            };
             const r = footprint(shown, frames);
             const f = frames.find((w) => w.wall.id === item.wallId);
             const raised = item.elevation >= 1;
@@ -128,9 +137,9 @@ export function PlanView({
             const vertical = f ? f.dir[0] === 0 : false;
             return (
               <g
-                key={item.id}
+                key={item.isReturn ? `${item.id}:return` : item.id}
                 role="button"
-                aria-label={`${item.name} on plan`}
+                aria-label={`${item.name}${item.isReturn ? ' (return)' : ''} on plan`}
                 aria-pressed={item.id === selectedId}
                 className={styles.item}
                 tabIndex={0}

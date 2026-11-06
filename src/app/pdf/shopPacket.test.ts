@@ -152,3 +152,21 @@ describe('pdf drawing helpers', () => {
     expect(pdfText('✓ done')).toBe('? done');
   });
 });
+
+describe('shop packet with an L-shaped cabinet', () => {
+  it('draws the run and the return, and lists both pieces of each L panel', () => {
+    const base = createProject('l', 'Corner');
+    const walls = [
+      { id: 'a', name: 'Wall 1', length: inch(120), height: inch(96), turn: 'right' as const },
+      { id: 'b', name: 'Wall 2', length: inch(96), height: inch(96), turn: 'right' as const },
+    ];
+    const l = createCabinet(base, 'lBase', { id: 'L', name: 'Corner' });
+    const project: Project = {
+      ...base,
+      room: { walls },
+      cabinets: [{ ...l, placement: { ...l.placement, wallId: 'a' } }],
+    };
+    const text = pages(packet(project).doc).flat();
+    expect(text).toEqual(expect.arrayContaining(['Run', 'Return', 'Bottom (return)']));
+  });
+});

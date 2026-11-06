@@ -94,14 +94,14 @@ export function ElevationView({
           const offset = drag.offsetOf(item);
           return (
             <rect
-              key={item.id}
+              key={item.isReturn ? `${item.id}:return` : item.id}
               x={offset + item.x0}
               y={flipY(item.elevation + item.height)}
               width={item.x1 - item.x0}
               height={item.height}
               className={item.id === selectedId ? styles.hitSelected : styles.hit}
               role="button"
-              aria-label={`${item.name} on elevation`}
+              aria-label={`${item.name}${item.isReturn ? ' (return)' : ''} on elevation`}
               aria-pressed={item.id === selectedId}
               tabIndex={0}
               onKeyDown={(e) => {

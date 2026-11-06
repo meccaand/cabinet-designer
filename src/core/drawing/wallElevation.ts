@@ -2,7 +2,7 @@ import { fillerPart, layoutItems, wallFrames, type LayoutItem } from '../layout'
 import type { Project } from '../model';
 import type { CabinetModel } from '../parts';
 import { formatLength, type Mm } from '../units';
-import { dimension, partRects } from './elevation';
+import { dimension, partRects, returnView } from './elevation';
 import type { Drawing, Primitive } from './primitives';
 
 /**
@@ -28,7 +28,10 @@ export function wallElevation(
   for (const item of [...items].sort((a, b) => a.depth - b.depth)) {
     if (item.kind === 'cabinet') {
       const model = models.get(item.id);
-      if (model) prims.push(...partRects(model, item.offset, item.elevation));
+      const cabinet = project.cabinets.find((c) => c.id === item.id);
+      // An L-shaped cabinet's return is the whole cabinet seen from this wall.
+      const shown = model && cabinet && item.isReturn ? returnView(model, cabinet.width) : model;
+      if (shown) prims.push(...partRects(shown, item.offset, item.elevation));
     } else {
       const filler = project.fillers.find((f) => f.id === item.id);
       if (filler) {

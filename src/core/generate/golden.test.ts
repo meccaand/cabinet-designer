@@ -217,4 +217,72 @@ describe('golden reference cabinets', () => {
       ],
     );
   });
+
+  // L-shaped base, 36" run × 36" return, both 24" deep: two-piece L panels, bi-fold doors.
+  it('G7: frameless L-shaped base', () => {
+    const run = (r: PartRole) => (p: Part) => p.role === r && p.wing === undefined;
+    const ret = (r: PartRole) => (p: Part) => p.role === r && p.wing === 'return';
+    check(
+      createCabinet(createProject('p', 'Golden'), 'lBase', { id: 'c' }),
+      [
+        [role('side'), 2, 774.7, 609.6, 18],
+        [run('bottom'), 1, 897.55, 604.4, 18],
+        [ret('bottom'), 1, 293.15, 604.4, 18],
+        [id(/c\/stretcher\/front$/), 1, 394.75, 101.6, 18],
+        [id(/return\/stretcher\/front$/), 1, 293.15, 101.6, 18],
+        [id(/c\/stretcher\/back$/), 1, 897.55, 101.6, 18],
+        [id(/return\/stretcher\/back$/), 1, 795.95, 101.6, 18],
+        [run('back'), 1, 774.7, 905.925, 5.2],
+        [ret('back'), 1, 774.7, 900.725, 5.2],
+        [run('platformRail'), 2, 914.4, 101.6, 18],
+        [run('platformCrossMember'), 3, 497.4, 101.6, 18],
+        [ret('platformRail'), 2, 381, 101.6, 18],
+        [ret('platformCrossMember'), 2, 497.4, 101.6, 18],
+        [run('slabFront'), 1, 771.525, 282.0375, 18],
+        [ret('slabFront'), 1, 771.525, 303.2125, 18],
+        [run('shelfFixed'), 1, 897.55, 604.4, 18],
+        [ret('shelfFixed'), 1, 293.15, 604.4, 18],
+      ],
+      [
+        ['hinge', 4],
+        ['pull', 1],
+      ],
+    );
+  });
+
+  it('G8: face-frame L-shaped base', () => {
+    const ret = (r: PartRole) => (p: Part) => p.role === r && p.wing === 'return';
+    const run = (r: PartRole) => (p: Part) => p.role === r && p.wing === undefined;
+    check(
+      createCabinet(createProject('p', 'Golden'), 'lBase', {
+        id: 'c',
+        construction: { carcass: { style: 'faceFrame' } },
+      }),
+      [
+        [role('side'), 2, 774.7, 590.55, 18],
+        [run('bottom'), 1, 897.55, 585.35, 18],
+        [ret('bottom'), 1, 312.2, 585.35, 18],
+        [id(/c\/stretcher\/front$/), 1, 413.8, 101.6, 18],
+        [id(/return\/stretcher\/front$/), 1, 312.2, 101.6, 18],
+        [id(/c\/stretcher\/back$/), 1, 897.55, 101.6, 18],
+        [id(/return\/stretcher\/back$/), 1, 795.95, 101.6, 18],
+        [run('back'), 1, 774.7, 905.925, 5.2],
+        [ret('back'), 1, 774.7, 900.725, 5.2],
+        [run('platformRail'), 2, 914.4, 101.6, 18],
+        [run('platformCrossMember'), 3, 497.4, 101.6, 18],
+        [ret('platformRail'), 2, 381, 101.6, 18],
+        [ret('platformCrossMember'), 2, 497.4, 101.6, 18],
+        [(p) => p.role === 'ffStile' && p.cut.width < 40, 3, 774.7, 38.1, 19.05],
+        [named('Face frame corner stile (run)'), 1, 774.7, 57.15, 19.05],
+        [role('ffRail'), 4, 228.6, 38.1, 19.05],
+        [role('slabFront'), 2, 723.9, 254, 18],
+        [run('shelfFixed'), 1, 897.55, 585.35, 18],
+        [ret('shelfFixed'), 1, 312.2, 585.35, 18],
+      ],
+      [
+        ['hinge', 4],
+        ['pull', 1],
+      ],
+    );
+  });
 });

@@ -1,3 +1,4 @@
+import { box } from '../geometry';
 import type { Cabinet, UnitSettings } from '../model';
 import type { CabinetModel, PartRole } from '../parts';
 import { formatLength, type Mm } from '../units';
@@ -25,6 +26,9 @@ const GAP = 0.06;
  * Front elevation: every part seen from the front (painted back to front), overall width and
  * height, and a chain of opening heights on the right. Opening heights are front heights for
  * frameless cabinets and opening heights for face frames: the sizes the face tree is edited in.
+ *
+ * An L-shaped cabinet is drawn twice, side by side: from the front of its run, and from the
+ * front of its return (as seen from the next wall).
  */
 export function frontElevation(
   cabinet: Cabinet,
@@ -34,14 +38,35 @@ export function frontElevation(
   const prims = partRects(model, 0, 0);
   const xs = model.parts.flatMap((p) => [p.bounds.min.x, p.bounds.max.x]);
   const x0 = Math.min(0, ...xs);
-  const x1 = Math.max(cabinet.width, ...xs);
+  let x1 = Math.max(cabinet.width, ...xs);
   const H = cabinet.height;
-  const gap = Math.max(cabinet.width, H) * GAP;
+  const gap = Math.max(cabinet.width + (cabinet.corner?.returnWidth ?? 0), H) * GAP;
   const label = (v: Mm) => formatLength(v, units);
+  const textSize = Math.max(cabinet.width + (cabinet.corner?.returnWidth ?? 0), H) * 0.035;
 
   // Overall width below, overall height on the left.
   prims.push(...dimension([0, 0], [cabinet.width, 0], [0, -gap], label(cabinet.width)));
   prims.push(...dimension([0, 0], [0, H], [-gap, 0], label(H)));
+  let top = H + textSize * 0.5;
+  if (cabinet.corner) {
+    const turned = returnView(model, cabinet.width);
+    const dx = x1 + gap * 2;
+    const ends = turned.parts.map((p) => p.bounds.max.x);
+    const w = cabinet.corner.returnWidth;
+    prims.push(...partRects(turned, dx, 0));
+    prims.push(...dimension([dx, 0], [dx + w, 0], [0, -gap], label(w)));
+    const caption = (x: Mm, text: string): Primitive => ({
+      kind: 'text',
+      x,
+      y: H + textSize * 0.6,
+      text,
+      anchor: 'middle',
+      rotate: 0,
+    });
+    prims.push(caption(cabinet.width / 2, 'Run'), caption(dx + w / 2, 'Return'));
+    top = H + textSize * 2;
+    x1 = dx + Math.max(w, ...ends);
+  }
 
   // Opening heights on the right: the cells along the right-hand edge of the face.
   const right = Math.max(...model.openings.map((o) => o.rect.x1));
@@ -55,7 +80,6 @@ export function frontElevation(
   }
 
   // Labels sit 1.3 × gap out from the object; leave room for the longest one (≈0.6 em per char).
-  const textSize = Math.max(cabinet.width, H) * 0.035;
   const labelRoom = (texts: string[]) =>
     Math.max(0, ...texts.map((t) => t.length)) * textSize * 0.6;
   const rightLabels = chain.map((o) => label(o.rect.y1 - o.rect.y0));
@@ -67,8 +91,25 @@ export function frontElevation(
       x0: x0 - out - textSize,
       y0: -out - textSize,
       x1: x1 + out + labelRoom(rightLabels) + textSize * 0.5,
-      y1: H + textSize * 0.5,
+      y1: top,
     },
+  };
+}
+
+/**
+ * An L-shaped cabinet as seen from the wall its return stands on: along that wall is the
+ * cabinet's z (from the corner), and out from it is the run's width − x.
+ */
+export function returnView(model: CabinetModel, width: Mm): CabinetModel {
+  return {
+    ...model,
+    parts: model.parts.map((p) => {
+      const b = p.bounds;
+      return {
+        ...p,
+        bounds: box(b.min.z, b.max.z, b.min.y, b.max.y, width - b.max.x, width - b.min.x),
+      };
+    }),
   };
 }
 
