@@ -34,15 +34,17 @@ test('from a new project to a shop packet', async ({ page }) => {
   await projects.getByRole('button', { name: 'Close' }).click();
   await expect(banner(page).getByRole('button', { name: /Garage shop/ })).toBeVisible();
 
-  // 2. The room: wall 1 at 10', and a return wall.
-  await sidebar(page).getByText('Room & walls').click();
-  const wall1 = sidebar(page).getByLabel('Wall 1 length');
+  // 2. The room comes first: an L, wall 1 at 10' and an 8' return wall.
+  await expect(sidebar(page).getByLabel('Add a cabinet')).toBeDisabled();
+  await main(page).getByRole('button', { name: 'L-shaped' }).click();
+  const wall1 = main(page).getByLabel('Wall 1 length');
   await wall1.fill("10'");
   await wall1.press('Enter');
   await expect(wall1).toHaveValue('120"');
-  await sidebar(page).getByRole('button', { name: 'Add wall' }).click();
+  await expect(main(page).getByLabel('Wall 2 length')).toHaveValue('96"');
+  await main(page).getByRole('button', { name: 'Create room' }).click();
 
-  // 3. Cabinets: a 36" base from the empty state, a drawer bank and a wall cabinet.
+  // 3. Cabinets: a 36" base from the first steps, a drawer bank and a wall cabinet.
   await main(page).getByRole('button', { name: 'Add a base cabinet' }).click();
   const width = page.getByRole('textbox', { name: 'Width', exact: true });
   await width.fill('36');

@@ -110,6 +110,17 @@ describe('projectStore', () => {
     expect(s().duplicateCabinet('missing')).toBeNull();
   });
 
+  it('lays out a room as walls joined at inside corners, in one undo step', () => {
+    s().openProject({ ...s().project, room: { walls: [] } });
+    s().createRoom([inch(120), inch(96)], inch(90));
+    expect(s().project.room.walls).toMatchObject([
+      { name: 'Wall 1', length: inch(120), height: inch(90), turn: 'right' },
+      { name: 'Wall 2', length: inch(96), height: inch(90), turn: 'right' },
+    ]);
+    s().undo();
+    expect(s().project.room.walls).toEqual([]);
+  });
+
   it('adds, edits and removes walls, refusing to remove one in use', () => {
     s().addWall();
     const w2 = s().project.room.walls[1]!;

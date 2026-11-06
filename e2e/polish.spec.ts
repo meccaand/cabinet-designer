@@ -79,7 +79,7 @@ test('keyboard: switch views, nudge, delete and undo, and list the shortcuts', a
   await expect(help).toBeHidden();
 });
 
-test('an empty project invites you to add a first cabinet', async ({ page }) => {
+test('a new project asks for the room, then invites a first cabinet', async ({ page }) => {
   await banner(page)
     .getByRole('button', { name: /Sample kitchen/ })
     .click();
@@ -87,9 +87,25 @@ test('an empty project invites you to add a first cabinet', async ({ page }) => 
     .getByRole('dialog', { name: 'Projects' })
     .getByRole('button', { name: 'New project', exact: true })
     .click();
-  await expect(main(page).getByRole('heading', { name: 'No cabinets yet' })).toBeVisible();
+  // Step 1: the room, on the 3D grid; no cabinets until it exists.
+  await expect(main(page).getByRole('heading', { name: 'Set up the room' })).toBeVisible();
+  await expect(main(page).locator('canvas')).toBeVisible();
+  await expect(page.getByLabel('Add a cabinet')).toBeDisabled();
+  await page.getByRole('tab', { name: 'Plan' }).click();
+  await expect(main(page).getByRole('heading', { name: 'Set up the room' })).toBeVisible();
   await page.getByRole('tab', { name: 'Cut list' }).click();
   await expect(main(page).getByRole('heading', { name: 'No cabinets yet' })).toBeVisible();
+  await main(page).getByRole('button', { name: 'Set up the room' }).click();
+  await main(page).getByRole('button', { name: 'U-shaped' }).click();
+  await expect(main(page).getByLabel(/^Wall \d length$/)).toHaveCount(3);
+  await main(page).getByRole('button', { name: 'Create room' }).click();
+
+  // Step 2: a first cabinet. Undo takes the room away again.
+  await expect(main(page).getByRole('heading', { name: 'Add a first cabinet' })).toBeVisible();
+  await expect(page.getByLabel('Add a cabinet')).toBeEnabled();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(main(page).getByRole('heading', { name: 'Set up the room' })).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+Shift+z');
   await main(page).getByRole('button', { name: 'Add a base cabinet' }).click();
   await expect(page.getByRole('tab', { name: '3D' })).toHaveAttribute('aria-selected', 'true');
   await expect(main(page).locator('canvas')).toBeVisible();

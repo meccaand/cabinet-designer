@@ -34,6 +34,18 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Export ▾' }).click();
     found.push(...(await violations(page, 'Export menu')));
+    await page.keyboard.press('Escape');
+    // A new project's first steps: the room, then a first cabinet.
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: /Sample kitchen/ })
+      .click();
+    await page.getByRole('button', { name: 'New project', exact: true }).click();
+    await page.getByRole('tab', { name: '3D', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Set up the room' })).toBeVisible();
+    found.push(...(await violations(page, 'Room setup')));
+    await page.getByRole('button', { name: 'Create room' }).click();
+    found.push(...(await violations(page, 'First cabinet')));
     expect(found).toEqual([]);
   });
 }

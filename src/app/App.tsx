@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutItem } from '../core/layout';
 import styles from './App.module.css';
 import { ElevationView } from './layout/ElevationView';
@@ -21,14 +21,13 @@ import { MaterialsView } from './outputs/MaterialsView';
 import { SheetsView } from './outputs/SheetsView';
 import { useOutputs } from './outputs';
 import { useShortcuts } from './shortcuts';
-import { EmptyState, StartButtons } from './ui/EmptyState';
+import { Viewer } from './viewer/LazyViewer';
+import { EmptyState, SetUpRoomButton, StartButtons } from './ui/EmptyState';
+import { GettingStarted } from './ui/GettingStarted';
 import { ExportMenu } from './ui/ExportMenu';
 import { ShortcutsDialog } from './ui/ShortcutsDialog';
 import { formatMoney } from '../core/report';
 import { formatLength } from '../core/units';
-
-// three.js is most of the bundle; load it after the shell so the app appears immediately.
-const Viewer = lazy(() => import('./viewer/Viewer').then((m) => ({ default: m.Viewer })));
 
 const MAIN_VIEWS: [MainView, string][] = [
   ['3d', '3D'],
@@ -63,6 +62,8 @@ export function App() {
   const items = useMemo(() => projectLayout(project), [project]);
   const outputs = useOutputs(project);
   const partCount = outputs.cutList.parts.length;
+  // A new project has no walls yet; cabinets need one to stand on, so the room comes first.
+  const needsRoom = project.room.walls.length === 0;
   const filler =
     selection?.kind === 'filler' ? project.fillers.find((f) => f.id === selection.id) : undefined;
   const wallId =
@@ -186,7 +187,7 @@ export function App() {
           </button>
         </div>
         <CabinetList project={project} activeId={activeId} onSelect={show} />
-        <AddCabinet onAdd={(type) => show(addCabinet(type))} />
+        <AddCabinet onAdd={(type) => show(addCabinet(type))} disabled={needsRoom} />
         {project.fillers.length > 0 && (
           <>
             <h2 className={styles.heading} style={{ marginTop: 16 }}>
@@ -231,15 +232,13 @@ export function App() {
             </button>
           ))}
         </div>
-        {project.cabinets.length === 0 &&
-        (main === '3d' || main === 'cutlist' || main === 'sheets') ? (
+        {(needsRoom && (main === '3d' || main === 'plan' || main === 'elevation')) ||
+        (project.cabinets.length === 0 && main === '3d') ? (
+          <GettingStarted key={project.id} project={project} models={models} />
+        ) : project.cabinets.length === 0 && (main === 'cutlist' || main === 'sheets') ? (
           <EmptyState title="No cabinets yet">
-            <p>
-              Add a cabinet to start. Each new cabinet goes on the wall after the last one; set up
-              your walls under Room &amp; walls.
-            </p>
-            <p>The cut list, sheet layouts and shop packet build themselves as you go.</p>
-            <StartButtons />
+            <p>The cut list, sheet layouts and shop packet build themselves as you add cabinets.</p>
+            {needsRoom ? <SetUpRoomButton /> : <StartButtons />}
           </EmptyState>
         ) : main === 'cutlist' ? (
           <CutListView project={project} cutList={outputs.cutList} />

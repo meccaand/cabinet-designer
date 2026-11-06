@@ -53,7 +53,7 @@ export function ProjectsDialog({ open, onClose }: { open: boolean; onClose: () =
     if (summary.id === project.id) {
       const next = rest[0];
       if (next) await openSaved(next.id);
-      else await switchTo(createProject(crypto.randomUUID(), 'Untitled project'));
+      else await switchTo(blankProject());
     }
   };
 
@@ -97,11 +97,7 @@ export function ProjectsDialog({ open, onClose }: { open: boolean; onClose: () =
       </div>
 
       <div className={form.row}>
-        <button
-          type="button"
-          className={form.button}
-          onClick={() => void switchTo(createProject(crypto.randomUUID(), 'Untitled project'))}
-        >
+        <button type="button" className={form.button} onClick={() => void switchTo(blankProject())}>
           New project
         </button>
         <button
@@ -166,4 +162,9 @@ export function ProjectsDialog({ open, onClose }: { open: boolean; onClose: () =
       </p>
     </dialog>
   );
+}
+
+/** A new project starts with no walls: the main view asks for the room first (ADR-035). */
+function blankProject(): Project {
+  return { ...createProject(crypto.randomUUID(), 'Untitled project'), room: { walls: [] } };
 }

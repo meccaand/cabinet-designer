@@ -24,6 +24,11 @@
   margin-top: 16px;
 }
 
+.stacked {
+  flex-direction: column;
+  margin-top: 4px;
+}
+
 .actions button {
   padding: 8px 14px;
   border: 1px solid var(--accent);

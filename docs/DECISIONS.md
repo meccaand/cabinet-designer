@@ -517,3 +517,28 @@ checked in Playwright. The fixes:
 
 Dragging stays mouse and touch only. The keyboard alternatives are the arrow keys and the
 "From wall start" field.
+
+## ADR-035: A new project sets up its room first
+
+**Status:** Accepted (after M8, at Andrew's request)
+
+A new project used to start with one 10' wall and a "No cabinets yet" panel in place of the
+3D view. Now it starts with **no walls**, and the 3D view shows the grid beside two first
+steps:
+
+1. **Set up the room.** Pick a straight, L or U run, then enter each wall's length and the
+   wall height. Walls meet at inside corners. The grid previews the walls as they are entered.
+   "Create room" adds them as one undo step.
+2. **Add a first cabinet.** The same starter buttons as before, beside the room.
+
+Until the room exists, cabinets can't be added. The sidebar's "Add a cabinet" picker is
+disabled, and the plan and elevation tabs show step 1 too.
+
+- **"No room yet" is "no walls".** There is no separate flag in the model. The schema already
+  allowed an empty wall list, so there is no migration. Undoing "Create room" brings step 1
+  back. Every existing project, and the sample, already has walls, so they open as before.
+- **Only the UI's "New project" starts empty.** `createProject` in core still adds a default
+  wall, because tests and the sample build on it.
+- **Starting values.** The fields start at 120", 96" and 96" walls, 96" high (3000, 2400 and
+  2400 mm, 2400 mm high in metric), so "Create room" is one click for someone who just wants to
+  try the app.

@@ -48,6 +48,9 @@ export interface ProjectState {
    * nudges of the same item are one undo step. */
   nudgeItem: (id: string, delta: Mm) => void;
 
+  /** Lays out a new project's room: walls of these lengths, joined at inside corners (a
+   * straight run, an L or a U). Replaces any walls; one undo step. */
+  createRoom: (lengths: Mm[], height: Mm) => void;
   addWall: () => void;
   updateWall: (id: string, recipe: (wall: Draft<Wall>) => void) => void;
   /** Removes an empty wall; returns false if cabinets or fillers are still on it. */
@@ -228,6 +231,17 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           p.cabinets.find((c) => c.id === id)?.placement ?? p.fillers.find((f) => f.id === id);
         if (item) item.offset = Math.max(0, quantize(item.offset + delta));
       }, `nudge:${id}`),
+
+    createRoom: (lengths, height) =>
+      edit((p) => {
+        p.room.walls = lengths.map((length, i) => ({
+          id: crypto.randomUUID(),
+          name: `Wall ${i + 1}`,
+          length,
+          height,
+          turn: 'right',
+        }));
+      }),
 
     addWall: () =>
       edit((p) => {

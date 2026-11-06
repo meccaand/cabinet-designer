@@ -19,6 +19,9 @@ interface ViewerProps {
   models: ReadonlyMap<string, CabinetModel | null>;
   activeId: string | null;
   onActivate: (cabinetId: string) => void;
+  /** Just the room, without the view toolbar: setting up a room and placing a first cabinet.
+   * It reframes whenever the walls change. */
+  roomOnly?: boolean;
 }
 
 /** Room for dimension lines and their labels beyond the cabinet (mm). */
@@ -29,9 +32,9 @@ const WALL_THICKNESS = 100;
  * SketchUp-lite viewport: one cabinet on its own (with dimensions), or the whole room with every
  * cabinet in place. Orbit/pan/zoom, standard views, click to select.
  */
-export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
+export function Viewer({ project, models, activeId, onActivate, roomOnly = false }: ViewerProps) {
   const orthographic = useViewerStore((s) => s.view !== 'iso');
-  const room = useViewerStore((s) => s.scope === 'room');
+  const room = useViewerStore((s) => s.scope === 'room') || roomOnly;
   const exploded = useViewerStore((s) => s.exploded);
   const select = useViewerStore((s) => s.select);
   const labels = useRef<Partial<Record<DimensionLine['label'], HTMLElement | null>>>({});
@@ -82,7 +85,7 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
 
   return (
     <div className={styles.viewer}>
-      <ViewToolbar />
+      {!roomOnly && <ViewToolbar />}
       <Canvas
         className={styles.canvas}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
@@ -103,7 +106,13 @@ export function Viewer({ project, models, activeId, onActivate }: ViewerProps) {
         <OrbitControls makeDefault enableDamping={false} />
         <CameraRig
           bounds={bounds}
-          frameKey={room ? 'room' : `${activeId ?? ''}${exploded ? ':exploded' : ''}`}
+          frameKey={
+            roomOnly
+              ? `room:${project.room.walls.map((w) => `${w.length}x${w.height}`).join()}`
+              : room
+                ? 'room'
+                : `${activeId ?? ''}${exploded ? ':exploded' : ''}`
+          }
         />
 
         <hemisphereLight args={['#ffffff', '#8a7b66', 1.6]} />
