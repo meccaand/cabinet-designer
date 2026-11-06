@@ -84,7 +84,8 @@ export function CabinetEditor({
         </div>
         <p className={styles.hint}>
           Depth includes the back{frameless ? '' : ' and face frame'} but not the doors.
-          {traits.platform && ' Height includes the toe kick.'}
+          {traits.platform &&
+            (c.platform.enabled ? ' Height includes the toe kick.' : ' There is no toe kick.')}
         </p>
       </section>
 
@@ -158,15 +159,29 @@ export function CabinetEditor({
       {traits.platform && (
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Toe kick</h3>
-          <div className={styles.grid}>
-            {length('Toe kick height', c.platform.height, (height) => set('platform', { height }))}
-            {length(
-              'Toe kick depth',
-              c.platform.setback,
-              (setback) => set('platform', { setback }),
-              true,
-            )}
-          </div>
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={c.platform.enabled}
+              onChange={(e) => set('platform', { enabled: e.target.checked })}
+            />
+            Stands on a toe kick
+          </label>
+          {c.platform.enabled ? (
+            <div className={styles.grid} style={{ marginTop: 8 }}>
+              {length('Toe kick height', c.platform.height, (height) =>
+                set('platform', { height }),
+              )}
+              {length(
+                'Toe kick depth',
+                c.platform.setback,
+                (setback) => set('platform', { setback }),
+                true,
+              )}
+            </div>
+          ) : (
+            <p className={styles.hint}>The box runs to the floor and fills the cabinet's height.</p>
+          )}
         </section>
       )}
 

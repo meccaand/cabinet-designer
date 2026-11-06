@@ -1,17 +1,18 @@
 import { produce, type Draft } from 'immer';
 import { create } from 'zustand';
-import { CABINET_TYPE_NAMES, createCabinet, TYPE_TRAITS } from '../../core/generate';
+import { CABINET_TYPE_NAMES, createCabinet, hasToeKick } from '../../core/generate';
 import { gapsBeside, nextFreeOffset, type LayoutItem } from '../../core/layout';
-import type {
-  Cabinet,
-  CabinetType,
-  ConstructionDefaults,
-  Filler,
-  MaterialLibrary,
-  Project,
-  ShopSettings,
-  UnitSettings,
-  Wall,
+import {
+  resolveConstruction,
+  type Cabinet,
+  type CabinetType,
+  type ConstructionDefaults,
+  type Filler,
+  type MaterialLibrary,
+  type Project,
+  type ShopSettings,
+  type UnitSettings,
+  type Wall,
 } from '../../core/model';
 import { inch, quantize, type Mm } from '../../core/units';
 import { projectLayout } from '../models';
@@ -345,8 +346,8 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
 /** Toe-kick height under a floor cabinet (0 when it has none): fillers start above it. */
 function cabinetPlatform(project: Project, cabinet: Cabinet): Mm {
-  if (!TYPE_TRAITS[cabinet.type].platform) return 0;
-  return cabinet.construction.platform?.height ?? project.construction.platform.height;
+  const platform = resolveConstruction(project.construction, cabinet.construction).platform;
+  return hasToeKick(cabinet.type, platform) ? platform.height : 0;
 }
 
 /** Whether a library item is assigned anywhere (defaults or a cabinet's overrides). */

@@ -6,4 +6,4 @@ export {
   type BaseCabinetOptions,
   type CabinetOptions,
 } from './presets';
-export { TYPE_TRAITS, type TypeTraits } from './traits';
+export { hasToeKick, TYPE_TRAITS, type TypeTraits } from './traits';

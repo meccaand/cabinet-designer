@@ -19,7 +19,7 @@ x runs left → right, y floor → up, z back → front (z = 0 is the back of th
 | t       | Carcass sheet thickness (actual, e.g. 18 mm)                                    |
 | bt      | Back thickness                                                                  |
 | ft      | Face-frame stock thickness (0 when frameless)                                   |
-| P       | Platform (toe-kick base) height. The box sits on top: box height = H − P        |
+| P       | Platform (toe-kick base) height; 0 without a toe kick. Box height = H − P       |
 | Dbox    | D − ft (front of the carcass box)                                               |
 | j       | Joint depth for top/bottom/shelves (`dadoDepth`). 0 for butt and pocket joinery |
 
@@ -45,6 +45,10 @@ x runs left → right, y floor → up, z back → front (z = 0 is the back of th
   the cabinet front. Cross members fit between the rails: length (D − setback) − 2·rail
   thickness. There is one at each end, plus as many as needed so none are more than
   `crossMemberSpacing` apart (centre to centre).
+- **No toe kick** (any floor cabinet can turn it off): P = 0. There is no platform, and the box
+  fills the full height H, standing on the floor. Frameless overlay fronts start `revealEdge`
+  above the box bottom, as on wall cabinets, instead of flush with it. End panels have no notch,
+  and fillers start at the floor.
 
 ## Cabinet types
 
@@ -90,13 +94,14 @@ layout).
   - Applied over the side: outside the face-frame overhang, if there is one.
   - Height: the cabinet's full height, so floor cabinets cover the toe kick.
   - Depth: from the wall to the door faces, so the panel is flush with the fronts.
-  - Floor cabinets get a recorded toe-kick notch at the bottom front corner: toe-kick height ×
+  - Floor cabinets on a toe kick get a recorded toe-kick notch at the bottom front corner: toe-kick height ×
     (door face − platform front). It shows on the part.
   - The panel adds its thickness to the run, and layout and snapping account for it.
 - **Fillers** (room items): a strip in door material (frameless) or face-frame stock, with its
   front face at the filler's depth.
   - "Fill gap" makes one exactly as wide as the gap beside a cabinet, at the cabinet's depth.
-  - Its height runs from the top of the toe kick to the cabinet top.
+  - Its height runs from the top of the toe kick (or the floor, without one) to the cabinet
+    top.
   - Its note says to scribe it to fit.
 
 ## Cut list, sheets and estimate

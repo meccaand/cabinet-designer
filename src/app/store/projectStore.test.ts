@@ -156,6 +156,15 @@ describe('projectStore', () => {
     expect(s().project.fillers).toEqual([]);
   });
 
+  it('fills beside a cabinet with no toe kick from the floor', () => {
+    s().moveItem('drawer-base', { offset: inch(55) });
+    s().updateCabinet('shaker-base', (c) => void (c.construction.platform = { enabled: false }));
+    const id = s().fillGap('shaker-base', 'right')!;
+    const f = s().project.fillers.find((x) => x.id === id)!;
+    expect(f.elevation).toBe(0);
+    expect(f.height).toBeCloseTo(inch(34.5), 6);
+  });
+
   it('opens another project with fresh history', () => {
     s().rename('Changed');
     const other = { ...initial.project, id: 'other', name: 'Other', cabinets: [] };

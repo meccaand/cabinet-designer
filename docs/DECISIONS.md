@@ -119,7 +119,8 @@ same interface later.
   immer/idb in M5, jspdf in M7), so no dependency sits unused.
 - `npm audit` reports moderate advisories in the ESLint dev toolchain only (minimatch via
   typescript-estree). These are not shipped to the browser; recheck on upgrades.
-- The project schema is still settling during M2–M5. No saved projects exist yet, so changes
+- (Superseded in part by ADR-036: the schema is now at version 2, with migrations.) The project
+  schema is still settling during M2–M5. No saved projects exist yet, so changes
   stay at `schemaVersion: 1` without migrations until the first release. After that, every
   breaking change bumps the version and adds a migration (the scaffold is in place and tested).
 
@@ -542,3 +543,30 @@ disabled, and the plan and elevation tabs show step 1 too.
 - **Starting values.** The fields start at 120", 96" and 96" walls, 96" high (3000, 2400 and
   2400 mm, 2400 mm high in metric), so "Create room" is one click for someone who just wants to
   try the app.
+
+## ADR-036: Toe kicks can be turned off; the box then fills the height
+
+**Status:** Accepted (after M8, at Andrew's request). Schema version 2.
+
+Each floor cabinet (base, drawer base, blind base, tall, open shelving) has a "Stands on a toe
+kick" switch, under Toe kick in its settings. It is a per-cabinet override of a new convention,
+`platform.enabled`, which defaults to on.
+
+**Convention, chosen by Andrew.** Without a toe kick, the box grows to the floor. The Height
+field stays the overall height, so a 34 1/2" base becomes a 34 1/2" box with 34 1/2" sides. It
+is not a 30 1/2" box raised on a separate base. Following from that:
+
+- **Fronts.** Frameless overlay fronts stop `revealEdge` above the box bottom, as on wall
+  cabinets, rather than flush with it. Face-frame and inset fronts are unchanged: they follow
+  the frame or the opening.
+- **End panels** have no toe-kick notch. **Fillers** made with "Fill gap" start at the floor.
+
+**Schema version 2.** Projects already saved in browsers lack the flag. This is the first real
+migration: version 1 → 2 adds `enabled: true` to the project's toe-kick conventions, so every
+existing cabinet keeps its toe kick. Schema validation now pins `schemaVersion` to the current
+version. This supersedes the "stays at 1 until the first release" note in ADR-011: the app is
+in use, so breaking changes now migrate.
+
+The property tests now turn the toe kick on and off at random. A unit test checks a
+no-toe-kick base by hand: 34 1/2" sides, the bottom at the floor, fronts at the edge reveal, a
+full-height end panel with no notch, and every floor type without platform parts.

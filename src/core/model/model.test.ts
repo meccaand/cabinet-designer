@@ -4,6 +4,7 @@ import {
   DEFAULT_CONSTRUCTION,
   createProject,
   loadProject,
+  MIGRATIONS,
   resolveConstruction,
   upgradeDocument,
   ProjectSchema,
@@ -284,6 +285,16 @@ describe('loadProject / upgradeDocument', () => {
     );
     expect(seen).toEqual([1, 2]);
     expect(r).toEqual({ ok: true, value: { schemaVersion: 3, a: 1, b: 2, c: 3 } });
+  });
+
+  it('1 → 2: projects saved before toe kicks could be turned off keep theirs', () => {
+    const current = createProject('p', 'x');
+    const v1 = JSON.parse(JSON.stringify({ ...current, schemaVersion: 1 })) as Project;
+    delete (v1.construction.platform as Partial<typeof v1.construction.platform>).enabled;
+    expect(loadProject(v1)).toEqual({ ok: true, value: current });
+    // Malformed input passes through untouched, for validation to report.
+    expect(MIGRATIONS[1]!({ construction: 3 })).toEqual({ construction: 3 });
+    expect(MIGRATIONS[1]!({ construction: {} })).toEqual({ construction: {} });
   });
 
   it('fails clearly when a migration is missing', () => {

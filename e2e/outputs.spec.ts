@@ -68,3 +68,25 @@ test('editing a cabinet updates the outputs', async ({ page }) => {
     'Notch 4" × ≈3 11/16"',
   );
 });
+
+test('a cabinet can do without its toe kick', async ({ page }) => {
+  const editor = page.getByRole('region', { name: 'Edit cabinet' });
+  const parts = page.getByRole('region', { name: 'Shop outputs' }).locator('strong').first();
+  const before = Number(await parts.textContent());
+  await editor.getByLabel('Stands on a toe kick').uncheck();
+  await expect(editor.getByLabel('Toe kick height')).toHaveCount(0);
+  // The two platform rails and the cross members go; the box runs to the floor.
+  await expect(parts).not.toHaveText(String(before));
+  expect(Number(await parts.textContent())).toBeLessThan(before - 2);
+  await page.getByRole('tab', { name: 'Parts' }).click();
+  await expect(page.getByRole('complementary', { name: 'Properties' })).not.toContainText(
+    'Platform',
+  );
+  await page.getByRole('tab', { name: 'Cut list' }).click();
+  await expect(
+    main(page)
+      .getByRole('row')
+      .filter({ hasText: /^\d+Side/ })
+      .filter({ hasText: '34 1/2"' }),
+  ).not.toHaveCount(0);
+});

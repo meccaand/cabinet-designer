@@ -328,6 +328,50 @@ describe('platform', () => {
   });
 });
 
+describe('no toe kick', () => {
+  const off = { platform: { enabled: false } };
+  const FRONTS = ['slabFront', 'frontStile', 'frontRail'];
+
+  it('a 34 1/2" base becomes a 34 1/2" box on the floor; fronts stop the edge reveal above it', () => {
+    const r = generateCabinet(
+      base({ construction: off, endPanels: { left: true, right: false } }),
+      project,
+    );
+    if (!r.ok) throw new Error(r.errors.join());
+    const parts = r.model.parts;
+    expect(parts.filter((p) => p.role.startsWith('platform'))).toEqual([]);
+    const sides = parts.filter((p) => p.role === 'side');
+    expect(sides).toHaveLength(2);
+    for (const s of sides) {
+      expect(s.finished.length).toBeCloseTo(inch(34.5), 6);
+      expect(s.bounds.min.y).toBe(0);
+    }
+    expect(parts.find((p) => p.role === 'bottom')!.bounds.min.y).toBe(0);
+    const lowest = Math.min(
+      ...parts.filter((p) => FRONTS.includes(p.role)).map((p) => p.bounds.min.y),
+    );
+    expect(lowest).toBeCloseTo(DEFAULT_CONSTRUCTION.fronts.revealEdge, 6);
+    // A full-height end panel with no toe-kick notch.
+    const panel = parts.find((p) => p.role === 'endPanel')!;
+    expect(panel.notch).toBeUndefined();
+    expect(panel.finished.length).toBeCloseTo(inch(34.5), 6);
+    expect(r.model.warnings).toEqual([]);
+  });
+
+  it.each(['base', 'drawerBank', 'blindBase', 'tall', 'openShelf'] as const)(
+    'a %s without one has full-height sides and no platform',
+    (type) => {
+      const cabinet = createCabinet(project, type, { id: 'c', construction: off });
+      const r = generateCabinet(cabinet, project);
+      if (!r.ok) throw new Error(r.errors.join());
+      expect(r.model.parts.some((p) => p.role.startsWith('platform'))).toBe(false);
+      for (const s of r.model.parts.filter((p) => p.role === 'side')) {
+        expect(s.finished.length).toBeCloseTo(cabinet.height, 6);
+      }
+    },
+  );
+});
+
 describe('splitExtents', () => {
   const sizes = (...s: ('auto' | number)[]) => s.map((size) => ({ size }));
   const extents = (r: { extent: number }[]) => r.map((x) => x.extent);

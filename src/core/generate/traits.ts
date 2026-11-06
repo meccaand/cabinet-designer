@@ -1,8 +1,9 @@
-import type { CabinetType } from '../model';
+import type { CabinetType, ConstructionDefaults } from '../model';
 
 /** How a cabinet type is built, beyond what its face tree and conventions say. */
 export interface TypeTraits {
-  /** Stands on a toe-kick platform (floor cabinets). */
+  /** A floor cabinet, built on a toe-kick platform unless its toe kick is turned off (see
+   * `hasToeKick`). */
   platform: boolean;
   /** Under a countertop: top is stretchers or a full panel per `baseTop`, and frameless
    * fronts stop `revealTopBase` below the box top. Otherwise the top is always a full panel. */
@@ -22,3 +23,9 @@ export const TYPE_TRAITS: Record<CabinetType, TypeTraits> = {
   wall: { platform: false, counter: false, hangingRail: true, blind: false },
   blindWall: { platform: false, counter: false, hangingRail: true, blind: true },
 };
+
+/** Whether a cabinet stands on a toe-kick platform: a floor type with its toe kick on. Without
+ * one, the box fills the cabinet's whole height (ADR-036). */
+export function hasToeKick(type: CabinetType, platform: ConstructionDefaults['platform']): boolean {
+  return TYPE_TRAITS[type].platform && platform.enabled;
+}

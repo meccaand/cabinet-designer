@@ -120,7 +120,10 @@ const construction: fc.Arbitrary<ConstructionOverrides> = fc.record({
     stileWidth: fc.constantFrom(inch(1.5), inch(1.75), inch(2)),
     sideOverhang: fc.constantFrom(0, inch(1 / 4)),
   }),
-  platform: fc.record({ height: fc.constantFrom(inch(3.5), inch(4), inch(4.5)) }),
+  platform: fc.record({
+    enabled: fc.boolean(),
+    height: fc.constantFrom(inch(3.5), inch(4), inch(4.5)),
+  }),
   materials: fc.record({ door: fc.constantFrom('ply-18', 'ply-12') }),
 });
 

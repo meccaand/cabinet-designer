@@ -91,7 +91,7 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     stretcherWidth: inch(4),
     hangingRailWidth: inch(3),
   },
-  platform: { height: inch(4), setback: inch(3), crossMemberSpacing: inch(24) },
+  platform: { enabled: true, height: inch(4), setback: inch(3), crossMemberSpacing: inch(24) },
   fronts: {
     style: 'slab',
     mount: 'overlay',

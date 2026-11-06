@@ -6,8 +6,23 @@ import { CURRENT_SCHEMA_VERSION } from './version';
 export type Migration = (doc: Record<string, unknown>) => Record<string, unknown>;
 export type Migrations = Readonly<Record<number, Migration>>;
 
-/** MIGRATIONS[n] upgrades version n → n + 1. Empty until the first schema change ships. */
-export const MIGRATIONS: Migrations = {};
+/** MIGRATIONS[n] upgrades version n → n + 1. */
+export const MIGRATIONS: Migrations = {
+  // Toe kicks became optional: every project saved before had them on.
+  1: (doc) => {
+    const construction = record(doc['construction']);
+    const platform = record(construction?.['platform']);
+    if (!construction || !platform) return doc;
+    return { ...doc, construction: { ...construction, platform: { enabled: true, ...platform } } };
+  },
+};
+
+/** The value as a plain object, or undefined: migrations see unvalidated input. */
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 

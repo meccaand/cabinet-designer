@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import type { UnitFormat } from '../units';
+import { CURRENT_SCHEMA_VERSION } from './version';
 
 const Id = z.string().min(1);
 const Length = z.number();
@@ -141,6 +142,8 @@ const CarcassConventions = z.object({
 });
 
 const PlatformConventions = z.object({
+  /** Floor cabinets stand on the platform; without it the box fills the height (ADR-036). */
+  enabled: z.boolean(),
   height: PositiveLength,
   /** Toe-kick recess from the cabinet front. */
   setback: NonNegLength,
@@ -380,7 +383,7 @@ export type Filler = z.infer<typeof FillerSchema>;
 
 export const ProjectSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
     id: Id,
     name: z.string(),
     units: UnitSettingsSchema,

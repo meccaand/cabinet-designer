@@ -132,7 +132,7 @@ test('projects: new, switch back, export and re-import', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Export JSON' }).click();
   const file = await (await download).path();
   const json = JSON.parse(await readFile(file, 'utf8'));
-  expect(json).toMatchObject({ schemaVersion: 1, name: 'Sample kitchen' });
+  expect(json).toMatchObject({ schemaVersion: 2, name: 'Sample kitchen' });
   expect(json.cabinets).toHaveLength(4);
 
   await dialog.locator('input[type=file]').setInputFiles(file);

@@ -6,7 +6,7 @@ import { box } from '../geometry';
 import type { Part } from '../parts';
 import { quantize, type Mm } from '../units';
 import { BuildError, type BuildContext } from './context';
-import { TYPE_TRAITS, type TypeTraits } from './traits';
+import { hasToeKick, TYPE_TRAITS, type TypeTraits } from './traits';
 
 /** Derived carcass dimensions shared by the face, drawer and shelf steps. */
 export interface CarcassFrame {
@@ -39,12 +39,13 @@ export interface CarcassFrame {
   /** Full top panel, or null when the top is two stretchers. */
   top: Part | null;
   back: Part;
+  /** The type's traits, with `platform` false when this cabinet's toe kick is turned off. */
   traits: TypeTraits;
 }
 
 export function buildCarcass(ctx: BuildContext): CarcassFrame {
   const { cabinet, c } = ctx;
-  const traits = TYPE_TRAITS[cabinet.type];
+  const traits = { ...TYPE_TRAITS[cabinet.type], platform: hasToeKick(cabinet.type, c.platform) };
   const W = cabinet.width;
   const H = cabinet.height;
   const D = cabinet.depth;

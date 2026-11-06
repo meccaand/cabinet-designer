@@ -19,7 +19,10 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 7. Export & polish | ✅ Done |
 | 8. Hardening       | ✅ Done |
 
-Since M8: a new project sets up its room before cabinets are added (ADR-035).
+Since M8:
+
+- A new project sets up its room before cabinets are added (ADR-035).
+- Any floor cabinet can do without its toe kick; the box then fills the height (ADR-036).
 
 ## Scope decisions from your answers
 

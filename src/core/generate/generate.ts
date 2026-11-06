@@ -63,7 +63,7 @@ function build(ctx: BuildContext): CabinetModel {
 /**
  * The part of the face the opening tree is laid out on, and how its children are spaced.
  *
- * Frameless overlay: fronts stop `revealEdge` from the cabinet edges; floor cabinets' fronts
+ * Frameless overlay: fronts stop `revealEdge` from the cabinet edges; on a toe kick, fronts
  * start at the box bottom; under a counter they stop `revealTopBase` below the box top.
  * Frameless inset: the box opening. Face frame: inside the stiles and top/bottom rails.
  * A blind corner removes its blind portion from the zone.
