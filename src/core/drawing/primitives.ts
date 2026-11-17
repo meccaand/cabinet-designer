@@ -15,6 +15,8 @@ export type Fill =
   | 'wall'
   // Knobs and pulls.
   | 'hardware'
+  // Space a built-in keeps clear (a fireplace): drawn, not built.
+  | 'obstruction'
   // Sheet diagrams: the sheet, its trimmed factory edges, parts, and the reusable offcut.
   | 'sheet'
   | 'trim'

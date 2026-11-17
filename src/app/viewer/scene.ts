@@ -7,7 +7,8 @@ import type { Box } from '../../core/geometry';
 import type { Finish } from '../../core/model';
 import type { Part, PartRole } from '../../core/parts';
 
-export type PartGroup = 'carcass' | 'platform' | 'faceFrame' | 'fronts' | 'drawers' | 'shelves';
+export type PartGroup =
+  'carcass' | 'platform' | 'faceFrame' | 'fronts' | 'drawers' | 'shelves' | 'countertop';
 
 export const PART_GROUPS: { id: PartGroup; label: string }[] = [
   { id: 'carcass', label: 'Carcass' },
@@ -16,6 +17,7 @@ export const PART_GROUPS: { id: PartGroup; label: string }[] = [
   { id: 'drawers', label: 'Drawer boxes' },
   { id: 'shelves', label: 'Shelves & dividers' },
   { id: 'platform', label: 'Toe-kick platform' },
+  { id: 'countertop', label: 'Countertop' },
 ];
 
 const GROUP_OF: Record<PartRole, PartGroup> = {
@@ -45,6 +47,8 @@ const GROUP_OF: Record<PartRole, PartGroup> = {
   shelfFixed: 'shelves',
   shelfNosing: 'shelves',
   divider: 'shelves',
+  countertop: 'countertop',
+  countertopEdge: 'countertop',
 };
 
 export function partGroup(role: PartRole): PartGroup {
@@ -68,6 +72,7 @@ const GROUP_COLOR: Record<PartGroup, string> = {
   fronts: '#ece4d6',
   drawers: '#e3cfa8',
   shelves: '#d2b98f',
+  countertop: '#d9c3a0',
 };
 
 /**
@@ -149,6 +154,9 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
       return [0, 0, 140];
     case 'divider':
       return [0, 0, 60];
+    case 'countertop':
+    case 'countertopEdge':
+      return [0, 120, 0];
   }
 }
 

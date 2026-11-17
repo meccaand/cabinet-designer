@@ -10,13 +10,21 @@ import {
 } from '../../core/layout';
 import {
   cabinetConstruction,
+  createBuiltIn,
+  createModule,
+  createRun,
   createStylePreset,
+  resolveConstruction,
+  type BuiltIn,
   type Cabinet,
   type CabinetType,
   type ConstructionDefaults,
   type Filler,
   type MaterialLibrary,
+  type ModuleTemplate,
   type Project,
+  type Run,
+  type RunModule,
   type ShopSettings,
   type StylePreset,
   type StyleTemplateId,
@@ -87,6 +95,23 @@ export interface ProjectState {
   deleteStyle: (id: string) => void;
   /** Makes a cabinet follow a style, or none. Its own overrides stay. */
   setCabinetStyle: (cabinetId: string, styleId: string | null) => void;
+
+  /** A new built-in with one run along `wallId` (ADR-040). It follows a face-frame style,
+   * adding the traditional built-in one if the project has none. Returns its id. */
+  addBuiltIn: (wallId: string) => string;
+  updateBuiltIn: (id: string, recipe: (b: Draft<BuiltIn>) => void, key?: string) => void;
+  deleteBuiltIn: (id: string) => void;
+  /** Adds a run along `wallId`, starting where the wall is free. Returns its id. */
+  addRun: (builtInId: string, wallId: string) => string | null;
+  updateRun: (runId: string, recipe: (run: Draft<Run>) => void, key?: string) => void;
+  deleteRun: (runId: string) => void;
+  /** Appends a module to a run. A section gets stiles either side, sharing one with a section
+   * before it. Returns the new module's id. */
+  addModule: (runId: string, template: ModuleTemplate) => string | null;
+  updateModule: (moduleId: string, recipe: (m: Draft<RunModule>) => void, key?: string) => void;
+  /** Moves a module one place left (-1) or right (+1) in its run. */
+  moveModule: (moduleId: string, step: -1 | 1) => void;
+  deleteModule: (moduleId: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -400,6 +425,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       edit((p) => {
         p.stylePresets = p.stylePresets.filter((s) => s.id !== id);
         for (const c of p.cabinets) if (c.styleId === id) delete c.styleId;
+        for (const b of p.builtIns) if (b.styleId === id) b.styleId = null;
       }),
     setCabinetStyle: (cabinetId, styleId) =>
       edit((p) => {
@@ -408,8 +434,131 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         if (styleId === null) delete c.styleId;
         else c.styleId = styleId;
       }),
+
+    addBuiltIn: (wallId) => {
+      const { project } = get();
+      const wall = project.room.walls.find((w) => w.id === wallId);
+      if (!wall) return '';
+      const faceFrame = project.stylePresets.find(
+        (st) =>
+          resolveConstruction(project.construction, st.construction).carcass.style === 'faceFrame',
+      );
+      const styleId = faceFrame?.id ?? crypto.randomUUID();
+      const id = crypto.randomUUID();
+      const n = project.builtIns.length + 1;
+      edit((p) => {
+        if (!faceFrame) p.stylePresets.push(createStylePreset(styleId, 'traditionalPainted'));
+        const b = createBuiltIn(id, n === 1 ? 'Built-in' : `Built-in ${n}`, styleId);
+        b.runs.push(createRun(crypto.randomUUID(), wall, 0));
+        p.builtIns.push(b);
+      });
+      return id;
+    },
+    updateBuiltIn: (id, recipe, key) =>
+      edit(
+        (p) => {
+          const b = p.builtIns.find((x) => x.id === id);
+          if (b) recipe(b);
+        },
+        key === undefined ? undefined : `builtIn:${id}:${key}`,
+      ),
+    deleteBuiltIn: (id) =>
+      edit((p) => {
+        p.builtIns = p.builtIns.filter((b) => b.id !== id);
+      }),
+    addRun: (builtInId, wallId) => {
+      const { project } = get();
+      const wall = project.room.walls.find((w) => w.id === wallId);
+      if (!wall || !project.builtIns.some((b) => b.id === builtInId)) return null;
+      const id = crypto.randomUUID();
+      edit((p) => {
+        p.builtIns.find((b) => b.id === builtInId)?.runs.push(createRun(id, wall, 0));
+      });
+      return id;
+    },
+    updateRun: (runId, recipe, key) =>
+      edit(
+        (p) => {
+          const run = p.builtIns.flatMap((b) => b.runs).find((r) => r.id === runId);
+          if (run) recipe(run);
+        },
+        key === undefined ? undefined : `run:${runId}:${key}`,
+      ),
+    deleteRun: (runId) =>
+      edit((p) => {
+        for (const b of p.builtIns) b.runs = b.runs.filter((r) => r.id !== runId);
+      }),
+    addModule: (runId, template) => {
+      const run = get()
+        .project.builtIns.flatMap((b) => b.runs)
+        .find((r) => r.id === runId);
+      if (!run) return null;
+      const id = crypto.randomUUID();
+      const sections = run.modules.filter((m) => m.kind === 'section').length;
+      const name =
+        template === 'section' || template === 'baseOnly'
+          ? `Section ${sections + 1}`
+          : template === 'tower'
+            ? `Tower ${sections + 1}`
+            : '';
+      const module = createModule(id, template, name);
+      edit((p) => {
+        const r = p.builtIns.flatMap((b) => b.runs).find((x) => x.id === runId);
+        if (!r) return;
+        if (module.kind === 'section') {
+          // Stiles either side; the one after a previous section is shared with it.
+          if (r.modules.at(-1)?.kind !== 'stile')
+            r.modules.push(createModule(crypto.randomUUID(), 'stile'));
+          r.modules.push(module, createModule(crypto.randomUUID(), 'stile'));
+        } else {
+          r.modules.push(module);
+        }
+      });
+      return id;
+    },
+    updateModule: (moduleId, recipe, key) =>
+      edit(
+        (p) => {
+          const m = p.builtIns
+            .flatMap((b) => b.runs)
+            .flatMap((r) => r.modules)
+            .find((x) => x.id === moduleId);
+          if (m) recipe(m);
+        },
+        key === undefined ? undefined : `module:${moduleId}:${key}`,
+      ),
+    moveModule: (moduleId, step) =>
+      edit((p) => {
+        for (const r of p.builtIns.flatMap((b) => b.runs)) {
+          const i = r.modules.findIndex((m) => m.id === moduleId);
+          const j = i + step;
+          if (i < 0 || j < 0 || j >= r.modules.length) continue;
+          const [m] = r.modules.splice(i, 1);
+          if (m) r.modules.splice(j, 0, m);
+        }
+      }),
+    deleteModule: (moduleId) =>
+      edit((p) => {
+        for (const r of p.builtIns.flatMap((b) => b.runs)) {
+          if (r.modules.some((m) => m.id === moduleId)) {
+            r.modules = tidyStiles(r.modules.filter((m) => m.id !== moduleId));
+          }
+        }
+      }),
   };
 });
+
+/**
+ * After a module is removed: stiles with no section beside them go, and two stiles left side by
+ * side become one.
+ */
+export function tidyStiles(modules: RunModule[]): RunModule[] {
+  const isSection = (m: RunModule | undefined) => m?.kind === 'section';
+  const kept = modules.filter(
+    (m, i) => m.kind !== 'stile' || isSection(modules[i - 1]) || isSection(modules[i + 1]),
+  );
+  return kept.filter((m, i) => !(m.kind === 'stile' && kept[i - 1]?.kind === 'stile'));
+}
 
 /** Toe-kick height under a floor cabinet (0 when it has none): fillers start above it. */
 function cabinetPlatform(project: Project, cabinet: Cabinet): Mm {

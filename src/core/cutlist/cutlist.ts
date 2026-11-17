@@ -50,6 +50,8 @@ export function cutName(name: string): string {
 export function buildCutList(
   project: Project,
   models: ReadonlyMap<string, CabinetModel | null>,
+  /** Parts that belong to no one cabinet: a built-in run's countertop (ADR-040). */
+  assemblies: readonly { id: string; name: string; parts: Part[] }[] = [],
 ): CutList {
   const owners = new Map<string, string>();
   const all: Part[] = [];
@@ -63,6 +65,10 @@ export function buildCutList(
     const wall = project.room.walls.find((w) => w.id === f.wallId);
     owners.set(f.id, `Filler${wall ? ` (${wall.name})` : ''}`);
     all.push(fillerPart(f, project));
+  }
+  for (const a of assemblies) {
+    owners.set(a.id, a.name);
+    all.push(...a.parts);
   }
 
   const materials = [

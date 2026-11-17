@@ -97,6 +97,8 @@ export interface LayoutItem {
   /** An L-shaped cabinet's return, on the wall after the cabinet's own: the same cabinet seen
    * from that wall. */
   isReturn?: true;
+  /** Placed by something else (a built-in's run, ADR-040), so not dragged on its own. */
+  locked?: true;
 }
 
 /** The wall after `frame`, when they meet at an inside corner: where an L-shaped cabinet turns. */

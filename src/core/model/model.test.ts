@@ -6,6 +6,11 @@ import {
   cabinetStyle,
   createProject,
   createStylePreset,
+  createBuiltIn,
+  createModule,
+  createRun,
+  type BuiltIn,
+  type SectionModule,
   loadProject,
   MIGRATIONS,
   resolveConstruction,
@@ -311,6 +316,56 @@ describe('style presets', () => {
   });
 });
 
+describe('built-ins', () => {
+  const withBuiltIn = (mutate: (b: BuiltIn) => void) =>
+    projectWith((x) => {
+      x.stylePresets.push(createStylePreset('s1', 'traditionalPainted'));
+      const b = createBuiltIn('b1', 'Built-in', 's1');
+      const run = createRun('r1', x.room.walls[0]!);
+      run.modules = (
+        ['stile', 'section', 'stile', 'tower', 'baseOnly', 'pilaster', 'obstruction'] as const
+      ).map((t, i) => createModule(`m${i}`, t));
+      b.runs.push(run);
+      mutate(b);
+      x.builtIns.push(b);
+    });
+
+  it('validate with every module template', () => {
+    expect(issues(withBuiltIn(() => {}))).toEqual([]);
+  });
+
+  it('reject missing styles and walls, and duplicate ids', () => {
+    expect(issues(withBuiltIn((b) => void (b.styleId = 'nope')))).toContain(
+      'Style "nope" does not exist.',
+    );
+    expect(issues(withBuiltIn((b) => void (b.runs[0]!.wallId = 'nope')))).toContain(
+      'Wall "nope" does not exist.',
+    );
+    expect(issues(withBuiltIn((b) => void b.runs.push({ ...b.runs[0]!, modules: [] })))).toContain(
+      'Duplicate run id "r1".',
+    );
+    expect(
+      issues(withBuiltIn((b) => void b.runs[0]!.modules.push(b.runs[0]!.modules[0]!))),
+    ).toContain('Duplicate module id "m0".');
+    const twice = withBuiltIn(() => {});
+    twice.builtIns.push({ ...twice.builtIns[0]!, runs: [] });
+    expect(issues(twice)).toContain('Duplicate built-in id "b1".');
+  });
+
+  it('templates: towers have a finished left end; base-only has no upper', () => {
+    const tower = createModule('t', 'tower') as SectionModule;
+    expect(tower.endPanels).toEqual({ left: true, right: false });
+    expect((createModule('b', 'baseOnly') as SectionModule).upper).toBeNull();
+    expect(createModule('o', 'obstruction', 'Window')).toMatchObject({ label: 'Window' });
+    const run = createRun(
+      'r',
+      { id: 'w', name: 'W', length: inch(100), height: inch(96), turn: 'right' },
+      inch(10),
+    );
+    expect(run.length).toBe(inch(90));
+  });
+});
+
 describe('loadProject / upgradeDocument', () => {
   it.each([
     [null, 'Not a project file.'],
@@ -386,6 +441,16 @@ describe('loadProject / upgradeDocument', () => {
 
     // Malformed input passes through for validation to report.
     expect(MIGRATIONS[2]!({ construction: 3 })).toEqual({ construction: 3, stylePresets: [] });
+  });
+
+  it('3 → 4: older projects get an empty list of built-ins', () => {
+    const current = createProject('p', 'x');
+    const v3 = clone(current) as Omit<Partial<Project>, 'schemaVersion'> & {
+      schemaVersion: number;
+    };
+    v3.schemaVersion = 3;
+    delete v3.builtIns;
+    expect(loadProject(v3)).toEqual({ ok: true, value: current });
   });
 
   it('fails clearly when a migration is missing', () => {

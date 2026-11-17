@@ -198,6 +198,7 @@ export function createProject(
       walls: [{ id: 'wall-1', name: 'Wall 1', length: inch(120), height: inch(96), turn: 'right' }],
     },
     stylePresets: [],
+    builtIns: [],
     cabinets: [],
     fillers: [],
   };

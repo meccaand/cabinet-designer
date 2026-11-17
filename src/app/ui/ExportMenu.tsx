@@ -29,7 +29,15 @@ export function ExportMenu({ outputs }: { outputs: Outputs }) {
     try {
       // jsPDF is only needed here; load it on demand to keep it out of the main bundle.
       const { shopPacket, packetFileName } = await import('../pdf/shopPacket');
-      const doc = shopPacket({ ...outputs, models: projectModels(project), date: new Date() });
+      // The packet shows the project as built: built-ins' boxes, countertops and obstructions.
+      const built = outputs.built;
+      const doc = shopPacket({
+        ...outputs,
+        project: built.project,
+        models: projectModels(built.project),
+        extras: built,
+        date: new Date(),
+      });
       download(packetFileName(project), doc.output('blob'));
     } finally {
       setBusy(false);

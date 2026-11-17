@@ -196,3 +196,61 @@
   border-radius: 5px;
   background: var(--bg);
 }
+
+/* Built-in runs (ADR-040) */
+.moduleList {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.moduleRow,
+.moduleRowOpen {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.moduleRowOpen {
+  border-color: var(--accent);
+  padding-bottom: 10px;
+}
+.moduleRowOpen > :not(.moduleHead) {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+.moduleHead {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.moduleName {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.iconButton {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.iconButton:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

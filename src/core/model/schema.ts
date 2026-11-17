@@ -360,6 +360,11 @@ export const CabinetSchema = z
     endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
     /** The style preset this cabinet follows; its own overrides still apply on top. */
     styleId: Id.optional(),
+    /**
+     * Face frame: outer stile widths when they differ from the convention. Built-in runs split
+     * the stile between neighbouring boxes and widen it at walls for scribing (ADR-040).
+     */
+    stiles: z.object({ left: PositiveLength, right: PositiveLength }).optional(),
     blind: z
       .object({
         /** Which end of the cabinet is hidden behind the adjacent run. */
@@ -442,6 +447,120 @@ export const StylePresetSchema = z.object({
 });
 export type StylePreset = z.infer<typeof StylePresetSchema>;
 
+// ---------------------------------------------------------------------------------------------
+// Built-ins (ADR-038, ADR-040): wall runs of modules sharing a style and datums. Compiled into
+// ordinary cabinets, fillers and run parts; never stored as cabinets.
+
+const ModuleId = Id;
+const AutoLength = z.union([z.literal('auto'), PositiveLength]);
+
+/** One door group of a section's base: a single door or a pair, between face-frame mullions. */
+export const DoorGroupSchema = z.object({
+  doors: z.union([z.literal(1), z.literal(2)]),
+  /** Single doors: the hinged side. */
+  hinge: z.enum(['left', 'right']).optional(),
+});
+export type DoorGroup = z.infer<typeof DoorGroupSchema>;
+
+/**
+ * A base box with doors, and (usually) an upper open bay standing on the countertop, set back.
+ * `width` is the clear opening between its face-frame stiles; the stiles come from the stile
+ * modules beside it. A tower is a section too.
+ */
+export const SectionModuleSchema = z.object({
+  kind: z.literal('section'),
+  id: ModuleId,
+  name: z.string(),
+  /** 'auto' sections share what the run's length leaves, equally (symmetry by default). */
+  width: AutoLength,
+  base: z.object({
+    groups: z.array(DoorGroupSchema).min(1),
+    /** Adjustable shelves behind the doors. */
+    shelves: z.int().min(0).max(10),
+  }),
+  /** null: a base only. `shelves` null follows the run's linked shelf lines. */
+  upper: z
+    .object({
+      kind: z.literal('openBay'),
+      shelves: z.int().min(0).max(20).nullable(),
+    })
+    .nullable(),
+  endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
+});
+export type SectionModule = z.infer<typeof SectionModuleSchema>;
+
+/**
+ * The visible face-frame stile between sections, or at a run end. Between two sections each
+ * box carries half of it (split stiles); beside one section, that box carries all of it.
+ */
+export const StileModuleSchema = z.object({
+  kind: z.literal('stile'),
+  id: ModuleId,
+  width: PositiveLength,
+});
+
+/** A flat, full-height board, e.g. beside a chimney breast. */
+export const PilasterModuleSchema = z.object({
+  kind: z.literal('pilaster'),
+  id: ModuleId,
+  width: PositiveLength,
+  /** Wall to its face. */
+  depth: PositiveLength,
+});
+
+/** Space the run keeps clear for something that isn't cabinetry: a fireplace, a window. */
+export const ObstructionModuleSchema = z.object({
+  kind: z.literal('obstruction'),
+  id: ModuleId,
+  label: z.string(),
+  width: PositiveLength,
+  height: PositiveLength,
+});
+
+export const RunModuleSchema = z.discriminatedUnion('kind', [
+  SectionModuleSchema,
+  StileModuleSchema,
+  PilasterModuleSchema,
+  ObstructionModuleSchema,
+]);
+export type RunModule = z.infer<typeof RunModuleSchema>;
+
+export const RunSchema = z.object({
+  id: Id,
+  wallId: Id,
+  /** From the wall's start to the run's left end. */
+  offset: NonNegLength,
+  /** What 'auto' sections share: the run's overall length along the wall. */
+  length: PositiveLength,
+  /** Floor to the top of the countertop: every base box sits under it (datum). */
+  countertopHeight: PositiveLength,
+  /** Wall to the face of the base boxes' face frames. */
+  baseDepth: PositiveLength,
+  /** Wall to the face of the upper bays (set back from the base: the ledge). */
+  upperDepth: PositiveLength,
+  /** The countertop's front edge (and exposed ends) past the face frame. */
+  countertopOverhang: NonNegLength,
+  /** How thick the countertop reads: the height of its solid edge strip. */
+  countertopEdge: PositiveLength,
+  /** Shelves in every upper bay that follows the run's lines (datum). */
+  shelves: z.int().min(0).max(20),
+  /** What each end of the run meets: a wall (flush, scribed) or open room (overhang). */
+  ends: z.object({ left: z.enum(['wall', 'open']), right: z.enum(['wall', 'open']) }),
+  modules: z.array(RunModuleSchema),
+});
+export type Run = z.infer<typeof RunSchema>;
+
+export const BuiltInSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  /** The look of every box (ADR-039); null = the project defaults. */
+  styleId: Id.nullable(),
+  /** Ceiling to the top of the upper boxes: room for the frieze and crown (one line, all walls). */
+  topGap: NonNegLength,
+  runs: z.array(RunSchema),
+});
+export type BuiltIn = z.infer<typeof BuiltInSchema>;
+
 export const ProjectSchema = z
   .object({
     schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
@@ -453,6 +572,7 @@ export const ProjectSchema = z
     materials: MaterialLibrarySchema,
     room: z.object({ walls: z.array(WallSchema) }),
     stylePresets: z.array(StylePresetSchema),
+    builtIns: z.array(BuiltInSchema),
     cabinets: z.array(CabinetSchema),
     fillers: z.array(FillerSchema),
   })
@@ -514,6 +634,25 @@ export const ProjectSchema = z
     p.fillers.forEach((f, i) => {
       if (!wallIds.has(f.wallId))
         issue(`Wall "${f.wallId}" does not exist.`, ['fillers', i, 'wallId']);
+    });
+
+    duplicates(p.builtIns.map((b) => b.id)).forEach((id) =>
+      issue(`Duplicate built-in id "${id}".`, ['builtIns']),
+    );
+    duplicates(p.builtIns.flatMap((b) => b.runs.map((r) => r.id))).forEach((id) =>
+      issue(`Duplicate run id "${id}".`, ['builtIns']),
+    );
+    p.builtIns.forEach((b, i) => {
+      if (b.styleId !== null && !styleIds.has(b.styleId)) {
+        issue(`Style "${b.styleId}" does not exist.`, ['builtIns', i, 'styleId']);
+      }
+      duplicates(b.runs.flatMap((r) => r.modules.map((m) => m.id))).forEach((id) =>
+        issue(`Duplicate module id "${id}".`, ['builtIns', i, 'runs']),
+      );
+      b.runs.forEach((r, j) => {
+        if (!wallIds.has(r.wallId))
+          issue(`Wall "${r.wallId}" does not exist.`, ['builtIns', i, 'runs', j, 'wallId']);
+      });
     });
   });
 export type Project = z.infer<typeof ProjectSchema>;

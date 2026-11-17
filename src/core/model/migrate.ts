@@ -56,6 +56,8 @@ export const MIGRATIONS: Migrations = {
         }),
     };
   },
+  // Built-ins (ADR-040).
+  3: (doc) => ({ ...doc, builtIns: [] }),
 };
 
 /** The value as a plain object, or undefined: migrations see unvalidated input. */

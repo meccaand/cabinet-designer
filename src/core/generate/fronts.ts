@@ -10,13 +10,14 @@ import { addHandles, type BuiltFront } from './handles';
 /**
  * Face-frame outer stiles and rails, plus the rails/mullions between openings. `stiles` are the
  * outer stile widths measured from the frame's outside edge; a blind corner's blind-side stile
- * is wide enough to cover the blind portion.
+ * is wide enough to cover the blind portion. Stiles may also differ from the convention when a
+ * built-in run splits or widens them (ADR-040).
  */
 export function buildFaceFrame(
   ctx: BuildContext,
   f: CarcassFrame,
   layout: FaceLayout,
-  stiles: { left: Mm; right: Mm },
+  stiles: { left: Mm; right: Mm; blind?: 'left' | 'right' },
 ): void {
   const { stileWidth: sw, railWidth: rw, sideOverhang: oh } = ctx.c.faceFrame;
   const x0 = -oh;
@@ -39,7 +40,7 @@ export function buildFaceFrame(
       ...(notes && { notes }),
     });
   const stile = (side: 'L' | 'R', width: Mm, r: Rect) =>
-    width > sw + 1e-6
+    stiles.blind === (side === 'L' ? 'left' : 'right') && width > sw + 1e-6
       ? member(`ff/stile/${side}`, 'Face frame blind stile', 'ffStile', r, [
           'Wider than one board: glue up, or use a plywood panel edged with solid wood.',
         ])

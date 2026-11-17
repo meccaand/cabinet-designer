@@ -3,11 +3,13 @@ import type { LayoutItem } from '../core/layout';
 import styles from './App.module.css';
 import { ElevationView } from './layout/ElevationView';
 import { PlanView } from './layout/PlanView';
+import { expand } from './expand';
 import { projectLayout, projectModels } from './models';
 import { useSaveStatus } from './persistence/session';
 import { useProjectStore } from './store/projectStore';
 import { useViewerStore, type MainView } from './store/viewerStore';
 import { AddCabinet } from './ui/AddCabinet';
+import { BuiltInEditor } from './ui/BuiltInEditor';
 import { CabinetEditor } from './ui/CabinetEditor';
 import { CabinetList } from './ui/CabinetList';
 import { FillerEditor } from './ui/FillerEditor';
@@ -56,16 +58,50 @@ export function App() {
   const save = useSaveStatus();
   const [projectsOpen, setProjectsOpen] = useState(false);
 
-  const cabinet = project.cabinets.find((c) => c.id === activeId);
-  const result = useCabinetModel(cabinet, project);
-  const models = useMemo(() => projectModels(project), [project]);
-  const items = useMemo(() => projectLayout(project), [project]);
+  // The project as built: its cabinets plus every built-in's compiled boxes (ADR-040). Views and
+  // outputs show this; editors edit the project.
+  const built = useMemo(() => expand(project), [project]);
+  const view = built.project;
+  const cabinet = view.cabinets.find((c) => c.id === activeId);
+  const result = useCabinetModel(cabinet, view);
+  const models = useMemo(() => projectModels(view), [view]);
+  // A built-in's boxes move with their run (edited in the built-in), not one by one.
+  const items = useMemo(
+    () =>
+      projectLayout(view).map((i) =>
+        built.sources.has(i.id) ? { ...i, locked: true as const } : i,
+      ),
+    [view, built],
+  );
   const outputs = useOutputs(project);
+  const { addBuiltIn } = useProjectStore.getState();
+  const { setScope } = useViewerStore.getState();
+  // What the properties panel edits when it's a built-in: picked in the list, or one of its
+  // boxes or pilasters picked in a view.
+  const fromSource = (id: string | null | undefined) => {
+    const src = id ? built.sources.get(id) : undefined;
+    return src ? { id: src.builtInId, moduleId: src.moduleId } : null;
+  };
+  const editing =
+    selection?.kind === 'builtIn'
+      ? { id: selection.id, moduleId: selection.moduleId }
+      : selection?.kind === 'filler'
+        ? fromSource(selection.id)
+        : fromSource(activeId);
+  const builtIn = editing ? project.builtIns.find((b) => b.id === editing.id) : undefined;
   const partCount = outputs.cutList.parts.length;
   // A new project has no walls yet; cabinets need one to stand on, so the room comes first.
   const needsRoom = project.room.walls.length === 0;
   const filler =
     selection?.kind === 'filler' ? project.fillers.find((f) => f.id === selection.id) : undefined;
+  const newBuiltIn = () => {
+    const wall = wallId ?? project.room.walls[0]?.id;
+    if (!wall) return;
+    const id = addBuiltIn(wall);
+    select({ kind: 'builtIn', id });
+    setScope('room');
+    setDrawer(null);
+  };
   const wallId =
     project.room.walls.find((w) => w.id === elevationWall)?.id ??
     cabinet?.placement.wallId ??
@@ -188,6 +224,36 @@ export function App() {
         </div>
         <CabinetList project={project} activeId={activeId} onSelect={show} />
         <AddCabinet onAdd={(type) => show(addCabinet(type))} disabled={needsRoom} />
+        <h2 className={styles.heading} style={{ marginTop: 16 }}>
+          Built-ins
+        </h2>
+        {project.builtIns.length > 0 && (
+          <ul className={styles.fillers}>
+            {project.builtIns.map((b) => (
+              <li key={b.id}>
+                <button
+                  type="button"
+                  aria-current={builtIn?.id === b.id}
+                  onClick={() => {
+                    select({ kind: 'builtIn', id: b.id });
+                    setScope('room');
+                    setDrawer(null);
+                  }}
+                >
+                  {b.name} · {b.runs.length} run{b.runs.length === 1 ? '' : 's'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button
+          type="button"
+          className={styles.addBuiltIn}
+          onClick={newBuiltIn}
+          disabled={needsRoom}
+        >
+          Add a built-in
+        </button>
         {project.fillers.length > 0 && (
           <>
             <h2 className={styles.heading} style={{ marginTop: 16 }}>
@@ -233,9 +299,9 @@ export function App() {
           ))}
         </div>
         {(needsRoom && (main === '3d' || main === 'plan' || main === 'elevation')) ||
-        (project.cabinets.length === 0 && main === '3d') ? (
+        (view.cabinets.length === 0 && main === '3d') ? (
           <GettingStarted key={project.id} project={project} models={models} />
-        ) : project.cabinets.length === 0 && (main === 'cutlist' || main === 'sheets') ? (
+        ) : view.cabinets.length === 0 && (main === 'cutlist' || main === 'sheets') ? (
           <EmptyState title="No cabinets yet">
             <p>The cut list, sheet layouts and shop packet build themselves as you add cabinets.</p>
             {needsRoom ? <SetUpRoomButton /> : <StartButtons />}
@@ -248,7 +314,7 @@ export function App() {
           <MaterialsView project={project} estimate={outputs.estimate} />
         ) : main === 'plan' ? (
           <PlanView
-            project={project}
+            project={view}
             items={items}
             selectedId={selection?.kind === 'filler' ? selection.id : activeId}
             onSelect={pickItem}
@@ -256,7 +322,8 @@ export function App() {
           />
         ) : main === 'elevation' && wallId ? (
           <ElevationView
-            project={project}
+            project={view}
+            extras={built}
             models={models}
             items={items}
             wallId={wallId}
@@ -265,6 +332,17 @@ export function App() {
             onSelect={pickItem}
             onMove={(id, offset) => moveItem(id, { offset })}
           />
+        ) : !cabinet && view.cabinets.length > 0 ? (
+          // Nothing picked, but there is something built (a built-in): show the room.
+          <Suspense fallback={<p className={styles.empty}>Loading 3D view…</p>}>
+            <Viewer
+              project={view}
+              built={built}
+              models={models}
+              activeId={null}
+              onActivate={setActiveCabinet}
+            />
+          </Suspense>
         ) : !cabinet || !result ? (
           <EmptyState title="No cabinet selected">
             <p>Pick a cabinet from the list to see it here in 3D.</p>
@@ -272,7 +350,8 @@ export function App() {
         ) : result.ok ? (
           <Suspense fallback={<p className={styles.empty}>Loading 3D view…</p>}>
             <Viewer
-              project={project}
+              project={view}
+              built={built}
               models={models}
               activeId={activeId}
               onActivate={setActiveCabinet}
@@ -295,7 +374,15 @@ export function App() {
             Close
           </button>
         </div>
-        {filler ? (
+        {builtIn && (selection?.kind === 'builtIn' || selection?.kind === 'filler' || !result) ? (
+          <BuiltInEditor
+            key={builtIn.id}
+            project={project}
+            built={built}
+            builtIn={builtIn}
+            moduleId={editing?.moduleId}
+          />
+        ) : filler ? (
           <FillerEditor project={project} filler={filler} />
         ) : cabinet && result ? (
           <>
@@ -317,7 +404,15 @@ export function App() {
                 </button>
               ))}
             </div>
-            {panel === 'edit' ? (
+            {panel === 'edit' && builtIn ? (
+              <BuiltInEditor
+                key={builtIn.id}
+                project={project}
+                built={built}
+                builtIn={builtIn}
+                moduleId={editing?.moduleId}
+              />
+            ) : panel === 'edit' ? (
               <CabinetEditor
                 key={cabinet.id}
                 project={project}
@@ -326,7 +421,7 @@ export function App() {
                 errors={result.ok ? [] : result.errors}
               />
             ) : result.ok ? (
-              <Inspector project={project} cabinet={cabinet} model={result.model} />
+              <Inspector project={view} cabinet={cabinet} model={result.model} />
             ) : (
               <p className={styles.empty}>Fix the cabinet's settings to see its parts.</p>
             )}

@@ -1,3 +1,4 @@
+import type { Assembly, Obstruction } from '../../core/builtin';
 /**
  * The shop packet (ADR-028): everything needed at the bench in one PDF. A cover with the
  * summary and contents, wall and cabinet elevations, the cut list, one page per sheet with its
@@ -34,6 +35,8 @@ export interface PacketInput {
   estimate: Estimate;
   /** Printed on every page. */
   date: Date;
+  /** Built-ins' run parts and obstructions, for the wall elevations (ADR-040). */
+  extras?: { assemblies: readonly Assembly[]; obstructions: readonly Obstruction[] };
 }
 
 const M = 36; // page margin, pt (½")
@@ -148,14 +151,15 @@ export function shopPacket(input: PacketInput): jsPDF {
   const walls = project.room.walls.filter(
     (w) =>
       project.cabinets.some((c) => c.placement.wallId === w.id && models.get(c.id)) ||
-      project.fillers.some((fl) => fl.wallId === w.id),
+      project.fillers.some((fl) => fl.wallId === w.id) ||
+      input.extras?.obstructions.some((o) => o.wallId === w.id),
   );
   walls.forEach((wall, i) => {
     doc.addPage();
     if (i === 0) contents.push(['Wall elevations', doc.getNumberOfPages()]);
     heading(`${wall.name} elevation`);
     small(`${f(wall.length)} long × ${f(wall.height)} high`, M, M + 30);
-    drawDrawing(doc, wallElevation(project, wall.id, models), {
+    drawDrawing(doc, wallElevation(project, wall.id, models, input.extras), {
       x: M,
       y: M + 44,
       w: W - 2 * M,

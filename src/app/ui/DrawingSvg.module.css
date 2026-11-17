@@ -63,6 +63,11 @@
   fill: #f4f1ea;
   stroke: #9a9389;
 }
+.obstruction {
+  fill: #e6e2da;
+  stroke: #9a9389;
+  stroke-dasharray: 40 30;
+}
 .hardware {
   fill: #9c7a3c;
   stroke: #4a3a1c;

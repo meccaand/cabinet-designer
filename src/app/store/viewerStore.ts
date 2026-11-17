@@ -5,6 +5,8 @@ export type Selection =
   | { kind: 'cabinet'; id: string }
   | { kind: 'part'; id: string }
   | { kind: 'filler'; id: string }
+  /** A built-in, and the module being edited in it (ADR-040). */
+  | { kind: 'builtIn'; id: string; moduleId?: string | undefined }
   | null;
 
 export type Panel = 'edit' | 'parts';

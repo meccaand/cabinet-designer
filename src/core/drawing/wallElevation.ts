@@ -1,3 +1,4 @@
+import type { Assembly, Obstruction } from '../builtin';
 import { fillerPart, layoutItems, wallFrames, type LayoutItem } from '../layout';
 import type { Project } from '../model';
 import type { CabinetModel } from '../parts';
@@ -14,6 +15,8 @@ export function wallElevation(
   project: Project,
   wallId: string,
   models: ReadonlyMap<string, CabinetModel | null>,
+  /** From expanded built-ins (ADR-040): run parts such as countertops, and obstructions. */
+  extras: { assemblies?: readonly Assembly[]; obstructions?: readonly Obstruction[] } = {},
 ): Drawing {
   const wall = wallFrames(project.room).find((f) => f.wall.id === wallId)?.wall;
   if (!wall) return { primitives: [], textSize: 100, bounds: { x0: 0, y0: 0, x1: 1, y1: 1 } };
@@ -25,6 +28,21 @@ export function wallElevation(
   const prims: Primitive[] = [
     { kind: 'rect', x: 0, y: 0, w: wall.length, h: wall.height, fill: 'wall' },
   ];
+  for (const o of extras.obstructions ?? []) {
+    if (o.wallId !== wallId) continue;
+    prims.push(
+      { kind: 'rect', x: o.offset, y: 0, w: o.width, h: o.height, fill: 'obstruction' },
+      {
+        kind: 'text',
+        x: o.offset + o.width / 2,
+        y: o.height / 2,
+        text: o.label,
+        anchor: 'middle',
+        rotate: 0,
+        onFill: true,
+      },
+    );
+  }
   for (const item of [...items].sort((a, b) => a.depth - b.depth)) {
     if (item.kind === 'cabinet') {
       const model = models.get(item.id);
@@ -46,6 +64,11 @@ export function wallElevation(
         });
       }
     }
+  }
+
+  // Run parts (countertops) in front of the boxes they sit on.
+  for (const a of extras.assemblies ?? []) {
+    if (a.wallId === wallId) prims.push(...partRects(a.model, a.offset, 0));
   }
 
   const chain = (level: LayoutItem[], y: Mm, dir: 1 | -1) => {

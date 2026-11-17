@@ -18,6 +18,7 @@ const FILL: Partial<Record<PartRole, Fill>> = {
   filler: 'frame',
   endPanel: 'front',
   shelfNosing: 'frame',
+  countertopEdge: 'frame',
 };
 
 /** Dimension line spacing outside the cabinet, as a fraction of its larger side. */

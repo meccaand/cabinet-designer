@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo } from 'react';
 import { estimate, type Estimate } from '../core/costing';
 import { buildCutList, type CutList } from '../core/cutlist';
+import type { ExpandedProject } from '../core/builtin';
 import type { Project } from '../core/model';
 import {
   guillotineNester,
@@ -9,11 +10,14 @@ import {
   type Nester,
   type NestResult,
 } from '../core/nesting';
+import { expand } from './expand';
 import { projectModels } from './models';
 
 export interface Outputs {
   /** The project these outputs were derived from (may trail the open one by a render). */
   project: Project;
+  /** It as built: with its built-ins' boxes and run parts (ADR-040). */
+  built: ExpandedProject;
   cutList: CutList;
   nests: MaterialNest[];
   estimate: Estimate;
@@ -48,10 +52,17 @@ export function cachingNester(nester: Nester, size: number): Nester {
 const nester = cachingNester(guillotineNester, 24);
 
 export function deriveOutputs(project: Project): Outputs {
-  const models = projectModels(project);
-  const cutList = buildCutList(project, models);
-  const nests = nestCutList(project, cutList, nester);
-  return { project, cutList, nests, estimate: estimate(project, cutList, nests, models) };
+  const built = expand(project);
+  const view = built.project;
+  const models = projectModels(view);
+  const assemblies = built.assemblies.map((a) => ({
+    id: a.id,
+    name: a.name,
+    parts: a.model.parts,
+  }));
+  const cutList = buildCutList(view, models, assemblies);
+  const nests = nestCutList(view, cutList, nester);
+  return { project, built, cutList, nests, estimate: estimate(view, cutList, nests, models) };
 }
 
 /**

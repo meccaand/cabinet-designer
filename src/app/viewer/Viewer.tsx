@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import type { Box } from '../../core/geometry';
 import { fillerPart, placedOffset, placementTransform, wallFrames } from '../../core/layout';
+import type { ExpandedProject } from '../../core/builtin';
 import { cabinetStyle, type Project } from '../../core/model';
 import type { CabinetModel } from '../../core/parts';
 import { formatLength } from '../../core/units';
@@ -16,6 +17,8 @@ import { ViewToolbar } from './ViewToolbar';
 
 interface ViewerProps {
   project: Project;
+  /** Built-ins as built: their countertops and obstructions are drawn in the room (ADR-040). */
+  built?: ExpandedProject;
   models: ReadonlyMap<string, CabinetModel | null>;
   activeId: string | null;
   onActivate: (cabinetId: string) => void;
@@ -32,14 +35,22 @@ const WALL_THICKNESS = 100;
  * SketchUp-lite viewport: one cabinet on its own (with dimensions), or the whole room with every
  * cabinet in place. Orbit/pan/zoom, standard views, click to select.
  */
-export function Viewer({ project, models, activeId, onActivate, roomOnly = false }: ViewerProps) {
+export function Viewer({
+  project,
+  built,
+  models,
+  activeId,
+  onActivate,
+  roomOnly = false,
+}: ViewerProps) {
   const orthographic = useViewerStore((s) => s.view !== 'iso');
-  const room = useViewerStore((s) => s.scope === 'room') || roomOnly;
+  const cabinet = project.cabinets.find((c) => c.id === activeId);
+  // With no cabinet picked there is only the room to show.
+  const room = useViewerStore((s) => s.scope === 'room') || roomOnly || !cabinet;
   const exploded = useViewerStore((s) => s.exploded);
   const select = useViewerStore((s) => s.select);
   const labels = useRef<Partial<Record<DimensionLine['label'], HTMLElement | null>>>({});
 
-  const cabinet = project.cabinets.find((c) => c.id === activeId);
   const model = cabinet ? models.get(cabinet.id) : null;
   // Overall dimensions describe one assembled cabinet.
   const showDimensions = useViewerStore((s) => s.dimensions) && !exploded && !room && !!cabinet;
@@ -150,6 +161,47 @@ export function Viewer({ project, models, activeId, onActivate, roomOnly = false
               return (
                 <group key={f.id} position={t.position} rotation-y={t.rotationY}>
                   <PartMesh part={fillerPart(f, project)} ownerWidth={f.width} />
+                </group>
+              );
+            })}
+            {built?.assemblies.map((a) => {
+              const t = placementTransform(
+                frames.find((w) => w.wall.id === a.wallId),
+                a.offset,
+                0,
+              );
+              const owner = project.builtIns.find((b) => b.id === a.builtInId);
+              const finish = owner?.styleId
+                ? project.stylePresets.find((st) => st.id === owner.styleId)?.finish
+                : undefined;
+              return (
+                <group key={a.id} position={t.position} rotation-y={t.rotationY}>
+                  {a.model.parts.map((p) => (
+                    <PartMesh key={p.id} part={p} ownerWidth={0} finish={finish} />
+                  ))}
+                </group>
+              );
+            })}
+            {built?.obstructions.map((o) => {
+              const t = placementTransform(
+                frames.find((w) => w.wall.id === o.wallId),
+                o.offset,
+                0,
+              );
+              return (
+                <group key={o.id} position={t.position} rotation-y={t.rotationY}>
+                  <mesh
+                    position={[o.width / 2, o.height / 2, o.depth / 2]}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <boxGeometry args={[o.width, o.height, o.depth]} />
+                    <meshStandardMaterial
+                      color="#b9b2a6"
+                      transparent
+                      opacity={0.3}
+                      depthWrite={false}
+                    />
+                  </mesh>
                 </group>
               );
             })}

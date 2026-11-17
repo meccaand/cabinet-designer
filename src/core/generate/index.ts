@@ -7,3 +7,4 @@ export {
   type CabinetOptions,
 } from './presets';
 export { hasToeKick, TYPE_TRAITS, type TypeTraits } from './traits';
+export { BuildContext, BuildError } from './context';

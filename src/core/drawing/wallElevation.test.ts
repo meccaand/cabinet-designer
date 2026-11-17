@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { referenceRoom } from '../__tests__/referenceRoom';
+import { expandProject } from '../builtin';
 import { createCabinet, generateCabinet } from '../generate';
 import { createProject, type Cabinet } from '../model';
 import type { CabinetModel } from '../parts';
@@ -76,5 +78,36 @@ describe('wallElevation', () => {
     p.fillers[0]!.id = 'orphan';
     p.fillers = [];
     expect(wallElevation(p, 'wall-1', models).primitives.length).toBeGreaterThan(1);
+  });
+});
+
+describe('wallElevation with built-ins', () => {
+  it("draws a wall's obstructions and countertops, and none from other walls", () => {
+    const p = referenceRoom();
+    const e = expandProject(p);
+    const models = new Map(
+      e.project.cabinets.map((c) => {
+        const r = generateCabinet(c, e.project);
+        return [c.id, r.ok ? r.model : null] as const;
+      }),
+    );
+    const fire = wallElevation(e.project, 'fireplace', models, e);
+    expect(texts(fire)).toContain('Fireplace + chimney breast');
+    expect(
+      fire.primitives.filter((x) => x.kind === 'rect' && x.fill === 'obstruction'),
+    ).toHaveLength(1);
+    const media = wallElevation(e.project, 'media', models, e);
+    expect(texts(media)).not.toContain('Fireplace + chimney breast');
+    // The countertop edge (drawn with the frame fill) sits at the countertop height.
+    const fireTop = e.assemblies.find((a) => a.wallId === 'fireplace')!;
+    const edges = fireTop.model.parts.filter((x) => x.role === 'countertopEdge');
+    const y = Math.max(...edges.map((x) => x.bounds.max.y));
+    expect(fire.primitives.some((x) => x.kind === 'rect' && Math.abs(x.y + x.h - y) < 1e-6)).toBe(
+      true,
+    );
+    // Without extras, neither is drawn.
+    expect(texts(wallElevation(e.project, 'fireplace', models))).not.toContain(
+      'Fireplace + chimney breast',
+    );
   });
 });

@@ -28,7 +28,10 @@ export type PartRole =
   | 'shelfAdjustable'
   | 'shelfFixed'
   | 'shelfNosing'
-  | 'divider';
+  | 'divider'
+  // Built-in runs (ADR-040)
+  | 'countertop'
+  | 'countertopEdge';
 
 export interface PartSize {
   /** Along the grain (or the longer side, for grainless material). */

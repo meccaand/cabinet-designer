@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { inch } from '../../core/units';
 import { projectModels } from '../models';
-import { materialInUse, useProjectStore } from './projectStore';
+import { materialInUse, tidyStiles, useProjectStore } from './projectStore';
 
 const initial = useProjectStore.getState();
 beforeEach(() => useProjectStore.setState(initial, true));
@@ -299,4 +299,105 @@ describe('style presets', () => {
 
 function projectModelsOf(id: string) {
   return projectModels(s().project).get(id);
+}
+
+describe('built-ins', () => {
+  const run = () => s().project.builtIns[0]!.runs[0]!;
+  const kinds = () => run().modules.map((m) => m.kind);
+
+  it('adds a built-in on a wall, following a face-frame style (added if there is none)', () => {
+    const id = s().addBuiltIn('wall-1');
+    const b = s().project.builtIns[0]!;
+    expect(b.id).toBe(id);
+    expect(s().project.stylePresets.find((st) => st.id === b.styleId)?.name).toBe(
+      'Traditional painted built-in',
+    );
+    expect(b.runs).toHaveLength(1);
+    expect(run().wallId).toBe('wall-1');
+    // A second one reuses the style.
+    s().addBuiltIn('wall-1');
+    expect(s().project.stylePresets).toHaveLength(1);
+    expect(s().addBuiltIn('missing')).toBe('');
+  });
+
+  it('puts stiles either side of sections, sharing one between sections', () => {
+    s().addBuiltIn('wall-1');
+    s().addModule(run().id, 'section');
+    expect(kinds()).toEqual(['stile', 'section', 'stile']);
+    s().addModule(run().id, 'tower');
+    expect(kinds()).toEqual(['stile', 'section', 'stile', 'section', 'stile']);
+    s().addModule(run().id, 'pilaster');
+    expect(kinds().at(-1)).toBe('pilaster');
+    expect(
+      run()
+        .modules.filter((m) => m.kind === 'section')
+        .map((m) => m.kind === 'section' && m.name),
+    ).toEqual(['Section 1', 'Tower 2']);
+    expect(s().addModule('missing', 'section')).toBeNull();
+  });
+
+  it('removing a section tidies the stiles it leaves behind', () => {
+    s().addBuiltIn('wall-1');
+    s().addModule(run().id, 'section');
+    s().addModule(run().id, 'section');
+    const first = run().modules[1]!.id;
+    s().deleteModule(first);
+    expect(kinds()).toEqual(['stile', 'section', 'stile']);
+    s().deleteModule(run().modules[1]!.id);
+    expect(kinds()).toEqual([]);
+  });
+
+  it('tidyStiles drops orphans and merges neighbours', () => {
+    const st = (id: string) => ({ kind: 'stile' as const, id, width: 1 });
+    const sec = { ...run0Section() };
+    expect(tidyStiles([st('a'), st('b'), sec, st('c')]).map((m) => m.id)).toEqual([
+      'b',
+      'sec',
+      'c',
+    ]);
+    expect(tidyStiles([st('a')])).toEqual([]);
+  });
+
+  it('moves modules, edits runs and modules, removes runs and built-ins', () => {
+    const id = s().addBuiltIn('wall-1');
+    s().addModule(run().id, 'section');
+    s().addModule(run().id, 'obstruction');
+    const obstruction = run().modules.at(-1)!.id;
+    s().moveModule(obstruction, -1);
+    expect(kinds()).toEqual(['stile', 'section', 'obstruction', 'stile']);
+    s().moveModule(run().modules[0]!.id, -1); // already first: no change
+    expect(kinds()[0]).toBe('stile');
+    s().updateModule(obstruction, (m) => void (m.kind === 'obstruction' && (m.label = 'Window')));
+    expect(run().modules[2]).toMatchObject({ label: 'Window' });
+    s().updateRun(run().id, (r) => void (r.countertopHeight = inch(36)));
+    expect(run().countertopHeight).toBe(inch(36));
+    s().updateBuiltIn(id, (b) => void (b.topGap = inch(12)));
+    expect(s().project.builtIns[0]!.topGap).toBe(inch(12));
+    const second = s().addRun(id, 'wall-1');
+    expect(s().project.builtIns[0]!.runs).toHaveLength(2);
+    s().deleteRun(second!);
+    expect(s().project.builtIns[0]!.runs).toHaveLength(1);
+    expect(s().addRun(id, 'missing')).toBeNull();
+    s().deleteBuiltIn(id);
+    expect(s().project.builtIns).toEqual([]);
+  });
+
+  it('deleting its style sends a built-in back to the project defaults', () => {
+    s().addBuiltIn('wall-1');
+    const styleId = s().project.builtIns[0]!.styleId!;
+    s().deleteStyle(styleId);
+    expect(s().project.builtIns[0]!.styleId).toBeNull();
+  });
+});
+
+function run0Section() {
+  return {
+    kind: 'section' as const,
+    id: 'sec',
+    name: 'S',
+    width: 'auto' as const,
+    base: { groups: [{ doors: 2 as const }], shelves: 1 },
+    upper: null,
+    endPanels: { left: false, right: false },
+  };
 }

@@ -81,12 +81,16 @@ function faceZone(
   zone: Rect;
   rules: LayoutRules;
   blindPanel: Rect | null;
-  stiles: { left: number; right: number };
+  stiles: { left: number; right: number; blind?: 'left' | 'right' };
 } {
   const { fronts: fc, carcass, faceFrame: ff } = ctx.c;
   const inset = fc.mount === 'inset';
   const sw = ff.sideOverhang + ff.stileWidth;
-  const stiles = { left: sw, right: sw };
+  const own = ctx.cabinet.stiles;
+  const stiles = {
+    left: ff.sideOverhang + (own?.left ?? ff.stileWidth),
+    right: ff.sideOverhang + (own?.right ?? ff.stileWidth),
+  };
   let zone: Rect;
   let rules: LayoutRules;
   let blindPanel: Rect | null = null;
@@ -125,8 +129,13 @@ function faceZone(
     if (blindSide === 'right' && boundary !== undefined)
       stiles.right = f.W - boundary + ff.sideOverhang;
     check(
-      Math.min(stiles.left, stiles.right) >= sw - 1e-6,
+      !blindSide || stiles[blindSide] >= sw - 1e-6,
       'Blind width is narrower than a face-frame stile.',
+    );
+    // A stile narrower than the box side would leave the side showing in the opening.
+    check(
+      Math.min(stiles.left, stiles.right) >= ff.sideOverhang + f.t - 1e-6,
+      'A face-frame stile is narrower than the side of the box behind it.',
     );
     zone = {
       x0: -ff.sideOverhang + stiles.left,
@@ -136,5 +145,5 @@ function faceZone(
     };
     rules = { pad: 0, rowGap: () => ff.railWidth, columnGap: () => ff.mullionWidth, members: true };
   }
-  return { zone, rules, blindPanel, stiles };
+  return { zone, rules, blindPanel, stiles: { ...stiles, ...(blindSide && { blind: blindSide }) } };
 }

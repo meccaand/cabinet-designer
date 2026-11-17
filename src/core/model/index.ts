@@ -2,6 +2,7 @@ export * from './schema';
 export * from './defaults';
 export * from './migrate';
 export * from './styles';
+export * from './builtins';
 export { CURRENT_SCHEMA_VERSION } from './version';
 export {
   getNode,

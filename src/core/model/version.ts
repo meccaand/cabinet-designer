@@ -4,5 +4,6 @@
  *
  * 2: toe kicks can be turned off (`construction.platform.enabled`).
  * 3: style presets, knobs and handle placement, shelf nosing (ADR-039).
+ * 4: built-ins (ADR-040).
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;

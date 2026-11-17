@@ -1,6 +1,7 @@
 import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { produce } from 'immer';
 import { wallElevation } from '../../core/drawing';
+import type { Assembly, Obstruction } from '../../core/builtin';
 import type { LayoutItem } from '../../core/layout';
 import type { Project } from '../../core/model';
 import type { CabinetModel } from '../../core/parts';
@@ -22,6 +23,7 @@ export function ElevationView({
   selectedId,
   onSelect,
   onMove,
+  extras,
 }: {
   project: Project;
   models: ReadonlyMap<string, CabinetModel | null>;
@@ -31,6 +33,8 @@ export function ElevationView({
   selectedId: string | null;
   onSelect: (item: LayoutItem | null) => void;
   onMove: (id: string, offset: number) => void;
+  /** Built-ins' countertops and obstructions (ADR-040). */
+  extras?: { assemblies: readonly Assembly[]; obstructions: readonly Obstruction[] };
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const onWallItems = items.filter((i) => i.wallId === wallId);
@@ -63,7 +67,10 @@ export function ElevationView({
       if (f) f.offset = offset;
     });
   }, [project, items, drag]);
-  const drawing = useMemo(() => wallElevation(shown, wallId, models), [shown, wallId, models]);
+  const drawing = useMemo(
+    () => wallElevation(shown, wallId, models, extras),
+    [shown, wallId, models, extras],
+  );
 
   return (
     <div className={styles.view} ref={wrap}>

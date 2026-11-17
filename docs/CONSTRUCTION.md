@@ -251,6 +251,45 @@ children share what's left equally.
   - `nosingHeight` must be at least the shelf thickness, and the shelf pitch must exceed it.
   - Behind doors, shelves get no nosing. L-shaped shelving doesn't get it yet (a warning says so).
 
+## Built-in runs (ADR-040)
+
+A run lays modules left to right along its wall from `offset`. Run coordinates: x along the
+wall from the run's start, y up, z out from the wall. `ff` = face-frame stile width of the
+built-in's style.
+
+- **Stiles.** A stile module of width `s` between two sections: each box carries `s/2` (split
+  stiles, screwed together on site). Beside one section only (a run end, a pilaster, an
+  opening): that box carries all of `s`. A section side with no stile module gets `ff`, which
+  adds to the run. Face-frame side overhang is forced to 0.
+- **Widths.** A section's `width` is its clear opening. Box width = left stile + opening + right
+  stile. 'auto' sections share `run length − every other footprint` equally, at least 6".
+- **Base box:** height = `countertopHeight − tc` (`tc` = the top's sheet thickness), depth =
+  `baseDepth`, on the style's plinth (one ladder per box, no recess). Door groups are columns
+  with `mullionWidth` between them; each group is a pair or a single door, with
+  `base.shelves` adjustable shelves.
+- **Upper box** (wall-cabinet build, hanging rail): elevation = `countertopHeight`, height =
+  `wall height − topGap − countertopHeight`, depth = `upperDepth`, open, with **fixed** shelves:
+  the run's `shelves` count, or the bay's own when unlinked, evenly spaced, nosed per the style.
+  Same width and stiles as the base below, so the stiles line up.
+- **End panels** go on both boxes of the section (following the step-back), outside the box
+  width. Not allowed where two sections share a stile.
+- **Pilaster:** a filler board, floor to the top line (`wall height − topGap`), `depth` from
+  the wall.
+- **Countertop,** over each stretch of neighbouring sections (stopping at pilasters and
+  openings):
+  - Top: sheet stock (`carcass` material), from the wall to the back of the front strip:
+    depth = `baseDepth + overhang − te` (`te` = face-frame stock thickness), top at
+    `countertopHeight`.
+  - Front strip: face-frame stock, `countertopEdge` tall × `te`, its face `overhang` past the
+    face frames, top flush. `overhang ≥ te` (or it would hit the face frame) and
+    `countertopEdge ≥ tc`.
+  - At an end meeting the room: the top runs `overhang` past the box and its end panel, and an
+    end strip (`te` thick, wall to the front strip) covers it. Against a wall, pilaster or
+    opening: flush with the box.
+  - Longer than a sheet (`sheet length − 2 × edge trim`): split into the fewest pieces, every
+    seam at a joint between two boxes (greedy, farthest joint first). Strips split at the same
+    seams.
+
 ## Hardware
 
 - **Hinges**: per door, by height tier (≤40" → 2, ≤60" → 3, ≤80" → 4, taller → 5).

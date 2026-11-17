@@ -6,6 +6,8 @@ import { createCabinet } from '../../core/generate';
 import { createProject, type Project } from '../../core/model';
 import { nestCutList } from '../../core/nesting';
 import { formatLength, inch } from '../../core/units';
+import { referenceRoom } from '../../core/__tests__/referenceRoom';
+import { deriveOutputs } from '../outputs';
 import { projectModels } from '../models';
 import { createSampleProject } from '../sample';
 import { fitDrawing, pdfText } from './drawing';
@@ -131,6 +133,23 @@ describe('shop packet', () => {
     const text = pages(packet(p).doc).flat();
     expect(text).toContain('Too narrow');
     expect(text).toContain("This cabinet can't be built as specified; fix it in the app.");
+  });
+
+  it('prints a built-in as built: its boxes, countertop parts and the fireplace', () => {
+    const outputs = deriveOutputs(referenceRoom());
+    const built = outputs.built;
+    const doc = shopPacket({
+      ...outputs,
+      project: built.project,
+      models: projectModels(built.project),
+      extras: built,
+      date: new Date(2026, 10, 5),
+    });
+    const text = pages(doc).flat().join('\n');
+    expect(text).toContain('Fireplace wall elevation');
+    expect(text).toContain('Fireplace + chimney breast');
+    expect(text).toContain('Living room built-ins · Left tower base');
+    expect(text).toContain('Countertop edge');
   });
 
   it('names the file after the project', () => {

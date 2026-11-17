@@ -676,8 +676,8 @@ around corners.
   miter and return counts. The flat frieze board and the plinth face are cut-list parts.
 - **Countertop:** 3/4" ply with a solid edge strip on the front and exposed ends, so it reads
   1" thick. The ply nests on sheets; the strip is solid stock.
-- **Plinth:** the existing ladder platform with setback 0, continuous along the run, with the
-  base moulding applied over its face.
+- **Plinth:** the existing ladder platform with setback 0, with the base moulding applied over
+  its face. (M11: one ladder per box, side by side, chosen by Andrew; see ADR-040.)
 
 **Choices to be made without asking unless Andrew objects (please check):**
 
@@ -740,3 +740,60 @@ same parts as before; they now also show their pulls.
   pair is 1/8". The spec's 1/8" reveal is read as that gap between doors.
 - **Trim fields** (countertop, frieze, crown, picture lights) are left out of the preset until
   M11/M13, where they are first used, so they aren't designed before they're needed.
+
+## ADR-040: Built-in runs: modules, datums and split stiles
+
+**Status:** Accepted (M11). Schema version 4. Spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md) §2–§5.
+
+**Model.** `project.builtIns`: a built-in has a style (face frame required), a `topGap` (ceiling
+to the top of the uppers: one line round the room, leaving room for the frieze and crown) and
+runs. A run has a wall, `offset`, `length`, the datums `countertopHeight`, `baseDepth`,
+`upperDepth`, `countertopOverhang`, `countertopEdge` and `shelves` (the linked shelf count),
+what each end meets (a wall or the room), and modules: **section**, **stile**, **pilaster** and
+**obstruction**. A tower is a section (the "Tower" template adds a finished left end), so towers
+and media-wall bays share one code path.
+
+**Compiled, never stored** (ADR-038). `compileBuiltIn` turns a built-in into ordinary cabinets
+(a base box and an upper box per section), fillers (pilasters), obstructions and a run
+**assembly** of parts that belong to no box: the countertop. `expandProject` adds them to the
+project, and every view and output uses that as-built project: 3D, plan, elevations, cut list,
+nesting, estimate and the shop packet. The JSON export stays the stored project. The app caches
+the compile per built-in (`app/expand.ts`), so unchanged built-ins keep their compiled cabinets
+and those cabinets keep their cached parts.
+
+**Datums are the run's.** Box heights, the upper elevation and the countertop all follow
+`countertopHeight` (acceptance #2). Upper bays with `shelves: null` follow the run's count, and
+identical boxes put their shelves on identical lines (acceptance #3). A section's base and upper
+boxes have the same width and stiles, so the stiles line up. 'auto' widths share the run's
+length equally, so the bays either side of a fixed centre section mirror each other.
+
+**Construction, chosen by Andrew:**
+
+- **Split stiles.** Where two boxes meet, each carries half the visible stile and the frames
+  are screwed together; an end box carries a whole end stile, for scribing. A cabinet's
+  `stiles: {left, right}` (new, optional) sets its outer stile widths; the generator checks a
+  stile still covers the box side.
+- **Fixed, dadoed shelves** in the upper bays.
+- **Countertop** in the fewest sheet-length pieces, seams over box joints (the reference media
+  wall's joints at 34 1/2" and 103 1/2" make that 3 pieces, not 2: nothing lies between 42" and
+  96").
+- **One plinth per box** (the existing ladder, no recess).
+
+**Choices made without asking (please check):**
+
+- **A section's width is its clear opening** between its stiles (the spec's "bay width"). Stile
+  modules are separate, so the reference media wall reads 3 + 30 + 3 + 66 + 3 + 30 + 3 = 138".
+- **End panels sit outside the box width,** like other cabinets' end panels; on a run start that
+  meets the room, give the run an offset for them.
+- **The countertop's sheet and strip use the `carcass` and `faceFrame` materials** rather than
+  new material roles.
+- **The countertop's front edge is 3/4" past the face frames by default** (the spec says 1/2–
+  3/4"). It can't be less than the strip's thickness, or the strip would hit the face frame.
+- **Uppers are built like wall cabinets:** full top and bottom and a hanging rail. The bottom
+  rests on the countertop.
+- **A built-in's boxes can't be dragged one by one.** Picking one opens the built-in at that
+  module. A run moves by its offset.
+
+**Not yet (later milestones or gaps):** inside corners are left to the user's run offsets (the
+media wall starts 19" out); M13 adds the blind corner and mitred trim. Obstructions aren't drawn
+in plan. Shelf heights can't be set individually yet, only counts. The media niche is M12.
