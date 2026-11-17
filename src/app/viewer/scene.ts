@@ -4,6 +4,7 @@
  * tested directly. Scene units are millimetres, in cabinet coordinates (x right, y up, z front).
  */
 import type { Box } from '../../core/geometry';
+import type { Finish } from '../../core/model';
 import type { Part, PartRole } from '../../core/parts';
 
 export type PartGroup = 'carcass' | 'platform' | 'faceFrame' | 'fronts' | 'drawers' | 'shelves';
@@ -42,6 +43,7 @@ const GROUP_OF: Record<PartRole, PartGroup> = {
   slideSpacer: 'drawers',
   shelfAdjustable: 'shelves',
   shelfFixed: 'shelves',
+  shelfNosing: 'shelves',
   divider: 'shelves',
 };
 
@@ -68,11 +70,35 @@ const GROUP_COLOR: Record<PartGroup, string> = {
   shelves: '#d2b98f',
 };
 
-export function partColor(part: Part): string {
+/**
+ * A part's colour. A painted or stained style colours every part, the plinth included; only
+ * drawer boxes stay bare wood (ADR-039).
+ */
+export function partColor(part: Part, finish?: Finish): string {
+  const group = partGroup(part.role);
+  if (finish && finish.kind !== 'clear' && group !== 'drawers') {
+    return finish.color.toLowerCase();
+  }
   if (part.role === 'back' || part.role === 'frontPanel' || part.role === 'drawerBottom')
     return '#c8b08a';
-  return GROUP_COLOR[partGroup(part.role)];
+  return GROUP_COLOR[group];
 }
+
+const SHEEN_ROUGHNESS: Record<Finish['sheen'], number> = {
+  flat: 0.95,
+  matte: 0.85,
+  satin: 0.65,
+  semiGloss: 0.45,
+  gloss: 0.3,
+};
+
+/** Surface roughness for the material: bare wood is fully rough. */
+export function partRoughness(finish?: Finish): number {
+  return finish && finish.kind !== 'clear' ? SHEEN_ROUGHNESS[finish.sheen] : 1;
+}
+
+/** Knobs and pulls when no style says otherwise: dark metal. */
+export const DEFAULT_HARDWARE_COLOR = '#3a3a3a';
 
 /**
  * Where a part moves in the exploded view (mm). Rules by role read better than a radial burst:
@@ -119,6 +145,7 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
       return [outward * 90, 0, 0];
     case 'shelfAdjustable':
     case 'shelfFixed':
+    case 'shelfNosing':
       return [0, 0, 140];
     case 'divider':
       return [0, 0, 60];

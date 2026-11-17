@@ -253,7 +253,7 @@ export function buildShelves(
   const ts = ctx.thickness('shelf');
   const groups = new Map<
     string,
-    { bay: Bay; y0: Mm; y1: Mm; count: number; adjustable: boolean; path: string }
+    { bay: Bay; y0: Mm; y1: Mm; count: number; adjustable: boolean; open: boolean; path: string }
   >();
 
   for (const cell of layout.leaves) {
@@ -274,6 +274,7 @@ export function buildShelves(
         y1,
         count: shelves.count,
         adjustable: shelves.adjustable,
+        open: cell.leaf.fill === 'open',
         path: cell.path,
       });
     }
@@ -281,53 +282,70 @@ export function buildShelves(
 
   let adjustable = 0;
   for (const g of groups.values()) {
+    // Open shelves can carry a solid nosing strip on the front edge (ADR-039).
+    const nosing =
+      g.open && s.nosingHeight > 0 ? { h: s.nosingHeight, t: ctx.thickness('faceFrame') } : null;
+    check(
+      !nosing || nosing.h >= ts - 1e-6,
+      'Shelf nosing must be at least as tall as the shelves are thick.',
+    );
     const pitch = (g.y1 - g.y0) / (g.count + 1);
-    check(pitch > ts, `Opening ${g.path}: too many shelves for the height.`);
+    check(pitch > (nosing?.h ?? ts), `Opening ${g.path}: too many shelves for the height.`);
+    const zFront = g.adjustable ? zFrontInner - s.depthSetback : zFrontInner;
+    const zShelf = nosing ? quantize(zFront - nosing.t) : zFront;
+    const banding = nosing
+      ? {}
+      : { banding: { role: 'carcassBanding' as const, edges: ['long1' as const] } };
     for (let i = 1; i <= g.count; i++) {
       const yc = g.y0 + pitch * i;
       const id = `shelf/${g.path || 'root'}/${i}`;
+      let x0: Mm, x1: Mm;
       if (g.adjustable) {
         adjustable++;
+        x0 = g.bay.x0 + s.widthClearance / 2;
+        x1 = g.bay.x1 - s.widthClearance / 2;
         ctx.add({
           id,
           role: 'shelfAdjustable',
           name: 'Adjustable shelf',
           materialRole: 'shelf',
-          bounds: box(
-            g.bay.x0 + s.widthClearance / 2,
-            g.bay.x1 - s.widthClearance / 2,
-            yc - ts / 2,
-            yc + ts / 2,
-            f.zInterior,
-            zFrontInner - s.depthSetback,
-          ),
+          bounds: box(x0, x1, yc - ts / 2, yc + ts / 2, f.zInterior, zShelf),
           lengthAxis: 'x',
           thicknessAxis: 'y',
-          banding: { role: 'carcassBanding', edges: ['long1'] },
+          ...banding,
         });
       } else {
         const e = f.midJoint ? f.engage : 0;
+        x0 = g.bay.x0;
+        x1 = g.bay.x1;
         const shelf = ctx.add({
           id,
           role: 'shelfFixed',
           name: 'Fixed shelf',
           materialRole: 'shelf',
-          bounds: box(
-            g.bay.x0 - e,
-            g.bay.x1 + e,
-            yc - ts / 2,
-            yc + ts / 2,
-            f.zInterior,
-            zFrontInner,
-          ),
+          bounds: box(x0 - e, x1 + e, yc - ts / 2, yc + ts / 2, f.zInterior, zShelf),
           lengthAxis: 'x',
           thicknessAxis: 'y',
-          banding: { role: 'carcassBanding', edges: ['long1'] },
+          ...banding,
         });
         if (f.midJoint) {
           ctx.joint(g.bay.left, shelf, 'dado', 'x', e);
           ctx.joint(g.bay.right, shelf, 'dado', 'x', e);
         }
+      }
+      if (nosing) {
+        // Glued to the shelf's front edge, top flush with the shelf top, between the sides.
+        const top = yc + ts / 2;
+        ctx.add({
+          id: `${id}/nosing`,
+          role: 'shelfNosing',
+          name: 'Shelf nosing',
+          materialRole: 'faceFrame',
+          bounds: box(x0, x1, quantize(top - nosing.h), top, zShelf, zFront),
+          lengthAxis: 'x',
+          thicknessAxis: 'z',
+          notes: ['Glue to the front edge of the shelf, top edges flush.'],
+        });
       }
     }
   }

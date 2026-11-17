@@ -35,6 +35,7 @@ const FILLS: Record<Fill, { fill: string; stroke: string | null }> = {
   panel: { fill: '#e2d4bb', stroke: INK },
   interior: { fill: '#e9dcc4', stroke: INK },
   wall: { fill: '#f4f1ea', stroke: '#9a9389' },
+  hardware: { fill: '#9c7a3c', stroke: '#4a3a1c' },
   sheet: { fill: '#f0e6d2', stroke: INK },
   trim: { fill: '#d8ccb6', stroke: INK },
   part: { fill: '#e2c99c', stroke: INK },
@@ -67,6 +68,14 @@ export function drawDrawing(doc: jsPDF, d: Drawing, box: Box): void {
         if (stroke) doc.setDrawColor(stroke);
         doc.rect(x, y, w, h, stroke ? 'FD' : 'F');
         if (p.fill === 'offcut') hatch(doc, x, y, w, h);
+        break;
+      }
+      case 'circle': {
+        const { fill, stroke } = FILLS[p.fill];
+        doc.setFillColor(fill);
+        doc.setLineWidth(line);
+        if (stroke) doc.setDrawColor(stroke);
+        doc.circle(t.x(p.x), t.y(p.y), p.r * t.scale, stroke ? 'FD' : 'F');
         break;
       }
       case 'line':

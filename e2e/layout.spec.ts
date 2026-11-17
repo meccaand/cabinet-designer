@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { CURRENT_SCHEMA_VERSION } from '../src/core/model/version';
 
 const editor = (page: Page) => page.getByRole('region', { name: 'Edit cabinet' });
 const field = (page: Page, name: string) => editor(page).getByLabel(name, { exact: true });
@@ -132,7 +133,7 @@ test('projects: new, switch back, export and re-import', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Export JSON' }).click();
   const file = await (await download).path();
   const json = JSON.parse(await readFile(file, 'utf8'));
-  expect(json).toMatchObject({ schemaVersion: 2, name: 'Sample kitchen' });
+  expect(json).toMatchObject({ schemaVersion: CURRENT_SCHEMA_VERSION, name: 'Sample kitchen' });
   expect(json.cabinets).toHaveLength(4);
 
   await dialog.locator('input[type=file]').setInputFiles(file);

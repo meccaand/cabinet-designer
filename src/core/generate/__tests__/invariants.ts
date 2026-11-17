@@ -4,14 +4,14 @@
  */
 import { AXES, extent, intersection } from '../../geometry';
 import type { Cabinet, Project } from '../../model';
-import { resolveConstruction } from '../../model';
+import { cabinetConstruction } from '../../model';
 import type { CabinetModel, Part } from '../../parts';
 
 const EPS = 1e-6;
 
 export function violations(model: CabinetModel, cabinet: Cabinet, project: Project): string[] {
   const out: string[] = [];
-  const c = resolveConstruction(project.construction, cabinet.construction);
+  const c = cabinetConstruction(project, cabinet);
   const parts = model.parts;
   const byId = new Map(parts.map((p) => [p.id, p]));
 

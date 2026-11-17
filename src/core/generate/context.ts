@@ -1,13 +1,13 @@
 import { AXES, extent, type Axis, type Box } from '../geometry';
 import {
-  resolveConstruction,
+  cabinetConstruction,
   type Banding,
   type Cabinet,
   type ConstructionDefaults,
   type MaterialRole,
   type Project,
 } from '../model';
-import type { Joint, Part, PartEdges, PartRole } from '../parts';
+import type { HandleMark, Joint, Part, PartEdges, PartRole } from '../parts';
 import { quantize, type Mm } from '../units';
 
 /** Thrown for cabinets that cannot be built as specified; collected into the result. */
@@ -34,6 +34,7 @@ export class BuildContext {
   readonly c: ConstructionDefaults;
   readonly parts: Part[] = [];
   readonly joints: Joint[] = [];
+  readonly handles: HandleMark[] = [];
   readonly warnings: string[] = [];
   private wing: WingFrame | null = null;
 
@@ -41,7 +42,7 @@ export class BuildContext {
     readonly cabinet: Cabinet,
     readonly project: Project,
   ) {
-    this.c = resolveConstruction(project.construction, cabinet.construction);
+    this.c = cabinetConstruction(project, cabinet);
   }
 
   stock(role: MaterialRole): StockInfo {
@@ -130,6 +131,17 @@ export class BuildContext {
     }
     this.parts.push(part);
     return part;
+  }
+
+  /** Add a pull or knob, given in the current wing's coordinates like a part. */
+  addHandle(h: Omit<HandleMark, 'wing'>): void {
+    const w = this.wing;
+    this.handles.push({
+      ...h,
+      bounds: w ? w.map(h.bounds) : h.bounds,
+      axis: w ? w.axis(h.axis) : h.axis,
+      ...(w && { wing: 'return' as const }),
+    });
   }
 
   /** Record that `guest` sits `depth` deep in a recess of `host` along `axis`. */

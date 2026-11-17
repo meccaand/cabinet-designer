@@ -62,6 +62,8 @@ export function DrawingSvg({
                 fill={p.fill === 'offcut' ? `url(#${CSS.escape(hatch)})` : undefined}
               />
             );
+          case 'circle':
+            return <circle key={i} cx={p.x} cy={-p.y} r={p.r} className={styles[p.fill]} />;
           case 'line':
             return (
               <line key={i} x1={p.x1} y1={-p.y1} x2={p.x2} y2={-p.y2} className={styles[p.style]} />

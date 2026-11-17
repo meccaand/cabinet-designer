@@ -1,6 +1,7 @@
 export type {
   CabinetModel,
   FrontSummary,
+  HandleMark,
   HardwareLine,
   Joint,
   OpeningCell,

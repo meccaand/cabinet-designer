@@ -27,6 +27,7 @@ export type PartRole =
   | 'slideSpacer'
   | 'shelfAdjustable'
   | 'shelfFixed'
+  | 'shelfNosing'
   | 'divider';
 
 export interface PartSize {
@@ -103,6 +104,21 @@ export interface OpeningCell {
   rect: Rect;
 }
 
+/**
+ * A pull or knob, for drawing only: it is bought, not cut, so it is not a part. Counted by
+ * the same rule as the hardware list (`handlesPerFront`).
+ */
+export interface HandleMark {
+  /** The front part it is screwed to (it moves with it in the exploded view). */
+  frontId: string;
+  kind: 'pull' | 'knob';
+  /** Its volume in cabinet coordinates: on the front's face, projecting out along `axis`. */
+  bounds: Box;
+  /** The axis it projects along: z, or x on an L-shaped cabinet's return. */
+  axis: Axis;
+  wing?: 'return';
+}
+
 /** Everything derived from one cabinet. */
 export interface CabinetModel {
   cabinetId: string;
@@ -110,6 +126,7 @@ export interface CabinetModel {
   openings: OpeningCell[];
   joints: Joint[];
   fronts: FrontSummary[];
+  handles: HandleMark[];
   /** Nominal slide length for each drawer (one pair per drawer). */
   slides: Mm[];
   adjustableShelves: number;

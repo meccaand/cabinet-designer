@@ -72,14 +72,14 @@ export const BandingSchema = z.object({
 });
 export type Banding = z.infer<typeof BandingSchema>;
 
-export const HardwareKindSchema = z.enum(['hinge', 'slide', 'pull', 'shelfPin']);
+export const HardwareKindSchema = z.enum(['hinge', 'slide', 'pull', 'knob', 'shelfPin']);
 export type HardwareKind = z.infer<typeof HardwareKindSchema>;
 
 export const HardwareItemSchema = z.object({
   id: Id,
   name: z.string().min(1),
   kind: HardwareKindSchema,
-  /** Per hinge, per slide pair, per pull, per pin. */
+  /** Per hinge, per slide pair, per pull or knob, per pin. */
   unitCost: Money,
 });
 export type HardwareItem = z.infer<typeof HardwareItemSchema>;
@@ -207,6 +207,11 @@ const ShelfConventions = z.object({
   /** Shelves are this much shallower than the interior depth. */
   depthSetback: NonNegLength,
   pinsPerShelf: z.int().min(0),
+  /**
+   * Shelves in open openings get a solid strip on the front edge this tall, its top flush with
+   * the shelf top, so they read thicker than the sheet stock (0 = none). Behind doors they don't.
+   */
+  nosingHeight: NonNegLength,
 });
 
 const HingeTier = z.object({
@@ -222,6 +227,18 @@ const HardwareConventions = z.object({
     .refine((tiers) => tiers.at(-1)?.upTo === null, 'The last hinge tier must cover any height.'),
   /** Drawer fronts wider than this get two pulls. */
   twoPullsOver: PositiveLength,
+  /** What opens doors and drawers: a pull (bar handle) or a round knob. */
+  handle: z.enum(['pull', 'knob']),
+  knobDiameter: PositiveLength,
+  /** Overall length of a pull. */
+  pullLength: PositiveLength,
+  /**
+   * Doors: from the door's top edge to the handle centre (from the bottom edge for doors hung
+   * high, centred above 48" off the floor).
+   */
+  handleFromEnd: NonNegLength,
+  /** Slab doors: from the opening edge to the handle centre. Shaker doors centre it on the stile. */
+  handleFromEdge: NonNegLength,
 });
 
 const MaterialAssignments = z.record(MaterialRoleSchema, Id);
@@ -341,6 +358,8 @@ export const CabinetSchema = z
     construction: ConstructionOverridesSchema,
     face: OpeningNodeSchema,
     endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
+    /** The style preset this cabinet follows; its own overrides still apply on top. */
+    styleId: Id.optional(),
     blind: z
       .object({
         /** Which end of the cabinet is hidden behind the adjacent run. */
@@ -399,6 +418,30 @@ export const FillerSchema = z.object({
 });
 export type Filler = z.infer<typeof FillerSchema>;
 
+/** How a style's surfaces look in the 3D view. Paint and stain cover every visible part. */
+export const FinishSchema = z.object({
+  kind: z.enum(['paint', 'stain', 'clear']),
+  /** #rrggbb */
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  sheen: z.enum(['flat', 'matte', 'satin', 'semiGloss', 'gloss']),
+  /** Knobs and pulls, #rrggbb. */
+  hardwareColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
+export type Finish = z.infer<typeof FinishSchema>;
+
+/**
+ * A named look shared by many cabinets (ADR-038, ADR-039): construction overrides layered
+ * between the project defaults and each cabinet's own overrides, plus a finish. Editing the
+ * preset restyles every cabinet that follows it.
+ */
+export const StylePresetSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  construction: ConstructionOverridesSchema,
+  finish: FinishSchema,
+});
+export type StylePreset = z.infer<typeof StylePresetSchema>;
+
 export const ProjectSchema = z
   .object({
     schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
@@ -409,6 +452,7 @@ export const ProjectSchema = z
     construction: ConstructionDefaultsSchema,
     materials: MaterialLibrarySchema,
     room: z.object({ walls: z.array(WallSchema) }),
+    stylePresets: z.array(StylePresetSchema),
     cabinets: z.array(CabinetSchema),
     fillers: z.array(FillerSchema),
   })
@@ -440,10 +484,23 @@ export const ProjectSchema = z
     };
     checkRoles(p.construction.materials, ['construction', 'materials']);
 
+    duplicates(p.stylePresets.map((s) => s.id)).forEach((id) =>
+      issue(`Duplicate style id "${id}".`, ['stylePresets']),
+    );
+    p.stylePresets.forEach((s, i) => {
+      if (s.construction.materials) {
+        checkRoles(s.construction.materials, ['stylePresets', i, 'construction', 'materials']);
+      }
+    });
+    const styleIds = new Set(p.stylePresets.map((s) => s.id));
+
     const wallIds = new Set(p.room.walls.map((w) => w.id));
     p.cabinets.forEach((c, i) => {
       if (c.construction.materials) {
         checkRoles(c.construction.materials, ['cabinets', i, 'construction', 'materials']);
+      }
+      if (c.styleId !== undefined && !styleIds.has(c.styleId)) {
+        issue(`Style "${c.styleId}" does not exist.`, ['cabinets', i, 'styleId']);
       }
       if (c.placement.wallId !== null && !wallIds.has(c.placement.wallId)) {
         issue(`Wall "${c.placement.wallId}" does not exist.`, [

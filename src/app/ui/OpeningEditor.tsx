@@ -3,7 +3,7 @@ import { frontElevation } from '../../core/drawing';
 import {
   getNode,
   removeOpening,
-  resolveConstruction,
+  cabinetConstruction,
   setDivider,
   setFill,
   setHinge,
@@ -149,7 +149,7 @@ function OpeningControls({
 }) {
   const node = getNode(cabinet.face, path);
   if (!node || node.kind !== 'leaf') return null;
-  const c = resolveConstruction(project.construction, cabinet.construction);
+  const c = cabinetConstruction(project, cabinet);
   const frameless = c.carcass.style === 'frameless';
   const parentPath = path.includes('.')
     ? path.slice(0, path.lastIndexOf('.'))

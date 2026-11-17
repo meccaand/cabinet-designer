@@ -643,3 +643,100 @@ verify are in CONSTRUCTION.md.
   through the invariants. The invariants now know the L envelope.
 - **Property tests:** random L cabinets with random returns and the toe kick on or off.
 - **Layout, store, PDF and Playwright** tests for the flow.
+
+## ADR-038: Styled built-ins are runs of modules compiled to ordinary cabinets
+
+**Status:** Accepted (planning for M10–M14, at Andrew's request). Spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md).
+
+**Context.** A furniture-style built-in is not one cabinet. It is an assembly of simple boxes
+held together by a shared style (door, paint, hardware, mouldings) and by horizontal datums
+(plinth, countertop, shelf lines, frieze, crown) that run across every module on a wall and
+around corners.
+
+**Decision.**
+
+- **Model.** The project gains `stylePresets` and `builtIns`. A built-in references a preset
+  and owns one **run** per wall. A run is an ordered list of modules (section, tower, stile,
+  pilaster, obstruction, later media niche) plus its datums: countertop height, linked shelf
+  lines, and the frieze/crown line measured down from the ceiling. Modules hold widths and
+  choices only; heights and depths come from the run and the preset.
+- **Compile, don't fork.** A pure `core` function turns each run into ordinary `Cabinet`s
+  plus run-level trim parts. The generator, invariants, cut list, nesting, 3D view and PDF
+  keep working unchanged. Compiled cabinets are derived, not stored, so the datums can't drift.
+- **Style preset** = a `ConstructionDefaults` overlay (face frame, Shaker, inset/overlay, stile
+  widths) plus appearance (paint colour, sheen), hardware (knob type, size, placement), shelf
+  nosing, and trim profiles. Swapping the preset restyles every module.
+- **Schema v3.** Additive; the migration only adds empty `stylePresets`/`builtIns`.
+
+**Construction, chosen by Andrew.**
+
+- **Separate boxes.** Each upper bay is its own box standing on the base's countertop. A tower
+  is a base box plus an upper box sharing one applied finished end panel.
+- **Bought mouldings.** Crown and base cap appear in the shopping list as linear feet with
+  miter and return counts. The flat frieze board and the plinth face are cut-list parts.
+- **Countertop:** 3/4" ply with a solid edge strip on the front and exposed ends, so it reads
+  1" thick. The ply nests on sheets; the strip is solid stock.
+- **Plinth:** the existing ladder platform with setback 0, continuous along the run, with the
+  base moulding applied over its face.
+
+**Choices to be made without asking unless Andrew objects (please check):**
+
+- **Shelf nosing:** a 3/4" ply shelf with a 1 1/2" tall solid strip glued to the front edge.
+- **Inset door pairs** close against each other with the inset gap between them. There is no
+  mullion or astragal.
+- **Stile widths:** 2 1/2" between upper bays and between base door groups, 2 1/4" elsewhere.
+- **Knobs:** one per door; on a pair, both on the meeting stiles, 2 3/4" down from the top.
+
+## ADR-039: Style presets are construction overrides plus a finish
+
+**Status:** Accepted (M10). Schema version 3.
+
+**Model.** A `StylePreset` is `{ id, name, construction: ConstructionOverrides, finish }`. A
+cabinet follows one through an optional `styleId`. Its conventions are resolved in three layers,
+each per field: project defaults, then the style's overrides, then the cabinet's own
+(`cabinetConstruction`). Every reader of a cabinet's conventions goes through that function: the
+generator, the editor, the inspector, the PDF and the store. Editing a preset regenerates every
+cabinet that follows it, because the model cache is also keyed on the style object.
+
+A preset is _only_ overrides, so anything a preset sets can also be set per cabinet, and a
+cabinet's own setting wins. The editor says how many settings a cabinet overrides and offers
+"Use the style's settings" to clear them. A template is a starting point that the project
+copies. Templates: **Traditional painted built-in** (face frame, inset Shaker, 2 1/4" stiles and
+rails with 2 1/2" mullions, a 4 1/2" flush plinth, 1 1/2" shelf nosing, 1 1/8" knobs 2 3/4" from
+the top, gray-green satin paint) and **Blank**.
+
+**New conventions,** so a preset or a cabinet can set them:
+
+- `hardware.handle` (pull or knob), `knobDiameter`, `pullLength`, `handleFromEnd` and
+  `handleFromEdge`. The hardware list buys whichever handle the cabinet uses. Knobs are a new
+  hardware kind with a library item.
+- `shelves.nosingHeight`: a solid strip on the front of open shelves (0 = none).
+
+**Handles are drawn, not cut.** `CabinetModel.handles` holds each pull or knob as a small box on
+its front's face, with the id of the front part. It is counted by the same rule as the hardware
+list (`handlesPerFront`), and a test checks that the number drawn equals the number bought for
+every type. The 3D view draws them in the style's hardware colour and moves them with their
+front when exploded. Elevations, on screen and in the PDF, draw knobs as circles and pulls as
+bars (a new `circle` primitive and a `hardware` fill).
+
+**Finish.** Paint and stain colour every part in 3D, the plinth included; drawer boxes stay bare
+wood. Sheen sets the surface roughness. Elevations keep their neutral fills, because they are
+shop drawings.
+
+**Migration 2 → 3** adds an empty `stylePresets` list, the handle settings as pulls (5" pull,
+1 1/4" knob, 2 3/4" from the end, 1 1/4" from the edge), `nosingHeight: 0`, and a knob to the
+hardware library. These values are written into the migration rather than read from the
+defaults, so a later change to the defaults can't alter old files. Existing projects build the
+same parts as before; they now also show their pulls.
+
+**Choices made without asking (please check):**
+
+- **Nosing material** is the face-frame stock (3/4" poplar), not a separate material role.
+- **Nosing only on open shelves.** Behind doors it would hit the hinges and isn't seen.
+- **Handle height:** doors centred more than 48" off the floor take the handle near the bottom.
+  A single full-height door therefore gets it near the top, which is wrong for an 84" pantry
+  door. A "handle at a fixed height" option can come later.
+- **Inset gap** is kept at the project's 1/16" all round, so the gap between the doors of a
+  pair is 1/8". The spec's 1/8" reveal is read as that gap between doors.
+- **Trim fields** (countertop, frieze, crown, picture lights) are left out of the preset until
+  M11/M13, where they are first used, so they aren't designed before they're needed.

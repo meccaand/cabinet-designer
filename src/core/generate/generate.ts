@@ -57,6 +57,7 @@ function build(ctx: BuildContext): CabinetModel {
     parts: ctx.parts,
     openings: layout.leaves.map((l) => ({ path: l.path, fill: l.leaf.fill, rect: l.rect })),
     joints: ctx.joints,
+    handles: ctx.handles,
     ...hw,
     hardware: hardwareFor(hw, ctx.c, ctx.project.materials.hardware),
     warnings: ctx.warnings,

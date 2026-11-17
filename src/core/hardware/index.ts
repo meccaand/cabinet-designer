@@ -1,1 +1,1 @@
-export { hardwareFor, hingeCount, type HardwareInput } from './hardware';
+export { handlesPerFront, hardwareFor, hingeCount, type HardwareInput } from './hardware';

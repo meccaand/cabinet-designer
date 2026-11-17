@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CABINET_TYPE_NAMES, TYPE_TRAITS } from '../../core/generate';
 import {
-  resolveConstruction,
+  cabinetConstruction,
   type Cabinet,
   type ConstructionDefaults,
   type ConstructionOverrides,
@@ -15,6 +15,7 @@ import styles from './Form.module.css';
 import { LengthInput } from './LengthInput';
 import { OpeningEditor } from './OpeningEditor';
 import { PositionSection } from './PositionSection';
+import { HandleFields, StyleSection } from './StyleSection';
 
 type Group = Exclude<keyof ConstructionDefaults, 'materials'>;
 
@@ -35,7 +36,7 @@ export function CabinetEditor({
 }) {
   const update = useProjectStore((s) => s.updateCabinet);
   const remove = useProjectStore((s) => s.deleteCabinet);
-  const c = resolveConstruction(project.construction, cabinet.construction);
+  const c = cabinetConstruction(project, cabinet);
   const traits = TYPE_TRAITS[cabinet.type];
   const frameless = c.carcass.style === 'frameless';
   const inset = c.fronts.mount === 'inset';
@@ -72,6 +73,8 @@ export function CabinetEditor({
         />
         <p className={styles.hint}>{CABINET_TYPE_NAMES[cabinet.type]}</p>
       </section>
+
+      <StyleSection project={project} cabinet={cabinet} />
 
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>Size</h3>
@@ -263,6 +266,22 @@ export function CabinetEditor({
             </>
           )}
         </div>
+      </section>
+
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Hardware &amp; shelves</h3>
+        <HandleFields c={c} units={units} set={set} />
+        <div className={styles.grid}>
+          {length(
+            'Shelf nosing',
+            c.shelves.nosingHeight,
+            (nosingHeight) => set('shelves', { nosingHeight }),
+            true,
+          )}
+        </div>
+        <p className={styles.hint}>
+          A solid strip this tall on the front of open shelves (0 for none).
+        </p>
       </section>
 
       {traits.blind && cabinet.blind && (

@@ -9,6 +9,7 @@ import {
   overallDimensions,
   PART_GROUPS,
   partColor,
+  partRoughness,
   partGroup,
   unionBounds,
   visibleParts,
@@ -38,6 +39,23 @@ describe('part groups and colours', () => {
       expect(ids).toContain(partGroup(p.role));
       expect(partColor(p)).toMatch(/^#[0-9a-f]{6}$/);
     }
+  });
+
+  it('paints every part in a painted or stained style; drawer boxes stay wood', () => {
+    const finish = {
+      kind: 'paint',
+      color: '#8A9A97',
+      sheen: 'satin',
+      hardwareColor: '#9c7a3c',
+    } as const;
+    for (const p of allParts) {
+      const group = partGroup(p.role);
+      const bare = group === 'drawers';
+      expect(partColor(p, finish) === '#8a9a97').toBe(!bare);
+      expect(partColor(p, { ...finish, kind: 'clear' })).toBe(partColor(p));
+    }
+    expect(partRoughness(finish)).toBeLessThan(partRoughness({ ...finish, sheen: 'flat' }));
+    expect(partRoughness()).toBe(1);
   });
 
   it('groups by what a woodworker would hide together', () => {

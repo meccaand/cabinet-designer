@@ -55,9 +55,14 @@ describe('wallElevation', () => {
     });
     // Floor run: 30 base, 3 filler, 24 base, then 63" to the wall end. Upper: 6" gap, 30, 84".
     expect(texts(d)).toEqual(['30"', '3"', '24"', '63"', '6"', '30"', '84"', '96"']);
-    const rects = d.primitives.filter((x) => x.kind === 'rect');
+    const rects = d.primitives.filter((x) => x.kind === 'rect' && x.fill !== 'hardware');
     const partCount = ['a', 'b', 'u'].reduce((n, id) => n + models.get(id)!.parts.length, 0);
     expect(rects).toHaveLength(1 + partCount + 1); // wall + parts + filler
+    // Every pull is drawn too.
+    const handles = ['a', 'b', 'u'].reduce((n, id) => n + models.get(id)!.handles.length, 0);
+    expect(d.primitives.filter((x) => x.kind === 'rect' && x.fill === 'hardware')).toHaveLength(
+      handles,
+    );
     expect(rects.some((r) => r.kind === 'rect' && r.fill === 'frame' && r.x === inch(30))).toBe(
       true,
     );

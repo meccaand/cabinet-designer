@@ -63,6 +63,10 @@
   fill: #f4f1ea;
   stroke: #9a9389;
 }
+.hardware {
+  fill: #9c7a3c;
+  stroke: #4a3a1c;
+}
 
 /* Sheet diagrams */
 .sheet {

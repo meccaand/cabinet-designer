@@ -1,6 +1,6 @@
 /** Starting points for each cabinet type. Everything here is editable afterwards. */
 import {
-  resolveConstruction,
+  cabinetConstruction,
   type Cabinet,
   type CabinetType,
   type OpeningNode,
@@ -17,6 +17,8 @@ export interface CabinetOptions {
   /** Base cabinets only. */
   layout?: 'drawerOverDoors' | 'doors' | 'drawers';
   construction?: Cabinet['construction'];
+  /** A style preset of the project to follow (ADR-039). */
+  styleId?: string;
 }
 
 /** Standard sizes, W × H × D in inches. */
@@ -62,7 +64,8 @@ const PAIR_ABOVE = inch(21);
 export function createCabinet(project: Project, type: CabinetType, opts: CabinetOptions): Cabinet {
   const [w, h, d] = SIZES[type];
   const construction = opts.construction ?? {};
-  const c = resolveConstruction(project.construction, construction);
+  const styleId = opts.styleId;
+  const c = cabinetConstruction(project, { construction, styleId });
   const width = opts.width ?? inch(w);
   const sixInchFront =
     c.carcass.style === 'frameless' ? inch(6) : inch(6) - 2 * c.fronts.faceFrameOverlay;
@@ -137,6 +140,7 @@ export function createCabinet(project: Project, type: CabinetType, opts: Cabinet
       elevation: type === 'wall' || type === 'blindWall' ? inch(54) : 0,
     },
     construction,
+    ...(styleId !== undefined && { styleId }),
     face,
     endPanels: { left: false, right: false },
     ...(blind && { blind }),

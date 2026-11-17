@@ -13,6 +13,8 @@ export type Fill =
   | 'panel'
   | 'interior'
   | 'wall'
+  // Knobs and pulls.
+  | 'hardware'
   // Sheet diagrams: the sheet, its trimmed factory edges, parts, and the reusable offcut.
   | 'sheet'
   | 'trim'
@@ -21,6 +23,7 @@ export type Fill =
 
 export type Primitive =
   | { kind: 'rect'; x: Mm; y: Mm; w: Mm; h: Mm; fill: Fill }
+  | { kind: 'circle'; x: Mm; y: Mm; r: Mm; fill: Fill }
   | { kind: 'line'; x1: Mm; y1: Mm; x2: Mm; y2: Mm; style: 'dimension' | 'extension' | 'cut' }
   | {
       kind: 'text';

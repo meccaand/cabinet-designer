@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import type { Box } from '../../core/geometry';
 import { fillerPart, placedOffset, placementTransform, wallFrames } from '../../core/layout';
-import type { Project } from '../../core/model';
+import { cabinetStyle, type Project } from '../../core/model';
 import type { CabinetModel } from '../../core/parts';
 import { formatLength } from '../../core/units';
 import { useViewerStore } from '../store/viewerStore';
@@ -132,7 +132,12 @@ export function Viewer({ project, models, activeId, onActivate, roomOnly = false
               );
               return (
                 <group key={c.id} position={t.position} rotation-y={t.rotationY}>
-                  <CabinetObject cabinet={c} model={m} onActivate={onActivate} />
+                  <CabinetObject
+                    cabinet={c}
+                    model={m}
+                    finish={cabinetStyle(project, c)?.finish}
+                    onActivate={onActivate}
+                  />
                 </group>
               );
             })}
@@ -174,7 +179,12 @@ export function Viewer({ project, models, activeId, onActivate, roomOnly = false
           model && (
             // The cabinet is centred on the origin in plan; it stands on the floor (y = 0).
             <group position={[-cabinet.width / 2, 0, -cabinet.depth / 2]}>
-              <CabinetObject cabinet={cabinet} model={model} onActivate={onActivate} />
+              <CabinetObject
+                cabinet={cabinet}
+                model={model}
+                finish={cabinetStyle(project, cabinet)?.finish}
+                onActivate={onActivate}
+              />
               {showDimensions && dims && <Dimensions {...dims} labels={labels} />}
             </group>
           )

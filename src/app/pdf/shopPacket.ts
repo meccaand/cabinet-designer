@@ -10,7 +10,7 @@ import type { Estimate } from '../../core/costing';
 import type { CutList } from '../../core/cutlist';
 import { frontElevation, sheetDrawing, wallElevation } from '../../core/drawing';
 import { CABINET_TYPE_NAMES } from '../../core/generate';
-import { resolveConstruction, type Cabinet, type Project } from '../../core/model';
+import { cabinetConstruction, type Cabinet, type Project } from '../../core/model';
 import type { MaterialNest } from '../../core/nesting';
 import type { CabinetModel } from '../../core/parts';
 import {
@@ -346,7 +346,7 @@ function cabinetBlock(
 ): void {
   const units = project.units;
   const f = (v: number) => formatLength(v, units);
-  const k = resolveConstruction(project.construction, c.construction);
+  const k = cabinetConstruction(project, c);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor('#22201c');

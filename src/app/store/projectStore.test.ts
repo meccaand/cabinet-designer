@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { inch } from '../../core/units';
-import { useProjectStore } from './projectStore';
+import { projectModels } from '../models';
+import { materialInUse, useProjectStore } from './projectStore';
 
 const initial = useProjectStore.getState();
 beforeEach(() => useProjectStore.setState(initial, true));
@@ -241,3 +242,61 @@ describe('projectStore', () => {
     );
   });
 });
+
+describe('style presets', () => {
+  it('adds a style from a template, assigns it, and edits it for every follower at once', () => {
+    const id = s().addStyle('traditionalPainted');
+    expect(s().project.stylePresets.map((x) => x.name)).toEqual(['Traditional painted built-in']);
+    s().addStyle('traditionalPainted');
+    expect(s().project.stylePresets[1]!.name).toBe('Traditional painted built-in 2');
+
+    const [a, b] = s().project.cabinets;
+    s().setCabinetStyle(a!.id, id);
+    s().setCabinetStyle(b!.id, id);
+    expect(projectModelsOf(a!.id)?.hardware.some((h) => h.kind === 'knob')).toBe(true);
+
+    s().updateStyle(id, (st) => void (st.construction.hardware = { handle: 'pull' }));
+    for (const c of [a!, b!]) {
+      expect(projectModelsOf(c.id)?.hardware.some((h) => h.kind === 'knob')).toBe(false);
+    }
+    s().undo();
+    expect(projectModelsOf(a!.id)?.hardware.some((h) => h.kind === 'knob')).toBe(true);
+  });
+
+  it('coalesces repeated edits with the same key (a colour picker drag) into one undo step', () => {
+    const id = s().addStyle('blank');
+    const before = s().past.length;
+    for (const color of ['#111111', '#222222', '#333333'])
+      s().updateStyle(id, (st) => void (st.finish.color = color), 'color');
+    expect(s().past.length).toBe(before + 1);
+    expect(s().project.stylePresets[0]!.finish.color).toBe('#333333');
+  });
+
+  it("new cabinets follow the active cabinet's style", () => {
+    const id = s().addStyle('traditionalPainted');
+    s().setCabinetStyle(s().activeCabinetId!, id);
+    const added = s().addCabinet('openShelf');
+    expect(s().project.cabinets.find((c) => c.id === added)?.styleId).toBe(id);
+  });
+
+  it('deleting a style returns its cabinets to the project defaults', () => {
+    const id = s().addStyle('traditionalPainted');
+    const cab = s().activeCabinetId!;
+    s().setCabinetStyle(cab, id);
+    s().deleteStyle(id);
+    expect(s().project.stylePresets).toEqual([]);
+    expect(s().project.cabinets.find((c) => c.id === cab)).not.toHaveProperty('styleId');
+    s().setCabinetStyle(cab, null);
+    expect(s().project.cabinets.find((c) => c.id === cab)).not.toHaveProperty('styleId');
+  });
+
+  it('counts a material used by a style as in use', () => {
+    const id = s().addStyle('blank');
+    s().updateStyle(id, (st) => void (st.construction.materials = { shelf: 'ply-12' }));
+    expect(materialInUse(s().project, 'ply-12')).toBe(true);
+  });
+});
+
+function projectModelsOf(id: string) {
+  return projectModels(s().project).get(id);
+}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { inch } from '../units';
 import { ProjectSchema, type Project } from './schema';
 import { CURRENT_SCHEMA_VERSION } from './version';
 
@@ -14,6 +15,46 @@ export const MIGRATIONS: Migrations = {
     const platform = record(construction?.['platform']);
     if (!construction || !platform) return doc;
     return { ...doc, construction: { ...construction, platform: { enabled: true, ...platform } } };
+  },
+  // Style presets, knobs and handle placement, shelf nosing (ADR-039). Values are frozen here
+  // rather than read from the defaults, so a later change to the defaults can't alter old files.
+  2: (doc) => {
+    const construction = record(doc['construction']);
+    const hardware = record(construction?.['hardware']);
+    const shelves = record(construction?.['shelves']);
+    const materials = record(doc['materials']);
+    const library = materials?.['hardware'];
+    const hasKnob =
+      Array.isArray(library) &&
+      library.some((h) => record(h)?.['kind'] === 'knob' || record(h)?.['id'] === 'knob');
+    return {
+      ...doc,
+      stylePresets: [],
+      ...(construction && {
+        construction: {
+          ...construction,
+          ...(hardware && {
+            hardware: {
+              handle: 'pull',
+              knobDiameter: inch(1.25),
+              pullLength: inch(5),
+              handleFromEnd: inch(2.75),
+              handleFromEdge: inch(1.25),
+              ...hardware,
+            },
+          }),
+          ...(shelves && { shelves: { nosingHeight: 0, ...shelves } }),
+        },
+      }),
+      ...(materials &&
+        Array.isArray(library) &&
+        !hasKnob && {
+          materials: {
+            ...materials,
+            hardware: [...library, { id: 'knob', name: 'Knob', kind: 'knob', unitCost: 6 }],
+          },
+        }),
+    };
   },
 };
 

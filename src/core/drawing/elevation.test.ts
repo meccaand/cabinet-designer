@@ -18,7 +18,7 @@ const texts = (d: ReturnType<typeof draw>['drawing']) =>
 describe('frontElevation', () => {
   it('draws every part, fronts last, with overall dimensions', () => {
     const { model, drawing } = draw('base');
-    const rects = drawing.primitives.filter((p) => p.kind === 'rect');
+    const rects = drawing.primitives.filter((p) => p.kind === 'rect' && p.fill !== 'hardware');
     expect(rects).toHaveLength(model.parts.length);
     expect(rects.at(-1)).toMatchObject({ fill: 'front' });
     expect(rects.some((r) => r.kind === 'rect' && r.fill === 'kick')).toBe(true);
@@ -40,8 +40,32 @@ describe('frontElevation', () => {
       new Set(d.primitives.flatMap((p) => (p.kind === 'rect' ? [p.fill] : [])));
     expect(
       fills(draw('base', { carcass: { style: 'faceFrame' }, fronts: { style: 'shaker' } }).drawing),
-    ).toEqual(new Set(['kick', 'carcass', 'frame', 'front', 'panel']));
+    ).toEqual(new Set(['kick', 'carcass', 'frame', 'front', 'panel', 'hardware']));
     expect(fills(draw('blindBase').drawing).has('frame')).toBe(true); // the pull filler
+  });
+
+  it('draws pulls as bars and knobs as circles, on top of the fronts', () => {
+    // Drawer over a door pair: one pull on the drawer, one on each door.
+    const pulls = draw('base').drawing.primitives.filter(
+      (p) => p.kind === 'rect' && p.fill === 'hardware',
+    );
+    expect(pulls).toHaveLength(3);
+    const prims = draw('base', { hardware: { handle: 'knob' } }).drawing.primitives;
+    const knobs = prims.filter((p) => p.kind === 'circle');
+    expect(knobs).toHaveLength(3);
+    expect(knobs[0]).toMatchObject({ fill: 'hardware', r: inch(1.25) / 2 });
+    // Drawn after every part.
+    const lastPart = prims.findLastIndex((p) => p.kind === 'rect' && p.fill !== 'wall');
+    expect(prims.findIndex((p) => p.kind === 'circle')).toBeGreaterThan(lastPart);
+  });
+
+  it("draws an L-shaped cabinet's handle on its return, seen from the return's wall", () => {
+    const { model, drawing } = draw('lBase', { hardware: { handle: 'knob' } });
+    expect(model.handles).toHaveLength(1);
+    const knobs = drawing.primitives.filter((p) => p.kind === 'circle');
+    expect(knobs).toHaveLength(1);
+    // In the return view, to the right of the run.
+    expect(knobs[0]!.kind === 'circle' && knobs[0]!.x).toBeGreaterThan(inch(36));
   });
 
   it('bounds contain everything drawn, including face-frame overhang', () => {
@@ -57,12 +81,17 @@ describe('frontElevation', () => {
               [p.x, p.y],
               [p.x + p.w, p.y + p.h],
             ]
-          : p.kind === 'line'
+          : p.kind === 'circle'
             ? [
-                [p.x1, p.y1],
-                [p.x2, p.y2],
+                [p.x - p.r, p.y - p.r],
+                [p.x + p.r, p.y + p.r],
               ]
-            : [[p.x, p.y]];
+            : p.kind === 'line'
+              ? [
+                  [p.x1, p.y1],
+                  [p.x2, p.y2],
+                ]
+              : [[p.x, p.y]];
       for (const [x, y] of pts) {
         expect(x!).toBeGreaterThanOrEqual(x0);
         expect(x!).toBeLessThanOrEqual(x1);

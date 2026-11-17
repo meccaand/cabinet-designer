@@ -1,4 +1,4 @@
-import { resolveConstruction, type Cabinet, type Project } from '../../core/model';
+import { cabinetConstruction, type Cabinet, type Project } from '../../core/model';
 import type { CabinetModel, Part } from '../../core/parts';
 import { formatLength } from '../../core/units';
 import { useViewerStore } from '../store/viewerStore';
@@ -55,7 +55,7 @@ function CabinetDetails({
   project: Project;
 }) {
   const f = (v: number) => formatLength(v, project.units);
-  const c = resolveConstruction(project.construction, cabinet.construction);
+  const c = cabinetConstruction(project, cabinet);
   return (
     <section aria-label="Selected cabinet" className={styles.details}>
       <h3 className={styles.title}>{cabinet.name}</h3>

@@ -20,6 +20,7 @@ import type { BuildContext, WingFrame } from './context';
 import { addEndPanel } from './endPanels';
 import type { Rect } from './face';
 import { buildFront } from './fronts';
+import { addHandles } from './handles';
 import { hasToeKick, TYPE_TRAITS } from './traits';
 
 /** The face of each wing must be at least this much wider than the other wing's depth. */
@@ -370,9 +371,19 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
         : [
             `Bi-fold: hinge this door to the other one at the corner with ${hinges} bi-fold hinges; its pull goes near the free edge.`,
           ];
-      const thickness = inWing(w, () =>
-        buildFront(ctx, w.D, 'bifold', 'door', w.owner ? 'run' : '', r, inset, notes),
-      );
+      const summary: FrontSummary = {
+        kind: 'door',
+        width: quantize(r.x1 - r.x0),
+        height: quantize(r.y1 - r.y0),
+        ...(w.owner && { noPull: true as const }),
+      };
+      // The return's leaf carries the handle at its free edge, the wing's outer end (u = 0).
+      const { thickness } = inWing(w, () => {
+        const built = buildFront(ctx, w.D, 'bifold', 'door', w.owner ? 'run' : '', r, inset, notes);
+        const zFace = inset ? w.D : quantize(w.D + built.thickness);
+        addHandles(ctx, summary, built, r, zFace, 'left');
+        return built;
+      });
       if (!frameless && !inset) {
         check(
           ff.stileWidth >= fc.faceFrameOverlay + thickness - 1e-6,
@@ -380,12 +391,7 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
         );
       }
       if (!inset) faceDepth[w.owner ? 'run' : 'ret'] = quantize(w.D + thickness);
-      fronts.push({
-        kind: 'door',
-        width: quantize(r.x1 - r.x0),
-        height: quantize(r.y1 - r.y0),
-        ...(w.owner && { noPull: true as const }),
-      });
+      fronts.push(summary);
     }
   }
   const frontInner = (w: Wing) => {
@@ -397,6 +403,9 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
   };
 
   // ---- Fixed shelves, two pieces each -------------------------------------------------------
+  if (shelfCount > 0 && c.shelves.nosingHeight > 0 && face.fill === 'open') {
+    ctx.warnings.push('Shelf nosing is not made for L-shaped shelves yet: add it by hand.');
+  }
   if (shelfCount > 0) {
     const ts = ctx.thickness('shelf');
     const pitch = (topUnderside - bottomTop) / (shelfCount + 1);
@@ -450,6 +459,7 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
     parts: ctx.parts,
     openings: [{ path: '', fill: face.fill, rect: opening(run) }],
     joints: ctx.joints,
+    handles: ctx.handles,
     ...hw,
     hardware: hardwareFor(hw, c, ctx.project.materials.hardware),
     warnings: ctx.warnings,

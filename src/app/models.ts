@@ -1,25 +1,39 @@
 import { generateCabinet, type GenerateResult } from '../core/generate';
 import { layoutItems, type LayoutItem } from '../core/layout';
-import type { Cabinet, Project } from '../core/model';
+import { cabinetStyle, type Cabinet, type Project, type StylePreset } from '../core/model';
 import type { CabinetModel } from '../core/parts';
 
 /**
  * Generated parts per cabinet, cached by object identity. Immer keeps unchanged cabinets (and
- * the project's conventions and materials) as the same objects, so only edited cabinets are
- * regenerated (PLAN.md data flow).
+ * the project's conventions, materials and style presets) as the same objects, so only edited
+ * cabinets, and cabinets whose style was edited, are regenerated (PLAN.md data flow).
  */
-const cache = new WeakMap<
-  Cabinet,
-  { construction: Project['construction']; materials: Project['materials']; result: GenerateResult }
->();
+interface CacheEntry {
+  construction: Project['construction'];
+  materials: Project['materials'];
+  style: StylePreset | undefined;
+  result: GenerateResult;
+}
+const cache = new WeakMap<Cabinet, CacheEntry>();
 
 export function cabinetResult(cabinet: Cabinet, project: Project): GenerateResult {
   const hit = cache.get(cabinet);
-  if (hit && hit.construction === project.construction && hit.materials === project.materials) {
+  const style = cabinetStyle(project, cabinet);
+  if (
+    hit &&
+    hit.construction === project.construction &&
+    hit.materials === project.materials &&
+    hit.style === style
+  ) {
     return hit.result;
   }
   const result = generateCabinet(cabinet, project);
-  cache.set(cabinet, { construction: project.construction, materials: project.materials, result });
+  cache.set(cabinet, {
+    construction: project.construction,
+    materials: project.materials,
+    style,
+    result,
+  });
   return result;
 }
 

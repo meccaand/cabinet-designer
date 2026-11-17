@@ -5,6 +5,7 @@ import { quantize, type Mm } from '../units';
 import type { CarcassFrame } from './carcass';
 import type { BuildContext } from './context';
 import type { FaceLayout, Rect } from './face';
+import { addHandles, type BuiltFront } from './handles';
 
 /**
  * Face-frame outer stiles and rails, plus the rails/mullions between openings. `stiles` are the
@@ -90,17 +91,25 @@ export function buildFronts(ctx: BuildContext, f: CarcassFrame, layout: FaceLayo
     if (fill === 'open') continue;
     const kind = fill === 'drawer' ? 'drawer' : fill === 'falseFront' ? 'falseFront' : 'door';
     const r = frontRect(cell.rect);
-    const rects: [string, Rect][] =
+    // Each front with the side it opens from: a pair meets in the middle, so both latch there.
+    const singleLatch = cell.leaf.hinge === 'right' ? 'left' : 'right';
+    const rects: [string, Rect, 'left' | 'right'][] =
       fill === 'doorPair'
         ? [
-            ['L', { ...r, x1: quantize((r.x0 + r.x1 - pairGap) / 2) }],
-            ['R', { ...r, x0: quantize((r.x0 + r.x1 + pairGap) / 2) }],
+            ['L', { ...r, x1: quantize((r.x0 + r.x1 - pairGap) / 2) }, 'right'],
+            ['R', { ...r, x0: quantize((r.x0 + r.x1 + pairGap) / 2) }, 'left'],
           ]
-        : [['', r]];
-    for (const [suffix, fr] of rects) {
-      const thickness = buildFront(ctx, f.D, cell.path, kind, suffix, fr, inset);
-      if (inset) zFrontInner = Math.min(zFrontInner, quantize(f.D - thickness));
-      summaries.push({ kind, width: quantize(fr.x1 - fr.x0), height: quantize(fr.y1 - fr.y0) });
+        : [['', r, singleLatch]];
+    for (const [suffix, fr, latch] of rects) {
+      const built = buildFront(ctx, f.D, cell.path, kind, suffix, fr, inset);
+      if (inset) zFrontInner = Math.min(zFrontInner, quantize(f.D - built.thickness));
+      const summary: FrontSummary = {
+        kind,
+        width: quantize(fr.x1 - fr.x0),
+        height: quantize(fr.y1 - fr.y0),
+      };
+      summaries.push(summary);
+      addHandles(ctx, summary, built, fr, inset ? f.D : quantize(f.D + built.thickness), latch);
     }
   }
   return { fronts: summaries, zFrontInner };
@@ -110,7 +119,7 @@ const FRONT_NAMES = { door: 'Door', drawer: 'Drawer front', falseFront: 'False f
 
 /**
  * One front on a face `D` from the wall: slab, or a 5-piece shaker (butt-jointed frame, panel in
- * a groove). Returns its thickness.
+ * a groove).
  */
 export function buildFront(
   ctx: BuildContext,
@@ -121,7 +130,7 @@ export function buildFront(
   r: Rect,
   inset: boolean,
   notes: string[] = [],
-): Mm {
+): BuiltFront {
   const sh = ctx.c.shaker;
   const w = r.x1 - r.x0;
   const h = r.y1 - r.y0;
@@ -137,7 +146,7 @@ export function buildFront(
   const z1 = z0 + thickness;
 
   if (!shaker) {
-    ctx.add({
+    const slab = ctx.add({
       id,
       role: 'slabFront',
       name,
@@ -153,7 +162,7 @@ export function buildFront(
         ...notes,
       ],
     });
-    return thickness;
+    return { partId: slab.id, thickness, stile: null };
   }
 
   const { stileWidth: ssw, railWidth: srw } = sh;
@@ -206,5 +215,5 @@ export function buildFront(
   ctx.joint(stileR, panel, 'groove', 'x', engage);
   ctx.joint(railT, panel, 'groove', 'y', engage);
   ctx.joint(railB, panel, 'groove', 'y', engage);
-  return thickness;
+  return { partId: stileL.id, thickness, stile: ssw };
 }

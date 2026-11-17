@@ -242,13 +242,29 @@ children share what's left equally.
   depth.
 - Shelves are spaced evenly in their opening. Doors side by side in the same bay share one set
   of shelves.
+- **Shelf nosing** (`nosingHeight` > 0, open openings only, ADR-039): a strip of face-frame
+  stock (thickness `tn`, ¾" poplar by default) glued to the shelf's front edge, top edges flush.
+  - Strip: height `nosingHeight`, depth `tn`. Length = the shelf's width for adjustable shelves,
+    the bay width (between the sides, not into the dados) for fixed ones.
+  - The ply shelf gives up the strip's thickness: depth = (interior depth − `depthSetback`) −
+    `tn` adjustable, interior depth − `tn` fixed. Its front edge isn't banded.
+  - `nosingHeight` must be at least the shelf thickness, and the shelf pitch must exceed it.
+  - Behind doors, shelves get no nosing. L-shaped shelving doesn't get it yet (a warning says so).
 
 ## Hardware
 
 - **Hinges**: per door, by height tier (≤40" → 2, ≤60" → 3, ≤80" → 4, taller → 5).
 - **Slides**: one pair per drawer, grouped by length.
-- **Pulls**: one per door and drawer front. Drawer fronts wider than 24" get two. False fronts
-  get none.
+- **Pulls or knobs** (`handle`): one per door and drawer front. Drawer fronts wider than
+  `twoPullsOver` (24") get two. False fronts and the cabinet-hinged leaf of a bi-fold get none.
+- **Where they go** (drawn in 3D and elevations, ADR-039):
+  - Doors: on the opening side; a pair's both go at the meeting edges. Across the door: centred
+    on a Shaker stile, or `handleFromEdge` (1¼") in from a slab's edge. Up and down:
+    `handleFromEnd` (2¾") below the top, or above the bottom when the door's centre is more than
+    48" off the floor (wall cabinets, a tall cabinet's upper doors).
+  - Drawers: centred up and down; across, centred, or at the quarter points when there are two.
+  - A pull (`pullLength`, 5") runs up and down on doors and across on drawers. A knob is
+    `knobDiameter` (1¼") across.
 - **Shelf pins**: `pinsPerShelf` per adjustable shelf.
 
 ## Golden cabinets: please verify

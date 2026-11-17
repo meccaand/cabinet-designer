@@ -12,14 +12,15 @@ const GENERIC: Record<HardwareKind, string> = {
   hinge: 'Hinge',
   slide: 'Drawer slide (pair)',
   pull: 'Pull',
+  knob: 'Knob',
   shelfPin: 'Shelf pin',
 };
 
 /**
  * Hardware for one cabinet: hinges by door height (hinge tiers), one slide pair per drawer
- * grouped by length, one pull per door and drawer front (two when wider than `twoPullsOver`;
- * none on false fronts or the cabinet-hinged leaf of a bi-fold), and shelf pins per adjustable
- * shelf.
+ * grouped by length, one handle (pull or knob, by convention) per door and drawer front (two
+ * when wider than `twoPullsOver`; none on false fronts or the cabinet-hinged leaf of a bi-fold),
+ * and shelf pins per adjustable shelf. `handlesPerFront` is the same rule the drawn handles use.
  */
 export function hardwareFor(
   input: HardwareInput,
@@ -48,25 +49,19 @@ export function hardwareFor(
   for (const [len, qty] of [...byLength].sort((a, b) => a[0] - b[0]))
     lines.push(line('slide', qty, len));
 
-  const pulls = input.fronts.reduce(
-    (n, f) =>
-      n +
-      (f.kind === 'door'
-        ? f.noPull
-          ? 0
-          : 1
-        : f.kind === 'drawer'
-          ? f.width > c.hardware.twoPullsOver
-            ? 2
-            : 1
-          : 0),
-    0,
-  );
-  if (pulls > 0) lines.push(line('pull', pulls));
+  const handles = input.fronts.reduce((n, f) => n + handlesPerFront(f, c), 0);
+  if (handles > 0) lines.push(line(c.hardware.handle, handles));
 
   const pins = input.adjustableShelves * c.shelves.pinsPerShelf;
   if (pins > 0) lines.push(line('shelfPin', pins));
   return lines;
+}
+
+/** Pulls or knobs on one front. */
+export function handlesPerFront(f: FrontSummary, c: ConstructionDefaults): number {
+  if (f.kind === 'door') return f.noPull ? 0 : 1;
+  if (f.kind === 'drawer') return f.width > c.hardware.twoPullsOver ? 2 : 1;
+  return 0;
 }
 
 export function hingeCount(doorHeight: Mm, c: ConstructionDefaults): number {

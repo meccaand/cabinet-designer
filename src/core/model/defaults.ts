@@ -4,11 +4,13 @@
  */
 import { inch } from '../units';
 import type {
+  Cabinet,
   ConstructionDefaults,
   ConstructionOverrides,
   MaterialLibrary,
   Project,
   ShopSettings,
+  StylePreset,
   UnitSettings,
 } from './schema';
 import { CURRENT_SCHEMA_VERSION } from './version';
@@ -75,6 +77,8 @@ export const DEFAULT_MATERIALS: MaterialLibrary = {
     { id: 'slide-side', name: 'Side-mount slide (pair)', kind: 'slide', unitCost: 12 },
     { id: 'pull', name: 'Pull', kind: 'pull', unitCost: 5 },
     { id: 'shelf-pin-5', name: 'Shelf pin, 5 mm', kind: 'shelfPin', unitCost: 0.1 },
+    // Last, where the 2 → 3 migration adds it to older projects.
+    { id: 'knob', name: 'Knob', kind: 'knob', unitCost: 6 },
   ],
 };
 
@@ -124,7 +128,12 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     bottomClearance: inch(1 / 16),
     spacerWidth: inch(2),
   },
-  shelves: { widthClearance: inch(1 / 16), depthSetback: inch(1 / 4), pinsPerShelf: 4 },
+  shelves: {
+    widthClearance: inch(1 / 16),
+    depthSetback: inch(1 / 4),
+    pinsPerShelf: 4,
+    nosingHeight: 0,
+  },
   hardware: {
     hingeTiers: [
       { upTo: inch(40), count: 2 },
@@ -133,6 +142,11 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
       { upTo: null, count: 5 },
     ],
     twoPullsOver: inch(24),
+    handle: 'pull',
+    knobDiameter: inch(1.25),
+    pullLength: inch(5),
+    handleFromEnd: inch(2.75),
+    handleFromEdge: inch(1.25),
   },
   materials: {
     carcass: 'ply-18',
@@ -183,12 +197,38 @@ export function createProject(
     room: {
       walls: [{ id: 'wall-1', name: 'Wall 1', length: inch(120), height: inch(96), turn: 'right' }],
     },
+    stylePresets: [],
     cabinets: [],
     fillers: [],
   };
 }
 
-/** Effective conventions for one cabinet: project defaults with its overrides applied per field. */
+/** The style preset a cabinet follows, if any. */
+export function cabinetStyle(
+  project: Project,
+  cabinet: Pick<Cabinet, 'styleId'>,
+): StylePreset | undefined {
+  return cabinet.styleId === undefined
+    ? undefined
+    : project.stylePresets.find((s) => s.id === cabinet.styleId);
+}
+
+/**
+ * Effective conventions for one cabinet: project defaults, then its style preset's overrides,
+ * then its own (ADR-039). Every reader of a cabinet's conventions goes through this.
+ */
+export function cabinetConstruction(
+  project: Project,
+  cabinet: Pick<Cabinet, 'styleId' | 'construction'>,
+): ConstructionDefaults {
+  const style = cabinetStyle(project, cabinet);
+  const styled = style
+    ? resolveConstruction(project.construction, style.construction)
+    : project.construction;
+  return resolveConstruction(styled, cabinet.construction);
+}
+
+/** Conventions with overrides applied per field. */
 export function resolveConstruction(
   defaults: ConstructionDefaults,
   overrides: ConstructionOverrides,

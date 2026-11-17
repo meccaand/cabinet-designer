@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { inch } from '../units';
 import {
   DEFAULT_CONSTRUCTION,
+  cabinetConstruction,
+  cabinetStyle,
   createProject,
+  createStylePreset,
   loadProject,
   MIGRATIONS,
   resolveConstruction,
@@ -251,6 +254,63 @@ describe('resolveConstruction', () => {
   });
 });
 
+describe('style presets', () => {
+  const style = createStylePreset('s1', 'traditionalPainted');
+
+  it('layer between the project defaults and the cabinet: defaults, style, cabinet', () => {
+    const p = projectWith((x) => x.stylePresets.push(style));
+    const plain = cabinet();
+    const styled = cabinet({ styleId: 's1' });
+    const own = cabinet({ styleId: 's1', construction: { fronts: { mount: 'overlay' } } });
+    expect(cabinetConstruction(p, plain)).toEqual(p.construction);
+    expect(cabinetConstruction(p, styled).fronts.mount).toBe('inset');
+    expect(cabinetConstruction(p, styled).carcass.style).toBe('faceFrame');
+    expect(cabinetConstruction(p, styled).carcass.joinery).toBe(p.construction.carcass.joinery);
+    expect(cabinetConstruction(p, own).fronts.mount).toBe('overlay');
+    expect(cabinetConstruction(p, own).fronts.style).toBe('shaker');
+    expect(cabinetStyle(p, styled)).toBe(p.stylePresets[0]);
+  });
+
+  it('validate: unique ids, existing styles, existing materials', () => {
+    expect(issues(projectWith((x) => x.stylePresets.push(style)))).toEqual([]);
+    expect(issues(projectWith((x) => x.stylePresets.push(style, { ...style })))).toContain(
+      'Duplicate style id "s1".',
+    );
+    expect(issues(projectWith((x) => x.cabinets.push(cabinet({ styleId: 'nope' }))))).toContain(
+      'Style "nope" does not exist.',
+    );
+    expect(
+      issues(
+        projectWith((x) =>
+          x.stylePresets.push({ ...style, construction: { materials: { door: 'nope' } } }),
+        ),
+      ),
+    ).toContain('Material "nope" for role "door" does not exist.');
+    expect(
+      issues(
+        projectWith((x) =>
+          x.stylePresets.push({ ...style, finish: { ...style.finish, color: 'red' } }),
+        ),
+      ),
+    ).not.toEqual([]);
+  });
+
+  it('templates: the traditional built-in matches the spec defaults', () => {
+    const c = resolveConstruction(DEFAULT_CONSTRUCTION, style.construction);
+    expect(c.carcass.style).toBe('faceFrame');
+    expect(c.fronts).toMatchObject({ style: 'shaker', mount: 'inset' });
+    expect(c.platform).toMatchObject({ enabled: true, height: inch(4.5), setback: 0 });
+    expect(c.shelves.nosingHeight).toBe(inch(1.5));
+    expect(c.hardware).toMatchObject({
+      handle: 'knob',
+      knobDiameter: inch(1.125),
+      handleFromEnd: inch(2.75),
+    });
+    expect(style.finish).toMatchObject({ kind: 'paint', color: '#8a9a97', sheen: 'satin' });
+    expect(createStylePreset('b', 'blank').construction).toEqual({});
+  });
+});
+
 describe('loadProject / upgradeDocument', () => {
   it.each([
     [null, 'Not a project file.'],
@@ -295,6 +355,37 @@ describe('loadProject / upgradeDocument', () => {
     // Malformed input passes through untouched, for validation to report.
     expect(MIGRATIONS[1]!({ construction: 3 })).toEqual({ construction: 3 });
     expect(MIGRATIONS[1]!({ construction: {} })).toEqual({ construction: {} });
+  });
+
+  it('2 → 3: older projects get handle and nosing conventions, no styles, and a knob', () => {
+    const current = createProject('p', 'x');
+    const v2 = clone(current) as Omit<Partial<Project>, 'schemaVersion'> & {
+      schemaVersion: number;
+      construction: Project['construction'];
+      materials: Project['materials'];
+    };
+    v2.schemaVersion = 2;
+    const hw = v2.construction.hardware as Partial<Project['construction']['hardware']>;
+    delete hw.handle;
+    delete hw.knobDiameter;
+    delete hw.pullLength;
+    delete hw.handleFromEnd;
+    delete hw.handleFromEdge;
+    delete (v2.construction.shelves as Partial<Project['construction']['shelves']>).nosingHeight;
+    delete v2.stylePresets;
+    v2.materials.hardware = v2.materials.hardware.filter((h) => h.kind !== 'knob');
+    expect(loadProject(v2)).toEqual({ ok: true, value: current });
+
+    // A project's own settings win over the migration's values; a knob already there stays.
+    const custom = clone(v2);
+    custom.construction.hardware.twoPullsOver = inch(30);
+    custom.materials.hardware.push({ id: 'k2', name: 'Brass knob', kind: 'knob', unitCost: 9 });
+    const r = loadProject(custom);
+    expect(r.ok && r.value.construction.hardware.twoPullsOver).toBe(inch(30));
+    expect(r.ok && r.value.materials.hardware.filter((h) => h.kind === 'knob')).toHaveLength(1);
+
+    // Malformed input passes through for validation to report.
+    expect(MIGRATIONS[2]!({ construction: 3 })).toEqual({ construction: 3, stylePresets: [] });
   });
 
   it('fails clearly when a migration is missing', () => {

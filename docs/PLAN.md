@@ -19,6 +19,21 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 7. Export & polish  | ✅ Done                  |
 | 8. Hardening        | ✅ Done                  |
 | 9. L-shaped corners | ✅ Done, awaiting review |
+| 10. Style presets   | ✅ Done, awaiting review |
+| 11. Runs & datums   | Planned                  |
+| 12. Niche & ends    | Planned                  |
+| 13. Run trim        | Planned                  |
+| 14. Reference room  | Planned                  |
+
+M10–M14 add **styled built-ins** (spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md), architecture: ADR-038). A built-in is a set of wall runs of modules sharing one style preset and continuous datums. Each run compiles to ordinary cabinets plus trim, so every existing output keeps working.
+
+| #   | Milestone                   | Scope                                                                                                                                                                                                                     | Acceptance (spec §9) |
+| --- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 10  | Style presets               | `StylePreset` (construction overrides + finish); knobs/pulls placed and drawn; shelf nosing; flush plinth; paint colour in 3D; schema v3 (ADR-039). Trim profiles move to M11/M13, where they are used                    | #5                   |
+| 11  | Runs & datums               | Built-in + run model; section (base door groups + open bay), stile, tower, pilaster, obstruction; countertop part; linked shelf lines; stiles aligned above/below; symmetric defaults; continuous plinth                  | #2, #3               |
+| 12  | Media niche & finished ends | Niche + bridge cubbies (bridge bottom = top shelf line), TV clearance check, recessed-panel end panels following the step-back                                                                                            | —                    |
+| 13  | Run trim & corners          | Crown, frieze, base moulding, countertop: continuous, continue/stop at obstructions, miter at inside corners, return at exposed ends; blind dead corner; picture lights; LF + miter/return counts in the BOM, CSV and PDF | #4                   |
+| 14  | Reference room & polish     | "Traditional painted built-in" template and quick-add, elevation polish, e2e rebuilding both reference walls in ≤10 actions each, golden cut lists for review                                                             | #1                   |
 
 M9 adds an L-shaped base and L-shaped open shelving for inside corners (ADR-037).
 
@@ -136,7 +151,7 @@ Every value is editable. Per your quality bar, these are the guesses I'd most li
 | Blind corners        | Blind width = meeting run's depth + 1" (25" base, 13" wall). Frameless blind panel in door material, or a wide face-frame stile. 3" pull filler. No drawers (M4).                                                                                                                        |
 | Open shelving        | Floor bookcase on the platform, full top, 4 adjustable shelves, 36 × 84 × 12 (M4).                                                                                                                                                                                                       |
 | End panels           | Door material, floor to top (toe kick notched), wall to door faces, flush with the fronts (M5).                                                                                                                                                                                          |
-| Pulls                | One per door and drawer front; two on drawer fronts wider than 24"; none on false fronts (M2).                                                                                                                                                                                           |
+| Pulls                | One per door and drawer front; two on drawer fronts wider than 24"; none on false fronts (M2). Pull or knob is a convention; placement rules in CONSTRUCTION.md (M10).                                                                                                                   |
 
 ## Milestones
 

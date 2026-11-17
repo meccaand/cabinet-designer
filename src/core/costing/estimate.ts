@@ -91,7 +91,7 @@ export function estimate(
       merged.set(key, prev ? { ...prev, qty: prev.qty + line.qty } : { ...line });
     }
   }
-  const order: HardwareKind[] = ['hinge', 'slide', 'pull', 'shelfPin'];
+  const order: HardwareKind[] = ['hinge', 'slide', 'pull', 'knob', 'shelfPin'];
   const hardware = [...merged.values()]
     .sort(
       (a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.length ?? 0) - (b.length ?? 0),

@@ -17,6 +17,7 @@ const FILL: Partial<Record<PartRole, Fill>> = {
   frontPanel: 'panel',
   filler: 'frame',
   endPanel: 'front',
+  shelfNosing: 'frame',
 };
 
 /** Dimension line spacing outside the cabinet, as a fraction of its larger side. */
@@ -110,14 +111,26 @@ export function returnView(model: CabinetModel, width: Mm): CabinetModel {
         bounds: box(b.min.z, b.max.z, b.min.y, b.max.y, width - b.max.x, width - b.min.x),
       };
     }),
+    handles: model.handles.map((h) => {
+      const b = h.bounds;
+      return {
+        ...h,
+        bounds: box(b.min.z, b.max.z, b.min.y, b.max.y, width - b.max.x, width - b.min.x),
+        // Handles project along z, or x on the return: the quarter turn swaps the two.
+        axis: h.axis === 'x' ? ('z' as const) : ('x' as const),
+      };
+    }),
   };
 }
 
-/** Every part seen from the front, painted back to front, shifted by (dx, dy). */
+/**
+ * Every part seen from the front, painted back to front, then the knobs and pulls facing this
+ * way, shifted by (dx, dy).
+ */
 export function partRects(model: CabinetModel, dx: Mm, dy: Mm): Primitive[] {
-  return [...model.parts]
+  const parts = [...model.parts]
     .sort((a, b) => a.bounds.max.z - b.bounds.max.z)
-    .map((p) => ({
+    .map((p): Primitive => ({
       kind: 'rect',
       x: p.bounds.min.x + dx,
       y: p.bounds.min.y + dy,
@@ -125,6 +138,28 @@ export function partRects(model: CabinetModel, dx: Mm, dy: Mm): Primitive[] {
       h: p.bounds.max.y - p.bounds.min.y,
       fill: FILL[p.role] ?? 'carcass',
     }));
+  const handles = model.handles
+    .filter((h) => h.axis === 'z')
+    .map((h): Primitive => {
+      const b = h.bounds;
+      return h.kind === 'knob'
+        ? {
+            kind: 'circle',
+            x: (b.min.x + b.max.x) / 2 + dx,
+            y: (b.min.y + b.max.y) / 2 + dy,
+            r: (b.max.x - b.min.x) / 2,
+            fill: 'hardware',
+          }
+        : {
+            kind: 'rect',
+            x: b.min.x + dx,
+            y: b.min.y + dy,
+            w: b.max.x - b.min.x,
+            h: b.max.y - b.min.y,
+            fill: 'hardware',
+          };
+    });
+  return [...parts, ...handles];
 }
 
 /**

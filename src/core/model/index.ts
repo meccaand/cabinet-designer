@@ -1,6 +1,7 @@
 export * from './schema';
 export * from './defaults';
 export * from './migrate';
+export * from './styles';
 export { CURRENT_SCHEMA_VERSION } from './version';
 export {
   getNode,

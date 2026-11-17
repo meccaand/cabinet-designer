@@ -9,7 +9,8 @@ import {
   type LayoutItem,
 } from '../../core/layout';
 import {
-  resolveConstruction,
+  cabinetConstruction,
+  createStylePreset,
   type Cabinet,
   type CabinetType,
   type ConstructionDefaults,
@@ -17,6 +18,8 @@ import {
   type MaterialLibrary,
   type Project,
   type ShopSettings,
+  type StylePreset,
+  type StyleTemplateId,
   type UnitSettings,
   type Wall,
 } from '../../core/model';
@@ -74,6 +77,16 @@ export interface ProjectState {
   setDefaultMaterial: (role: keyof ConstructionDefaults['materials'], id: string) => void;
   /** Removes a library item unless a cabinet or default still uses it. Returns whether it did. */
   removeMaterial: (id: string) => boolean;
+
+  /** Adds a style preset from a template and returns its id (ADR-039). */
+  addStyle: (template: StyleTemplateId) => string;
+  /** Edits a style; every cabinet following it changes. Edits with the same `key` in a row
+   * (e.g. dragging a colour picker) are one undo step. */
+  updateStyle: (id: string, recipe: (style: Draft<StylePreset>) => void, key?: string) => void;
+  /** Removes a style; cabinets that followed it go back to the project defaults. */
+  deleteStyle: (id: string) => void;
+  /** Makes a cabinet follow a style, or none. Its own overrides stay. */
+  setCabinetStyle: (cabinetId: string, styleId: string | null) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -159,9 +172,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       const { project, activeCabinetId } = get();
       const id = crypto.randomUUID();
       const n = project.cabinets.filter((c) => c.type === type).length + 1;
+      // A new cabinet follows the active cabinet's style.
+      const styleId = project.cabinets.find((c) => c.id === activeCabinetId)?.styleId;
       const cabinet = createCabinet(project, type, {
         id,
         name: `${CABINET_TYPE_NAMES[type]} ${n}`,
+        ...(styleId !== undefined && { styleId }),
       });
       // Next to the active cabinet's run, after whatever is already there at that height. An
       // L-shaped cabinet goes in an inside corner: the active cabinet's wall if it ends in one.
@@ -360,17 +376,51 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       });
       return true;
     },
+
+    addStyle: (template) => {
+      const id = crypto.randomUUID();
+      const style = createStylePreset(id, template);
+      const names = new Set(get().project.stylePresets.map((s) => s.name));
+      let name = style.name;
+      for (let n = 2; names.has(name); n++) name = `${style.name} ${n}`;
+      edit((p) => {
+        p.stylePresets.push({ ...style, name });
+      });
+      return id;
+    },
+    updateStyle: (id, recipe, key) =>
+      edit(
+        (p) => {
+          const style = p.stylePresets.find((s) => s.id === id);
+          if (style) recipe(style);
+        },
+        key === undefined ? undefined : `style:${id}:${key}`,
+      ),
+    deleteStyle: (id) =>
+      edit((p) => {
+        p.stylePresets = p.stylePresets.filter((s) => s.id !== id);
+        for (const c of p.cabinets) if (c.styleId === id) delete c.styleId;
+      }),
+    setCabinetStyle: (cabinetId, styleId) =>
+      edit((p) => {
+        const c = p.cabinets.find((x) => x.id === cabinetId);
+        if (!c) return;
+        if (styleId === null) delete c.styleId;
+        else c.styleId = styleId;
+      }),
   };
 });
 
 /** Toe-kick height under a floor cabinet (0 when it has none): fillers start above it. */
 function cabinetPlatform(project: Project, cabinet: Cabinet): Mm {
-  const platform = resolveConstruction(project.construction, cabinet.construction).platform;
+  const platform = cabinetConstruction(project, cabinet).platform;
   return hasToeKick(cabinet.type, platform) ? platform.height : 0;
 }
 
 /** Whether a library item is assigned anywhere (defaults or a cabinet's overrides). */
 export function materialInUse(project: Project, id: string): boolean {
   if (Object.values(project.construction.materials).includes(id)) return true;
-  return project.cabinets.some((c) => Object.values(c.construction.materials ?? {}).includes(id));
+  const uses = (o: { construction: { materials?: Partial<Record<string, string>> | undefined } }) =>
+    Object.values(o.construction.materials ?? {}).includes(id);
+  return project.cabinets.some(uses) || project.stylePresets.some(uses);
 }

@@ -165,3 +165,34 @@
   font-size: 0.78rem;
   cursor: pointer;
 }
+
+/* Style presets (ADR-039) */
+.styleDetails {
+  margin-top: 8px;
+}
+.styleDetails > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.styleEditor {
+  margin-top: 8px;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.subTitle {
+  margin: 12px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.color {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+}
