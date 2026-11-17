@@ -58,6 +58,18 @@ export const MIGRATIONS: Migrations = {
   },
   // Built-ins (ADR-040).
   3: (doc) => ({ ...doc, builtIns: [] }),
+  // End panel conventions (ADR-041): every end panel so far was flat.
+  4: (doc) => {
+    const construction = record(doc['construction']);
+    if (!construction) return doc;
+    return {
+      ...doc,
+      construction: {
+        endPanel: { style: 'flat', frameWidth: inch(2.25), frameThickness: inch(1 / 4) },
+        ...construction,
+      },
+    };
+  },
 };
 
 /** The value as a plain object, or undefined: migrations see unvalidated input. */

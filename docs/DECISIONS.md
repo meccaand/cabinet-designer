@@ -797,3 +797,40 @@ length equally, so the bays either side of a fixed centre section mirror each ot
 **Not yet (later milestones or gaps):** inside corners are left to the user's run offsets (the
 media wall starts 19" out); M13 adds the blind corner and mitred trim. Obstructions aren't drawn
 in plan. Shelf heights can't be set individually yet, only counts. The media niche is M12.
+
+## ADR-041: Media niche, dividers within a level, and framed end panels
+
+**Status:** Accepted (M12). Schema version 5.
+
+**Media niche (one upper box, chosen by Andrew).** A section's upper can be a `mediaNiche`
+(`cubbies`, `bridgeLine`, `tvSize`). It compiles to the same upper box as an open bay, with the
+face split by a fixed shelf into a bridge of cubbies over the TV opening. The box back is the
+niche back. The bridge shelf's top is the top of the flanking bays' shelf on the chosen line
+(spec rule 4). Rather than repeating the generator's shelf-spacing maths, the compiler builds a
+probe open bay of the same size and reads its shelf tops, so the two can't drift apart. The TV
+check (16:9, 1" all round) is a warning, not an error: the built-in still builds. Adding the
+upper kind needed no migration (old files can't contain it). The new "TV section" template is
+two door pairs under a niche for a 65" TV with two cubbies.
+
+**Dividers within a level.** The cubbies need dividers that run only between the bridge shelf
+and the top. The generator now allows a column split with `divider` directly inside a top-level
+row split with fixed shelves (until now, dividers were top-level only). Each one is housed in the
+shelf or top above and below it, and narrows the bay that shelves and drawers in its columns
+use. Dividers nested anywhere else are still rejected.
+
+**Framed end panels (a flat panel plus an applied frame, chosen by Andrew).** A new convention
+group `endPanel` (`style` flat or framed, `frameWidth`, `frameThickness`) works per project, per
+style and per cabinet. Framed adds four strips over the panel's outside face, so the field reads
+as recessed. A built-in's base and upper boxes each get their own panel and frame, so the ends
+follow the step-back. The traditional style template now uses framed ends. Migration 4 → 5 adds
+`endPanel` (flat) to stored projects.
+
+**Choices made without asking (please check):**
+
+- **Frame strips:** 1/4" thick, planed or resawn from the face-frame stock (poplar), butt-joined,
+  glued and pinned. The invariants allow these strips to be thinner than their stock, as they do
+  for slide spacers.
+- **The frame starts above a toe-kick notch,** so on a recessed toe kick the back stile is
+  shortened too. The traditional style's flush plinth has no notch.
+- **The bridge shelf isn't nosed:** the face-frame rail covers its front edge.
+- **TV clearance** is fixed at 1" all round; it isn't a setting yet.

@@ -2,6 +2,7 @@ export {
   compileBuiltIn,
   expandProject,
   MIN_AUTO_WIDTH,
+  TV_CLEARANCE,
   type Assembly,
   type CompiledBuiltIn,
   type CompiledSource,

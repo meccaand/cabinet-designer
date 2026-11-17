@@ -7,7 +7,8 @@
  *   left end), a 6" pilaster, a 60" fireplace and chimney breast, and a narrow right tower (18"
  *   opening, one door) into the corner. Stiles 2 1/4".
  * - Media wall (157"): starts 19" from the corner, clear of the fireplace wall's base boxes and
- *   countertop. 3" stiles, 30" bays either side of a 66" centre section with two door pairs.
+ *   countertop. 3" stiles, 30" bays either side of a 66" TV section: two door pairs below, a
+ *   niche for a 65" TV and a bridge of two cubbies above, on the top shelf line.
  */
 import {
   createBuiltIn,
@@ -84,6 +85,7 @@ export function referenceRoom(): Project {
         stile('m-s2', 3),
         section('media-centre', 'TV section', 66, {
           base: { groups: [{ doors: 2 }, { doors: 2 }], shelves: 1 },
+          upper: { kind: 'mediaNiche', cubbies: 2, bridgeLine: 1, tvSize: inch(65) },
         }),
         stile('m-s3', 3),
         section('media-right', 'Right bay', 'auto'),

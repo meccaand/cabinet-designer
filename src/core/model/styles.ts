@@ -44,6 +44,8 @@ export function createStylePreset(id: string, template: StyleTemplateId): StyleP
       shaker: { stileWidth: inch(2.25), railWidth: inch(2.25) },
       shelves: { nosingHeight: inch(1.5) },
       hardware: { handle: 'knob', knobDiameter: inch(1.125), handleFromEnd: inch(2.75) },
+      // Recessed-panel ends: a 1/4" frame applied over the end panel (ADR-041).
+      endPanel: { style: 'framed' },
     },
     finish: { kind: 'paint', color: '#8a9a97', sheen: 'satin', hardwareColor: '#9c7a3c' },
   };

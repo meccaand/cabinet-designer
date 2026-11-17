@@ -453,6 +453,17 @@ describe('loadProject / upgradeDocument', () => {
     expect(loadProject(v3)).toEqual({ ok: true, value: current });
   });
 
+  it('4 → 5: older projects get flat end panels', () => {
+    const current = createProject('p', 'x');
+    const v4 = clone(current) as Omit<Partial<Project>, 'schemaVersion'> & {
+      schemaVersion: number;
+    };
+    v4.schemaVersion = 4;
+    delete (v4.construction as Partial<Project['construction']>).endPanel;
+    expect(loadProject(v4)).toEqual({ ok: true, value: current });
+    expect(MIGRATIONS[4]!({ construction: 3 })).toEqual({ construction: 3 });
+  });
+
   it('fails clearly when a migration is missing', () => {
     expect(upgradeDocument({ schemaVersion: 1 }, {}, 2)).toEqual({
       ok: false,

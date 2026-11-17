@@ -241,6 +241,7 @@ export function StyleEditor({ project, style }: { project: Project; style: Style
       <p className={styles.hint}>A recess of 0 makes a flush plinth instead of a toe kick.</p>
 
       <HandleFields c={c} units={units} set={set} />
+      <EndPanelFields c={c} units={units} set={set} />
 
       <div className={styles.grid}>
         {length(
@@ -263,6 +264,57 @@ export function StyleEditor({ project, style }: { project: Project; style: Style
         {users > 0 ? ` (used by ${users}: they go back to the project defaults)` : ''}
       </button>
     </div>
+  );
+}
+
+/** Flat or framed (recessed-panel look) end panels. Shared by the style and cabinet editors. */
+export function EndPanelFields({
+  c,
+  units,
+  set,
+}: {
+  c: ConstructionDefaults;
+  units: Project['units'];
+  set: (group: 'endPanel', values: Partial<ConstructionDefaults['endPanel']>) => void;
+}) {
+  const ep = c.endPanel;
+  return (
+    <>
+      <h4 className={styles.subTitle}>Finished end panels</h4>
+      <div className={styles.grid}>
+        <Choice
+          label="End panels"
+          value={ep.style}
+          options={[
+            ['flat', 'Flat'],
+            ['framed', 'Recessed panel (applied frame)'],
+          ]}
+          onChange={(style) => set('endPanel', { style })}
+        />
+        {ep.style === 'framed' && (
+          <>
+            <LengthInput
+              label="End frame width"
+              value={ep.frameWidth}
+              units={units}
+              onCommit={(frameWidth) => set('endPanel', { frameWidth })}
+            />
+            <LengthInput
+              label="End frame thickness"
+              value={ep.frameThickness}
+              units={units}
+              onCommit={(frameThickness) => set('endPanel', { frameThickness })}
+            />
+          </>
+        )}
+      </div>
+      {ep.style === 'framed' && (
+        <p className={styles.hint}>
+          Solid strips glued over the outside of each end panel, so the field between them reads as
+          a recessed panel. They follow a built-in's step-back: base and upper each get their own.
+        </p>
+      )}
+    </>
   );
 }
 

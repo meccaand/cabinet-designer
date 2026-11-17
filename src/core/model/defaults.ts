@@ -148,6 +148,7 @@ export const DEFAULT_CONSTRUCTION: ConstructionDefaults = {
     handleFromEnd: inch(2.75),
     handleFromEdge: inch(1.25),
   },
+  endPanel: { style: 'flat', frameWidth: inch(2.25), frameThickness: inch(1 / 4) },
   materials: {
     carcass: 'ply-18',
     back: 'ply-5',
@@ -243,6 +244,7 @@ export function resolveConstruction(
     drawer: merge(defaults.drawer, overrides.drawer),
     shelves: merge(defaults.shelves, overrides.shelves),
     hardware: merge(defaults.hardware, overrides.hardware),
+    endPanel: merge(defaults.endPanel, overrides.endPanel),
     materials: merge(defaults.materials, overrides.materials),
   };
 }

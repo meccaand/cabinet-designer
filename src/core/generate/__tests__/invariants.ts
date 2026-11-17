@@ -26,7 +26,9 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
     const dims = [p.finished.length, p.finished.width, p.finished.thickness].sort((a, b) => a - b);
     if (dims.some((d, i) => Math.abs(d - ext[i]!) > EPS))
       out.push(`${p.id}: finished size != bounds`);
-    if (p.role !== 'slideSpacer' && Math.abs(p.finished.thickness - stock(p)!.thickness) > EPS) {
+    // Slide spacers and applied end-panel frames are planed from the stock to their thickness.
+    const planed = p.role === 'slideSpacer' || p.role === 'endPanelFrame';
+    if (!planed && Math.abs(p.finished.thickness - stock(p)!.thickness) > EPS) {
       out.push(`${p.id}: thickness ${p.finished.thickness} != stock ${stock(p)!.thickness}`);
     }
     if (p.cut.length <= 0 || p.cut.width <= 0) out.push(`${p.id}: non-positive cut size`);
@@ -42,8 +44,10 @@ export function violations(model: CabinetModel, cabinet: Cabinet, project: Proje
     0,
     ...parts.filter((p) => frontRoles.includes(p.role)).map((p) => p.finished.thickness),
   );
+  // An end panel's thickness, with any frame applied over it.
   const endT = (id: string) =>
-    parts.find((p) => p.id === `${cabinet.id}/${id}`)?.finished.thickness ?? 0;
+    (parts.find((p) => p.id === `${cabinet.id}/${id}`)?.finished.thickness ?? 0) +
+    (parts.find((p) => p.id.startsWith(`${cabinet.id}/${id}/frame/`))?.finished.thickness ?? 0);
   const endL = endT('endPanel/L');
   const endR = endT('endPanel/R');
   // A blind corner's pull filler stands out from the face by its width.

@@ -201,6 +201,16 @@ const DrawerConventions = z.object({
   spacerWidth: PositiveLength,
 });
 
+const EndPanelConventions = z.object({
+  /** Flat, or framed: a frame of thin solid strips applied over the outside, so the field
+   * between them reads as a recessed panel (ADR-041). */
+  style: z.enum(['flat', 'framed']),
+  /** Framed: width of the stiles and rails. */
+  frameWidth: PositiveLength,
+  /** Framed: thickness of the applied strips. */
+  frameThickness: PositiveLength,
+});
+
 const ShelfConventions = z.object({
   /** Adjustable shelves: total width clearance (both sides combined). */
   widthClearance: NonNegLength,
@@ -252,6 +262,7 @@ export const ConstructionDefaultsSchema = z.object({
   drawer: DrawerConventions,
   shelves: ShelfConventions,
   hardware: HardwareConventions,
+  endPanel: EndPanelConventions,
   materials: MaterialAssignments,
 });
 export type ConstructionDefaults = z.infer<typeof ConstructionDefaultsSchema>;
@@ -266,6 +277,7 @@ export const ConstructionOverridesSchema = z.object({
   drawer: DrawerConventions.partial().optional(),
   shelves: ShelfConventions.partial().optional(),
   hardware: HardwareConventions.partial().optional(),
+  endPanel: EndPanelConventions.partial().optional(),
   materials: z.partialRecord(MaterialRoleSchema, Id).optional(),
 });
 export type ConstructionOverrides = z.infer<typeof ConstructionOverridesSchema>;
@@ -478,12 +490,26 @@ export const SectionModuleSchema = z.object({
     /** Adjustable shelves behind the doors. */
     shelves: z.int().min(0).max(10),
   }),
-  /** null: a base only. `shelves` null follows the run's linked shelf lines. */
+  /** null: a base only. */
   upper: z
-    .object({
-      kind: z.literal('openBay'),
-      shelves: z.int().min(0).max(20).nullable(),
-    })
+    .discriminatedUnion('kind', [
+      z.object({
+        kind: z.literal('openBay'),
+        /** null follows the run's linked shelf lines. */
+        shelves: z.int().min(0).max(20).nullable(),
+      }),
+      /**
+       * A framed opening for a TV from the countertop up to a bridge of open cubbies. The
+       * bridge's shelf lines up with one of the run's shelf lines (1 = the top one).
+       */
+      z.object({
+        kind: z.literal('mediaNiche'),
+        cubbies: z.int().min(1).max(6),
+        bridgeLine: z.int().min(1).max(20),
+        /** The TV's diagonal, to check it fits (16:9); null = no check. */
+        tvSize: PositiveLength.nullable(),
+      }),
+    ])
     .nullable(),
   endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
 });

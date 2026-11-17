@@ -26,7 +26,7 @@ import { inch, quantize } from '../units';
 import { compileBuiltIn, expandProject, seams } from './index';
 
 const T = 18; // 3/4" ply as measured
-const te = 18; // end panels: door material
+const te = 18 + inch(1 / 4); // end panels: door material, plus the style's applied 1/4" frame
 const et = inch(3 / 4); // poplar edge strip
 
 function section(id: string, width: number | 'auto', over: Partial<SectionModule> = {}) {

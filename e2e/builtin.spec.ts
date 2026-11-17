@@ -71,21 +71,21 @@ test('the reference room builds: boxes, countertops and the fireplace in every v
 
 test("acceptance #3: the run's shelf count re-spaces every linked bay", async ({ page }) => {
   await openReferenceRoom(page);
-  // 5 upper bays × 4 shelves.
-  expect(await qty(page, /^\d+Fixed shelf/)).toBe(20);
+  // 4 towers and bays × 4 shelves, and the TV niche's bridge shelf.
+  expect(await qty(page, /^\d+Fixed shelf/)).toBe(17);
   await setField(mediaRun(page), 'Shelves per bay', '5');
-  // The media wall's 3 linked bays gain one each.
-  expect(await qty(page, /^\d+Fixed shelf/)).toBe(23);
+  // The media wall's 2 linked bays gain one each; the bridge stays on the top line.
+  expect(await qty(page, /^\d+Fixed shelf/)).toBe(19);
 
-  // Unlink the TV section: it keeps its own count when the run changes.
+  // Unlink the left bay: it keeps its own count when the run changes.
   await mediaRun(page)
-    .getByRole('button', { name: /^TV section ·/ })
+    .getByRole('button', { name: /^Left bay ·/ })
     .click();
   await mediaRun(page).getByLabel("Shelves follow the run's lines (5)").uncheck();
   await setField(mediaRun(page), 'Shelves in this bay', '2');
-  expect(await qty(page, /^\d+Fixed shelf/)).toBe(20);
+  expect(await qty(page, /^\d+Fixed shelf/)).toBe(16);
   await setField(mediaRun(page), 'Shelves per bay', '3');
-  expect(await qty(page, /^\d+Fixed shelf/)).toBe(8 + 3 + 3 + 2);
+  expect(await qty(page, /^\d+Fixed shelf/)).toBe(8 + 2 + 3 + 1);
 });
 
 test('acceptance #2: the countertop height moves the bases, the uppers and the top', async ({

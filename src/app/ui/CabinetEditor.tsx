@@ -15,7 +15,7 @@ import styles from './Form.module.css';
 import { LengthInput } from './LengthInput';
 import { OpeningEditor } from './OpeningEditor';
 import { PositionSection } from './PositionSection';
-import { HandleFields, StyleSection } from './StyleSection';
+import { EndPanelFields, HandleFields, StyleSection } from './StyleSection';
 
 type Group = Exclude<keyof ConstructionDefaults, 'materials'>;
 
@@ -269,8 +269,11 @@ export function CabinetEditor({
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Hardware &amp; shelves</h3>
+        <h3 className={styles.sectionTitle}>Hardware, shelves &amp; ends</h3>
         <HandleFields c={c} units={units} set={set} />
+        {(cabinet.endPanels.left || cabinet.endPanels.right) && (
+          <EndPanelFields c={c} units={units} set={set} />
+        )}
         <div className={styles.grid}>
           {length(
             'Shelf nosing',

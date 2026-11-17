@@ -31,10 +31,11 @@ export function createRun(id: string, wall: Wall, offset = 0): Run {
 }
 
 export type ModuleTemplate =
-  'section' | 'tower' | 'baseOnly' | 'stile' | 'pilaster' | 'obstruction';
+  'section' | 'tvSection' | 'tower' | 'baseOnly' | 'stile' | 'pilaster' | 'obstruction';
 
 export const MODULE_TEMPLATES: { id: ModuleTemplate; name: string }[] = [
   { id: 'section', name: 'Section (doors below, open shelves above)' },
+  { id: 'tvSection', name: 'TV section (two door pairs, a niche and a bridge above)' },
   { id: 'tower', name: 'Tower (with a finished end)' },
   { id: 'baseOnly', name: 'Base only' },
   { id: 'stile', name: 'Stile' },
@@ -56,6 +57,13 @@ export function createModule(id: string, template: ModuleTemplate, name = ''): R
   switch (template) {
     case 'section':
       return section({});
+    case 'tvSection':
+      return section({
+        name: name || 'TV section',
+        width: inch(66),
+        base: { groups: [{ doors: 2 }, { doors: 2 }], shelves: 1 },
+        upper: { kind: 'mediaNiche', cubbies: 2, bridgeLine: 1, tvSize: inch(65) },
+      });
     case 'tower':
       return section({ name: name || 'Tower', endPanels: { left: true, right: false } });
     case 'baseOnly':

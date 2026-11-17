@@ -34,6 +34,12 @@ export interface FaceLayout {
   dividers: Mm[];
   /** The gap between rows where a fixed shelf goes (top-level row split with `divider`). */
   rowDividers: Rect[];
+  /**
+   * Vertical dividers inside one row of a top-level divided row split: a column split with
+   * `divider` there (e.g. the cubbies of a media bridge, ADR-041). Centre x, and a y inside
+   * the row (to find its level between fixed shelves).
+   */
+  levelDividers: { x: Mm; y: Mm }[];
 }
 
 export interface LayoutRules {
@@ -46,8 +52,14 @@ export interface LayoutRules {
 }
 
 export function layoutFace(root: OpeningNode, rect: Rect, rules: LayoutRules): FaceLayout {
-  const out: FaceLayout = { leaves: [], members: [], dividers: [], rowDividers: [] };
-  visit(root, rect, '', null, rules, out);
+  const out: FaceLayout = {
+    leaves: [],
+    members: [],
+    dividers: [],
+    rowDividers: [],
+    levelDividers: [],
+  };
+  visit(root, rect, '', null, rules, out, false);
   return out;
 }
 
@@ -58,6 +70,8 @@ function visit(
   columns: LeafCell['columns'],
   rules: LayoutRules,
   out: FaceLayout,
+  /** The parent is a top-level row split with fixed shelves: its rows are levels. */
+  inLevel: boolean,
 ): void {
   if (node.kind === 'leaf') {
     out.leaves.push({ leaf: node, path, rect, columns });
@@ -65,9 +79,10 @@ function visit(
   }
   const rows = node.dir === 'rows';
   const divided = node.divider === true;
-  if (divided && path !== '') {
+  const nested = divided && path !== '';
+  if (nested && !(inLevel && !rows)) {
     throw new BuildError(
-      'Dividers and fixed shelves between openings are only supported at the top level of a cabinet.',
+      'Dividers and fixed shelves between openings are only supported at the top level of a cabinet, or as dividers between columns in a space between fixed shelves.',
     );
   }
   const total = rows ? rect.y1 - rect.y0 : rect.x1 - rect.x0;
@@ -81,7 +96,15 @@ function visit(
     const cell: Rect = rows
       ? { x0: rect.x0, x1: rect.x1, y0: quantize(cursor - e), y1: cursor }
       : { x0: cursor, x1: quantize(cursor + e), y0: rect.y0, y1: rect.y1 };
-    visit(child.node, cell, childPath, rows ? columns : { divided }, rules, out);
+    visit(
+      child.node,
+      cell,
+      childPath,
+      rows ? columns : { divided },
+      rules,
+      out,
+      rows && divided && path === '',
+    );
     cursor = quantize(rows ? cursor - e - gap : cursor + e + gap);
 
     const last = i === cells.length - 1;
@@ -91,8 +114,10 @@ function visit(
       : { x0: quantize(cursor - gap), x1: cursor, y0: rect.y0, y1: rect.y1 };
     if (rules.members)
       out.members.push({ kind: rows ? 'rail' : 'mullion', path: childPath, rect: between });
+    const xc = quantize((between.x0 + between.x1) / 2);
     if (divided && rows) out.rowDividers.push(between);
-    else if (divided) out.dividers.push(quantize((between.x0 + between.x1) / 2));
+    else if (nested) out.levelDividers.push({ x: xc, y: (rect.y0 + rect.y1) / 2 });
+    else if (divided) out.dividers.push(xc);
   });
 }
 

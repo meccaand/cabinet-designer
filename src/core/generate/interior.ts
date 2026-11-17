@@ -18,6 +18,8 @@ export interface Bay {
 export interface Interior {
   bays: Bay[];
   levels: { y0: Mm; y1: Mm }[];
+  /** Dividers within one level (between fixed shelves), e.g. a media bridge's cubbies. */
+  levelDividers: { part: Part; y0: Mm; y1: Mm }[];
 }
 
 /**
@@ -62,7 +64,7 @@ export function buildPartitions(ctx: BuildContext, f: CarcassFrame, layout: Face
   const shelves = layout.rowDividers
     .map((gap) => (frameless ? (gap.y0 + gap.y1) / 2 - ts / 2 : gap.y1 - ts))
     .sort((a, b) => a - b)
-    .map((y, i) => {
+    .map((y, i): Part => {
       const shelf = ctx.add({
         id: `shelf/split/${i}`,
         role: 'shelfFixed',
@@ -77,24 +79,61 @@ export function buildPartitions(ctx: BuildContext, f: CarcassFrame, layout: Face
         ctx.joint(f.sides.left, shelf, 'dado', 'x', e);
         ctx.joint(f.sides.right, shelf, 'dado', 'x', e);
       }
-      return shelf.bounds;
+      return shelf;
     });
   const levels: Interior['levels'] = [];
   let y = f.bottomTop;
-  for (const b of shelves) {
-    levels.push({ y0: y, y1: b.min.y });
-    y = b.max.y;
+  for (const s of shelves) {
+    levels.push({ y0: y, y1: s.bounds.min.y });
+    y = s.bounds.max.y;
   }
   levels.push({ y0: y, y1: f.topUnderside });
   for (const l of levels) check(l.y1 - l.y0 > 0, 'Fixed shelves leave a space with no height.');
-  return { bays, levels };
+
+  // Dividers within a level: from the shelf (or bottom) below to the shelf (or top) above,
+  // housed in dados like the full-height dividers.
+  const levelDividers: Interior['levelDividers'] = layout.levelDividers.map((d, i) => {
+    const k = levels.findIndex((l) => d.y >= l.y0 - 1e-6 && d.y <= l.y1 + 1e-6);
+    check(k >= 0, 'A divider between columns lies outside the box.');
+    const level = levels[k] ?? { y0: f.bottomTop, y1: f.topUnderside };
+    const below = k === 0 ? (f.midJoint ? f.bottom : null) : shelves[k - 1];
+    const above = k === levels.length - 1 ? (f.top && f.midJoint ? f.top : null) : shelves[k];
+    const eb = below && f.midJoint ? f.engage : 0;
+    const ea = above && f.midJoint ? f.engage : 0;
+    const part = ctx.add({
+      id: `divider/level/${i}`,
+      role: 'divider',
+      name: 'Divider',
+      materialRole: 'carcass',
+      bounds: box(d.x - f.t / 2, d.x + f.t / 2, level.y0 - eb, level.y1 + ea, f.zInterior, f.Dbox),
+      lengthAxis: 'y',
+      thicknessAxis: 'x',
+      ...banding,
+    });
+    if (below && eb) ctx.joint(below, part, 'dado', 'y', eb);
+    if (above && ea) ctx.joint(above, part, 'dado', 'y', ea);
+    return { part, y0: level.y0, y1: level.y1 };
+  });
+  return { bays, levels, levelDividers };
 }
 
-function bayFor(bays: Bay[], cell: LeafCell): Bay {
+function bayFor(interior: Interior, cell: LeafCell): Bay {
   const xc = (cell.rect.x0 + cell.rect.x1) / 2;
-  const bay = bays.find((b) => xc >= b.x0 && xc <= b.x1);
+  const yc = (cell.rect.y0 + cell.rect.y1) / 2;
+  const bay = interior.bays.find((b) => xc >= b.x0 && xc <= b.x1);
   if (!bay) throw new BuildError(`Opening ${cell.path} is too narrow for the divider beside it.`);
-  return bay;
+  // Narrowed by any dividers within the cell's level.
+  let out = bay;
+  for (const d of interior.levelDividers) {
+    if (yc < d.y0 || yc > d.y1) continue;
+    const b = d.part.bounds;
+    if (b.max.x <= xc && b.max.x > out.x0) out = { ...out, x0: b.max.x, left: d.part };
+    if (b.min.x >= xc && b.min.x < out.x1) out = { ...out, x1: b.min.x, right: d.part };
+  }
+  if (xc < out.x0 || xc > out.x1) {
+    throw new BuildError(`Opening ${cell.path} is too narrow for the divider beside it.`);
+  }
+  return out;
 }
 
 /**
@@ -141,7 +180,7 @@ export function buildDrawers(
       );
       check(cell.columns.divided, `${where}: side-by-side drawers need a divider between them.`);
     }
-    const bay = bayFor(interior.bays, cell);
+    const bay = bayFor(interior, cell);
     // Slides mount on the bay walls; in a face frame they are packed out to the opening edges.
     const mountL = frameless ? bay.x0 : Math.max(bay.x0, cell.rect.x0);
     const mountR = frameless ? bay.x1 : Math.min(bay.x1, cell.rect.x1);
@@ -263,7 +302,7 @@ export function buildShelves(
       cell.leaf.fill !== 'drawer' && cell.leaf.fill !== 'falseFront',
       `Opening ${cell.path}: shelves go behind doors or in open openings, not behind drawer or false fronts.`,
     );
-    const bay = bayFor(interior.bays, cell);
+    const bay = bayFor(interior, cell);
     const { y0, y1 } = interiorSpan(interior, cell);
     const key = `${interior.bays.indexOf(bay)}:${y0}:${y1}`;
     const prev = groups.get(key);

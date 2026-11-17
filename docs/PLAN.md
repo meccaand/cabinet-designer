@@ -21,7 +21,7 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 9. L-shaped corners | ✅ Done, awaiting review |
 | 10. Style presets   | ✅ Done, awaiting review |
 | 11. Runs & datums   | ✅ Done, awaiting review |
-| 12. Niche & ends    | Planned                  |
+| 12. Niche & ends    | ✅ Done, awaiting review |
 | 13. Run trim        | Planned                  |
 | 14. Reference room  | Planned                  |
 

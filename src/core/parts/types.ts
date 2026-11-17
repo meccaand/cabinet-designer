@@ -18,6 +18,7 @@ export type PartRole =
   | 'blindPanel'
   | 'filler'
   | 'endPanel'
+  | 'endPanelFrame'
   | 'frontStile'
   | 'frontRail'
   | 'frontPanel'

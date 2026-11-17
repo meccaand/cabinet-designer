@@ -151,6 +151,12 @@ widths are measured into the corner, so the two wings share the corner square (D
   - Its height runs from the top of the toe kick (or the floor, without one) to the cabinet
     top.
   - Its note says to scribe it to fit.
+- **Framed end panels** (`endPanel.style: 'framed'`, ADR-041): a frame of solid strips,
+  `frameThickness` (1/4") thick and `frameWidth` (2 1/4") wide, glued over the panel's outside
+  face. Stiles: full height (above any toe-kick notch), at the back and front edges. Rails
+  between them at the top and bottom. Butt joints. The frame adds its thickness to the panel's
+  (the countertop's end return allows for it). A panel whose field would be under `minPanel`
+  (2") is left flat, with a warning. Strips are planed or resawn from the face-frame stock.
 
 ## Cut list, sheets and estimate
 
@@ -236,6 +242,10 @@ children share what's left equally.
   column boundary, and full interior depth.
   - Bottom: in a dado in the bottom (dado/rabbet joinery), otherwise butted.
   - Top: in a dado in a full top, otherwise butted to the stretchers.
+- **Dividers within a level** (ADR-041): a column split with `divider` directly inside a
+  top-level row split with fixed shelves. The divider runs from the shelf (or bottom) below to
+  the shelf (or top) above, housed in dados (`j` deep) when the joinery houses mid panels.
+  Shelves and drawers in those columns stop at it.
 - **Adjustable shelves**: width = bay − `widthClearance`, depth = interior depth −
   `depthSetback`. Front edge banded, `pinsPerShelf` pins each.
 - **Fixed shelves**: dadoed into the bay's sides or dividers (width = bay + 2j), full interior
@@ -289,6 +299,18 @@ built-in's style.
   - Longer than a sheet (`sheet length − 2 × edge trim`): split into the fewest pieces, every
     seam at a joint between two boxes (greedy, farthest joint first). Strips split at the same
     seams.
+- **Media niche** (an upper of kind `mediaNiche`, ADR-041): the upper box, split by a fixed
+  shelf (a top-level row split with `divider`) into a bridge above and the TV opening below.
+  - The bridge shelf's **top** is the top of the flanking bays' shelf on line `bridgeLine`
+    (1 = the top shelf). It's read from an open bay of the same size and the run's shelf count,
+    built by the generator, so they match exactly. Bridge opening height = top rail's underside
+    − that line; the face-frame rail under the bridge is flush with the shelf top.
+  - The bridge is split into `cubbies` columns with a divider between each, housed in the
+    bridge shelf and the top (see "Dividers within a level").
+  - Niche opening: the section's width × (line − rail width − top of the bottom rail). The
+    back is the box back: mount the TV through it into blocking or studs.
+  - TV check: a 16:9 TV of diagonal `d` is `d × 16/√337` wide and `d × 9/√337` high. It needs
+    1" (`TV_CLEARANCE`) all round, or the built-in shows a warning.
 
 ## Hardware
 

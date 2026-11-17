@@ -75,6 +75,7 @@ const construction: fc.Arbitrary<ConstructionOverrides> = fc.record({
     mount: fc.constantFrom('overlay', 'inset'),
     style: fc.constantFrom('slab', 'shaker'),
   }),
+  endPanel: fc.record({ style: fc.constantFrom('flat', 'framed') }),
 });
 
 const cabinets = fc

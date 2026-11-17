@@ -17,6 +17,7 @@ const FILL: Partial<Record<PartRole, Fill>> = {
   frontPanel: 'panel',
   filler: 'frame',
   endPanel: 'front',
+  endPanelFrame: 'front',
   shelfNosing: 'frame',
   countertopEdge: 'frame',
 };

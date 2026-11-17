@@ -16,7 +16,7 @@
  * - An **obstruction** reserves its width and is drawn, nothing more.
  * - 'auto' sections share what the run's length leaves, equally.
  */
-import { BuildContext, BuildError } from '../generate';
+import { BuildContext, BuildError, generateCabinet } from '../generate';
 import {
   cabinetConstruction,
   type BuiltIn,
@@ -35,6 +35,8 @@ import { buildCountertop, type CountertopSegment } from './countertop';
 
 /** The narrowest an 'auto' section may become. */
 export const MIN_AUTO_WIDTH = inch(6);
+/** Room around a TV in a media niche, each side (ADR-041). */
+export const TV_CLEARANCE = inch(1);
 
 /** Where a compiled cabinet or filler came from. */
 export interface CompiledSource {
@@ -78,6 +80,10 @@ export interface CompiledBuiltIn {
   errors: string[];
   /** Each module's place along its run (run coordinates): for the editor and drawings. */
   modules: Map<string, { x0: Mm; x1: Mm; width: Mm }>;
+  /** Things that build but may not be what's wanted (a TV that won't fit its niche). */
+  warnings: string[];
+  /** Each media niche's clear opening, by its upper box's id. */
+  niches: Map<string, { moduleId: string; width: Mm; height: Mm }>;
 }
 
 export function compileBuiltIn(project: Project, builtIn: BuiltIn): CompiledBuiltIn {
@@ -89,6 +95,8 @@ export function compileBuiltIn(project: Project, builtIn: BuiltIn): CompiledBuil
     sources: new Map(),
     errors: [],
     modules: new Map(),
+    warnings: [],
+    niches: new Map(),
   };
   const styled = { construction: {}, ...(builtIn.styleId && { styleId: builtIn.styleId }) };
   const c = cabinetConstruction(project, styled);
@@ -287,9 +295,15 @@ function compileRun(
         face: {
           kind: 'leaf',
           fill: 'open',
-          shelves: { count: m.upper.shelves ?? run.shelves, adjustable: false },
+          shelves: {
+            count: m.upper.kind === 'openBay' ? (m.upper.shelves ?? run.shelves) : run.shelves,
+            adjustable: false,
+          },
         },
       };
+      if (m.upper.kind === 'mediaNiche') {
+        upper.face = nicheFace(upper, m.upper, s.W - s.stiles.left - s.stiles.right, m);
+      }
       out.cabinets.push(upper);
       out.sources.set(upper.id, {
         builtInId: builtIn.id,
@@ -314,7 +328,10 @@ function compileRun(
     const first = inSeg[0];
     const last = inSeg.at(-1);
     if (first && last) {
-      const te = thickness(project, c, 'door');
+      // End panels, with any applied frame (ADR-041).
+      const te =
+        thickness(project, c, 'door') +
+        (c.endPanel.style === 'framed' ? c.endPanel.frameThickness : 0);
       segments.push({
         x0: quantize(first.x0 - (first.module.endPanels.left ? te : 0)),
         x1: quantize(last.x0 + last.W + (last.module.endPanels.right ? te : 0)),
@@ -366,6 +383,79 @@ function compileRun(
     });
   }
 
+  /**
+   * A media niche (ADR-041): the upper box split into a bridge of cubbies over the TV opening
+   * by a fixed shelf whose top is exactly the top of the flanking bays' shelf on the chosen
+   * line. The line is read from an open bay of the same size built by the generator itself, so
+   * the two can't disagree.
+   */
+  function nicheFace(
+    probe: Cabinet,
+    niche: Extract<SectionModule['upper'], { kind: 'mediaNiche' }>,
+    openingWidth: Mm,
+    module: SectionModule,
+  ): OpeningNode {
+    const where = module.name || 'The TV section';
+    if (run.shelves < niche.bridgeLine) {
+      throw new BuildError(
+        `${where}: the bridge lines up with shelf line ${niche.bridgeLine} from the top, but the run's bays have ${run.shelves} shelves.`,
+      );
+    }
+    const r = generateCabinet(probe, project);
+    if (!r.ok) throw new BuildError(`${where}: ${r.errors.join(' ')}`);
+    const shelfTops = r.model.parts
+      .filter((p) => p.role === 'shelfFixed')
+      .map((p) => p.bounds.max.y)
+      .sort((a, b) => b - a);
+    const line = shelfTops[niche.bridgeLine - 1];
+    const rail = (which: 'top' | 'bottom') =>
+      r.model.parts.find((p) => p.id === `${probe.id}/ff/rail/${which}`)?.bounds;
+    const top = rail('top');
+    const bottom = rail('bottom');
+    if (line === undefined || !top || !bottom) {
+      throw new BuildError(`${where}: couldn't find the shelf line for the bridge.`);
+    }
+    const bridgeHeight = quantize(top.min.y - line);
+    const nicheHeight = quantize(line - c.faceFrame.railWidth - bottom.max.y);
+    if (bridgeHeight <= 0 || nicheHeight <= 0) {
+      throw new BuildError(`${where}: no room for both the bridge and the niche.`);
+    }
+    out.niches.set(probe.id, { moduleId: module.id, width: openingWidth, height: nicheHeight });
+    if (niche.tvSize !== null) {
+      const tvW = (niche.tvSize * 16) / Math.hypot(16, 9);
+      const tvH = (niche.tvSize * 9) / Math.hypot(16, 9);
+      const needW = tvW + 2 * TV_CLEARANCE;
+      const needH = tvH + 2 * TV_CLEARANCE;
+      if (needW > openingWidth + 1e-6 || needH > nicheHeight + 1e-6) {
+        out.warnings.push(
+          `${where}: a ${f(niche.tvSize)} TV (${f(tvW)} × ${f(tvH)}) needs ${f(needW)} × ${f(needH)} with ${f(TV_CLEARANCE)} all round, but the niche is ${f(openingWidth)} × ${f(nicheHeight)}.`,
+        );
+      }
+    }
+    const open: OpeningNode = { kind: 'leaf', fill: 'open' };
+    const bridge: OpeningNode =
+      niche.cubbies === 1
+        ? open
+        : {
+            kind: 'split',
+            dir: 'columns',
+            divider: true,
+            children: Array.from({ length: niche.cubbies }, () => ({
+              size: 'auto' as const,
+              node: open,
+            })),
+          };
+    return {
+      kind: 'split',
+      dir: 'rows',
+      divider: true,
+      children: [
+        { size: bridgeHeight, node: bridge },
+        { size: 'auto', node: open },
+      ],
+    };
+  }
+
   function pilaster(id: string, width: Mm, depth: Mm, at: Mm) {
     const filler: Filler = {
       id: `${builtIn.id}/${id}`,
@@ -401,6 +491,10 @@ export interface ExpandedProject {
   obstructions: Obstruction[];
   errors: ReadonlyMap<string, string[]>;
   modules: ReadonlyMap<string, { x0: Mm; x1: Mm; width: Mm }>;
+  /** By built-in id. */
+  warnings: ReadonlyMap<string, string[]>;
+  /** Each media niche's clear opening, by module id. */
+  niches: ReadonlyMap<string, { width: Mm; height: Mm }>;
 }
 
 /**
@@ -419,14 +513,18 @@ export function expandProject(
       obstructions: [],
       errors: new Map(),
       modules: new Map(),
+      warnings: new Map(),
+      niches: new Map(),
     };
   }
   const compiled = project.builtIns.map((b) => [b, compile(project, b)] as const);
   const sources = new Map<string, CompiledSource>();
   const modules = new Map<string, { x0: Mm; x1: Mm; width: Mm }>();
+  const niches = new Map<string, { width: Mm; height: Mm }>();
   for (const [, r] of compiled) {
     r.sources.forEach((v, k) => sources.set(k, v));
     r.modules.forEach((v, k) => modules.set(k, v));
+    r.niches.forEach((v) => niches.set(v.moduleId, { width: v.width, height: v.height }));
   }
   return {
     project: {
@@ -439,5 +537,7 @@ export function expandProject(
     obstructions: compiled.flatMap(([, r]) => r.obstructions),
     errors: new Map(compiled.map(([b, r]) => [b.id, r.errors])),
     modules,
+    warnings: new Map(compiled.map(([b, r]) => [b.id, r.warnings])),
+    niches,
   };
 }

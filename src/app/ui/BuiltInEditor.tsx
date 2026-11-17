@@ -100,6 +100,11 @@ export function BuiltInEditor({
             <StyleEditor project={project} style={style} />
           </details>
         )}
+        {(built.warnings.get(builtIn.id) ?? []).map((w) => (
+          <p key={w} className={styles.hint} role="status">
+            ⚠ {w}
+          </p>
+        ))}
         {errors.length > 0 && (
           <div role="alert" className={styles.error} style={{ marginTop: 8 }}>
             {errors.map((e) => (
@@ -348,7 +353,15 @@ function ModuleRow({
           ✕
         </button>
       </div>
-      {open && <ModuleFields project={project} run={run} module={m} width={width} />}
+      {open && (
+        <ModuleFields
+          project={project}
+          run={run}
+          module={m}
+          width={width}
+          niche={built.niches.get(m.id)}
+        />
+      )}
     </li>
   );
 }
@@ -358,12 +371,14 @@ function ModuleFields({
   run,
   module: m,
   width,
+  niche,
 }: {
   project: Project;
   run: Run;
   module: RunModule;
   /** As laid out (auto sections' share). */
   width: Mm | undefined;
+  niche?: { width: Mm; height: Mm } | undefined;
 }) {
   const updateModule = useProjectStore((s) => s.updateModule);
   const units = project.units;
@@ -416,7 +431,7 @@ function ModuleFields({
       </div>
     );
   }
-  return <SectionFields project={project} run={run} module={m} width={width} />;
+  return <SectionFields project={project} run={run} module={m} width={width} niche={niche} />;
 }
 
 function SectionFields({
@@ -424,11 +439,13 @@ function SectionFields({
   run,
   module: m,
   width,
+  niche,
 }: {
   project: Project;
   run: Run;
   module: SectionModule;
   width: Mm | undefined;
+  niche: { width: Mm; height: Mm } | undefined;
 }) {
   const updateModule = useProjectStore((s) => s.updateModule);
   const units = project.units;
@@ -539,16 +556,25 @@ function SectionFields({
       <h4 className={styles.subTitle}>Above the countertop</h4>
       <Choice
         label="Upper"
-        value={m.upper ? 'openBay' : 'none'}
+        value={m.upper?.kind ?? 'none'}
         options={[
           ['openBay', 'Open shelves'],
+          ['mediaNiche', 'TV niche with a bridge above'],
           ['none', 'Nothing (base only)'],
         ]}
         onChange={(v) =>
-          set((x) => void (x.upper = v === 'none' ? null : { kind: 'openBay', shelves: null }))
+          set(
+            (x) =>
+              void (x.upper =
+                v === 'none'
+                  ? null
+                  : v === 'mediaNiche'
+                    ? { kind: 'mediaNiche', cubbies: 2, bridgeLine: 1, tvSize: null }
+                    : { kind: 'openBay', shelves: null }),
+          )
         }
       />
-      {m.upper && (
+      {m.upper?.kind === 'openBay' && (
         <>
           <label className={styles.check}>
             <input
@@ -556,7 +582,8 @@ function SectionFields({
               checked={m.upper.shelves === null}
               onChange={(e) =>
                 set((x) => {
-                  if (x.upper) x.upper.shelves = e.target.checked ? null : run.shelves;
+                  if (x.upper?.kind === 'openBay')
+                    x.upper.shelves = e.target.checked ? null : run.shelves;
                 })
               }
             />
@@ -569,10 +596,79 @@ function SectionFields({
                 value={m.upper.shelves}
                 step={1}
                 onCommit={(v) =>
-                  set((x) => void (x.upper && (x.upper.shelves = Math.min(20, Math.round(v)))))
+                  set((x) => {
+                    if (x.upper?.kind === 'openBay') x.upper.shelves = Math.min(20, Math.round(v));
+                  })
                 }
               />
             </div>
+          )}
+        </>
+      )}
+      {m.upper?.kind === 'mediaNiche' && (
+        <>
+          <div className={styles.grid}>
+            <NumberInput
+              label="Cubbies in the bridge"
+              value={m.upper.cubbies}
+              min={1}
+              step={1}
+              onCommit={(v) =>
+                set((x) => {
+                  if (x.upper?.kind === 'mediaNiche')
+                    x.upper.cubbies = Math.max(1, Math.min(6, Math.round(v)));
+                })
+              }
+            />
+            <Choice
+              label="Bridge lines up with"
+              value={String(m.upper.bridgeLine)}
+              options={Array.from(
+                { length: Math.max(1, run.shelves) },
+                (_, i): [string, string] => [
+                  String(i + 1),
+                  i === 0 ? 'The top shelf line' : `Shelf line ${i + 1} from the top`,
+                ],
+              )}
+              onChange={(v) =>
+                set((x) => {
+                  if (x.upper?.kind === 'mediaNiche') x.upper.bridgeLine = Number(v);
+                })
+              }
+            />
+          </div>
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={m.upper.tvSize !== null}
+              onChange={(e) =>
+                set((x) => {
+                  if (x.upper?.kind === 'mediaNiche')
+                    x.upper.tvSize = e.target.checked ? 1651 : null;
+                })
+              }
+            />
+            Check that a TV fits
+          </label>
+          {m.upper.tvSize !== null && (
+            <div className={styles.grid}>
+              <LengthInput
+                label="TV size (diagonal)"
+                value={m.upper.tvSize}
+                units={units}
+                onCommit={(v) =>
+                  set((x) => {
+                    if (x.upper?.kind === 'mediaNiche') x.upper.tvSize = v;
+                  })
+                }
+              />
+            </div>
+          )}
+          {niche && (
+            <p className={styles.hint}>
+              The niche opening is {formatLength(niche.width, units)} wide ×{' '}
+              {formatLength(niche.height, units)} high.
+            </p>
           )}
         </>
       )}
