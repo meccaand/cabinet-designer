@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { referenceRoom } from '../__tests__/referenceRoom';
 import { modelsOf, sample } from '../__tests__/sampleKitchen';
+import { expandProject, mouldingTotals } from '../builtin';
 import { estimate } from '../costing';
 import { buildCutList, type CutListRow } from '../cutlist';
 import { createProject, type Project } from '../model';
@@ -190,6 +192,63 @@ describe('shopping list', () => {
       '22.08',
     ]);
     expect(rows.at(-1)).toEqual(['Total', '', '', '', '', '705.19']);
+  });
+});
+
+describe('shopping list with built-ins', () => {
+  it('buys crown and base moulding by length, with their corners, before the hardware', () => {
+    const e = expandProject(referenceRoom());
+    const p = e.project;
+    const models = modelsOf(p);
+    const cutList = buildCutList(
+      p,
+      models,
+      e.assemblies.map((a) => ({ ...a, parts: a.model.parts })),
+    );
+    const est = estimate(p, cutList, [], models, {
+      hardware: e.assemblies.flatMap((a) => a.model.hardware),
+      mouldings: mouldingTotals(e.assemblies.flatMap((a) => a.mouldings)),
+    });
+    const lines = shoppingList(p, est);
+    const crown = lines.find((l) => l.item === 'Crown moulding')!;
+    expect(crown.category).toBe('Mouldings');
+    expect(crown.unit).toBe('ft');
+    expect(crown.quantity).toMatch(
+      /^[\d.]+ ft \(incl\. 20% waste\) · 1 inside corner, 1 outside corner with return$/,
+    );
+    const cats = lines.map((l) => l.category);
+    expect(cats.indexOf('Mouldings')).toBeLessThan(cats.indexOf('Hardware'));
+    expect(lines.find((l) => l.item === 'Picture light')).toMatchObject({ amount: 4 });
+    expect(lines.reduce((s, l) => s + l.cost, 0)).toBeCloseTo(est.total, 9);
+  });
+});
+
+describe('mouldings in the estimate', () => {
+  it('fall back to generic names at no cost without library items; plurals; metric', () => {
+    const p = createProject('m', 'Mouldings');
+    p.materials.hardware = p.materials.hardware.filter(
+      (h) => h.kind !== 'crownMoulding' && h.kind !== 'baseMoulding',
+    );
+    const est = estimate(p, buildCutList(p, new Map()), [], new Map(), {
+      mouldings: [
+        { kind: 'crown', length: 3048, insideMiters: 2, outsideMiters: 2 },
+        { kind: 'base', length: 1000, insideMiters: 0, outsideMiters: 0 },
+      ],
+    });
+    expect(est.mouldings.map((m) => [m.name, m.itemId, m.cost])).toEqual([
+      ['Crown moulding', null, 0],
+      ['Base moulding', null, 0],
+    ]);
+    const lines = shoppingList(p, est);
+    expect(lines.find((l) => l.item === 'Crown moulding')!.quantity).toMatch(
+      /2 inside corners, 2 outside corners with returns$/,
+    );
+    expect(lines.find((l) => l.item === 'Base moulding')!.quantity).not.toMatch(/corner/);
+    const metric = { ...p, units: { ...p.units, system: 'metric' as const } };
+    expect(shoppingList(metric, est).find((l) => l.item === 'Base moulding')).toMatchObject({
+      unit: 'm',
+      amount: 1.2,
+    });
   });
 });
 

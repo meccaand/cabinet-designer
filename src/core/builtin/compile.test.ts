@@ -187,7 +187,7 @@ describe('acceptance criteria', () => {
         expect(Math.max(...base.map((x) => x.bounds.max.y))).toBeCloseTo(h - T, 6);
         expect(cab(project, `b/${id}/upper`).placement.elevation).toBe(h);
       }
-      const top = e.assemblies[0]!.model.parts;
+      const top = e.assemblies[0]!.model.parts.filter((x) => x.role.startsWith('countertop'));
       expect(Math.max(...top.map((x) => x.bounds.max.y))).toBeCloseTo(h, 6);
       expect(
         Math.min(...top.filter((x) => x.role === 'countertop').map((x) => x.bounds.min.y)),

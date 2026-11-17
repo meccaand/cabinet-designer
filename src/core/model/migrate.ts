@@ -70,6 +70,52 @@ export const MIGRATIONS: Migrations = {
       },
     };
   },
+  // Run trim, picture lights and corner-aware runs (ADR-042).
+  5: (doc) => {
+    const builtIns = Array.isArray(doc['builtIns']) ? (doc['builtIns'] as unknown[]) : [];
+    const materials = record(doc['materials']);
+    const library = materials?.['hardware'];
+    const has = (kind: string) =>
+      Array.isArray(library) && library.some((h) => record(h)?.['kind'] === kind);
+    const extra = [
+      { id: 'picture-light', name: 'Picture light', kind: 'pictureLight', unitCost: 45 },
+      { id: 'crown', name: 'Crown moulding', kind: 'crownMoulding', unitCost: 11.5 },
+      { id: 'base-moulding', name: 'Base moulding', kind: 'baseMoulding', unitCost: 6.5 },
+    ].filter((h) => !has(h.kind));
+    return {
+      ...doc,
+      builtIns: builtIns.map((b) => {
+        const bi = record(b);
+        if (!bi) return b;
+        const runs = Array.isArray(bi['runs']) ? (bi['runs'] as unknown[]) : [];
+        return {
+          trim: {
+            crownHeight: inch(4.5),
+            crownProjection: inch(3),
+            baseMouldingHeight: inch(4.5),
+            pictureLightWidth: inch(16),
+          },
+          ...bi,
+          runs: runs.map((r) => {
+            const run = record(r);
+            if (!run || !Array.isArray(run['modules'])) return r;
+            return {
+              ...run,
+              modules: (run['modules'] as unknown[]).map((m) => {
+                const mod = record(m);
+                if (mod?.['kind'] === 'section') return { pictureLight: false, ...mod };
+                if (mod?.['kind'] === 'obstruction') return { crown: 'continue', ...mod };
+                return m;
+              }),
+            };
+          }),
+        };
+      }),
+      ...(materials &&
+        Array.isArray(library) &&
+        extra.length > 0 && { materials: { ...materials, hardware: [...library, ...extra] } }),
+    };
+  },
 };
 
 /** The value as a plain object, or undefined: migrations see unvalidated input. */

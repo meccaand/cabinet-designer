@@ -5,7 +5,7 @@ import { formatRun } from './text';
 
 export interface ShoppingLine {
   key: string;
-  category: 'Sheet goods' | 'Solid stock' | 'Edge banding' | 'Hardware';
+  category: 'Sheet goods' | 'Solid stock' | 'Edge banding' | 'Mouldings' | 'Hardware';
   item: string;
   /** For reading: "14 sheets (82% used)". */
   quantity: string;
@@ -48,6 +48,25 @@ export function shoppingList(project: Project, estimate: Estimate): ShoppingLine
       unit: imperial ? ('ft' as const) : ('m' as const),
       cost: b.cost,
     })),
+    ...estimate.mouldings.map((mo) => {
+      const miters = [
+        mo.insideMiters
+          ? `${mo.insideMiters} inside corner${mo.insideMiters === 1 ? '' : 's'}`
+          : '',
+        mo.outsideMiters
+          ? `${mo.outsideMiters} outside corner${mo.outsideMiters === 1 ? '' : 's'} with return${mo.outsideMiters === 1 ? '' : 's'}`
+          : '',
+      ].filter(Boolean);
+      return {
+        key: `moulding-${mo.kind}`,
+        category: 'Mouldings' as const,
+        item: mo.name,
+        quantity: `${formatRun(mo.length, units)} (incl. ${waste}% waste)${miters.length ? ` · ${miters.join(', ')}` : ''}`,
+        amount: imperial ? round(mo.length / 304.8, 1) : round(mo.length / 1000, 2),
+        unit: imperial ? ('ft' as const) : ('m' as const),
+        cost: mo.cost,
+      };
+    }),
     ...estimate.hardware.map((h) => ({
       key: `hardware-${h.kind}-${h.itemId}-${h.length ?? ''}`,
       category: 'Hardware' as const,

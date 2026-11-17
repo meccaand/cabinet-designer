@@ -20,6 +20,7 @@ const FILL: Partial<Record<PartRole, Fill>> = {
   endPanelFrame: 'front',
   shelfNosing: 'frame',
   countertopEdge: 'frame',
+  frieze: 'frame',
 };
 
 /** Dimension line spacing outside the cabinet, as a fraction of its larger side. */

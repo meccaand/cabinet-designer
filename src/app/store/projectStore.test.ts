@@ -399,5 +399,6 @@ function run0Section() {
     base: { groups: [{ doors: 2 as const }], shelves: 1 },
     upper: null,
     endPanels: { left: false, right: false },
+    pictureLight: false,
   };
 }

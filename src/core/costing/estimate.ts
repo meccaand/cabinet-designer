@@ -2,6 +2,7 @@
  * What to buy and roughly what it costs: sheets (from nesting), solid stock in board feet,
  * edge banding by length, and hardware.
  */
+import type { MouldingTotal } from '../builtin';
 import type { CutList } from '../cutlist';
 import type { HardwareKind, Project } from '../model';
 import type { MaterialNest } from '../nesting';
@@ -16,7 +17,24 @@ export interface Estimate {
   solids: { materialId: string; name: string; boardFeet: number; length: Mm; cost: number }[];
   banding: { bandingId: string; name: string; length: Mm; cost: number }[];
   hardware: (HardwareLine & { unitCost: number; cost: number })[];
+  /** Crown and base moulding by length (with the board-foot waste allowance), ADR-042. */
+  mouldings: {
+    kind: 'crownMoulding' | 'baseMoulding';
+    itemId: string | null;
+    name: string;
+    /** To buy: the long-point length plus waste. */
+    length: Mm;
+    insideMiters: number;
+    outsideMiters: number;
+    cost: number;
+  }[];
   total: number;
+}
+
+/** What built-ins add beyond their boxes: run hardware (picture lights) and mouldings. */
+export interface EstimateExtras {
+  hardware?: readonly HardwareLine[];
+  mouldings?: readonly MouldingTotal[];
 }
 
 const CUBIC_INCHES_PER_BOARD_FOOT = 144;
@@ -26,6 +44,7 @@ export function estimate(
   cutList: CutList,
   nests: MaterialNest[],
   models: ReadonlyMap<string, CabinetModel | null>,
+  extras: EstimateExtras = {},
 ): Estimate {
   const m = project.materials;
 
@@ -84,14 +103,16 @@ export function estimate(
 
   // Hardware across every cabinet, merged by item and (for slides) length.
   const merged = new Map<string, HardwareLine>();
-  for (const c of project.cabinets) {
-    for (const line of models.get(c.id)?.hardware ?? []) {
-      const key = `${line.kind}|${line.itemId}|${line.length ?? ''}`;
-      const prev = merged.get(key);
-      merged.set(key, prev ? { ...prev, qty: prev.qty + line.qty } : { ...line });
-    }
+  const lines = [
+    ...project.cabinets.flatMap((c) => models.get(c.id)?.hardware ?? []),
+    ...(extras.hardware ?? []),
+  ];
+  for (const line of lines) {
+    const key = `${line.kind}|${line.itemId}|${line.length ?? ''}`;
+    const prev = merged.get(key);
+    merged.set(key, prev ? { ...prev, qty: prev.qty + line.qty } : { ...line });
   }
-  const order: HardwareKind[] = ['hinge', 'slide', 'pull', 'knob', 'shelfPin'];
+  const order: HardwareKind[] = ['hinge', 'slide', 'pull', 'knob', 'shelfPin', 'pictureLight'];
   const hardware = [...merged.values()]
     .sort(
       (a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || (a.length ?? 0) - (b.length ?? 0),
@@ -101,6 +122,24 @@ export function estimate(
       return { ...line, unitCost, cost: unitCost * line.qty };
     });
 
-  const total = [...sheets, ...solids, ...banding, ...hardware].reduce((sum, x) => sum + x.cost, 0);
-  return { sheets, solids, banding, hardware, total };
+  const mouldings = (extras.mouldings ?? []).map((t) => {
+    const kind = t.kind === 'crown' ? ('crownMoulding' as const) : ('baseMoulding' as const);
+    const item = m.hardware.find((h) => h.kind === kind);
+    const length = t.length * (1 + project.shop.boardFootWaste);
+    return {
+      kind,
+      itemId: item?.id ?? null,
+      name: item?.name ?? (kind === 'crownMoulding' ? 'Crown moulding' : 'Base moulding'),
+      length,
+      insideMiters: t.insideMiters,
+      outsideMiters: t.outsideMiters,
+      cost: (length / 1000) * (item?.unitCost ?? 0),
+    };
+  });
+
+  const total = [...sheets, ...solids, ...banding, ...hardware, ...mouldings].reduce(
+    (sum, x) => sum + x.cost,
+    0,
+  );
+  return { sheets, solids, banding, hardware, mouldings, total };
 }

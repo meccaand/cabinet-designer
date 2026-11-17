@@ -17,7 +17,7 @@ export const PART_GROUPS: { id: PartGroup; label: string }[] = [
   { id: 'drawers', label: 'Drawer boxes' },
   { id: 'shelves', label: 'Shelves & dividers' },
   { id: 'platform', label: 'Toe-kick platform' },
-  { id: 'countertop', label: 'Countertop' },
+  { id: 'countertop', label: 'Countertop & trim' },
 ];
 
 const GROUP_OF: Record<PartRole, PartGroup> = {
@@ -50,6 +50,7 @@ const GROUP_OF: Record<PartRole, PartGroup> = {
   divider: 'shelves',
   countertop: 'countertop',
   countertopEdge: 'countertop',
+  frieze: 'countertop',
 };
 
 export function partGroup(role: PartRole): PartGroup {
@@ -160,6 +161,8 @@ export function explodeOffset(part: Part, cabinetWidth: number): [number, number
     case 'countertop':
     case 'countertopEdge':
       return [0, 120, 0];
+    case 'frieze':
+      return [0, 160, 0];
   }
 }
 

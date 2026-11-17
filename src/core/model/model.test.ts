@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { referenceRoom } from '../__tests__/referenceRoom';
 import { inch } from '../units';
 import {
   DEFAULT_CONSTRUCTION,
@@ -428,7 +429,9 @@ describe('loadProject / upgradeDocument', () => {
     delete hw.handleFromEdge;
     delete (v2.construction.shelves as Partial<Project['construction']['shelves']>).nosingHeight;
     delete v2.stylePresets;
-    v2.materials.hardware = v2.materials.hardware.filter((h) => h.kind !== 'knob');
+    // Knobs came in v3; picture lights and mouldings in v6.
+    const later = ['knob', 'pictureLight', 'crownMoulding', 'baseMoulding'];
+    v2.materials.hardware = v2.materials.hardware.filter((h) => !later.includes(h.kind));
     expect(loadProject(v2)).toEqual({ ok: true, value: current });
 
     // A project's own settings win over the migration's values; a knob already there stays.
@@ -462,6 +465,38 @@ describe('loadProject / upgradeDocument', () => {
     delete (v4.construction as Partial<Project['construction']>).endPanel;
     expect(loadProject(v4)).toEqual({ ok: true, value: current });
     expect(MIGRATIONS[4]!({ construction: 3 })).toEqual({ construction: 3 });
+  });
+
+  it('5 → 6: built-ins get trim, sections no picture light, openings a crown that continues', () => {
+    const current = referenceRoom();
+    const v5 = clone(current) as unknown as Record<string, unknown> & {
+      builtIns: Record<string, unknown>[];
+      materials: Project['materials'];
+    };
+    v5['schemaVersion'] = 5;
+    v5.materials.hardware = v5.materials.hardware.filter(
+      (h) => !['pictureLight', 'crownMoulding', 'baseMoulding'].includes(h.kind),
+    );
+    for (const b of v5.builtIns) {
+      delete b['trim'];
+      for (const r of b['runs'] as { modules: Record<string, unknown>[] }[]) {
+        for (const m of r.modules) {
+          delete m['pictureLight'];
+          delete m['crown'];
+        }
+      }
+    }
+    const r = loadProject(v5);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.builtIns[0]!.trim).toEqual(current.builtIns[0]!.trim);
+    expect(r.value.materials.hardware).toEqual(current.materials.hardware);
+    const modules = r.value.builtIns[0]!.runs.flatMap((x) => x.modules);
+    expect(modules.find((m) => m.kind === 'obstruction')).toMatchObject({ crown: 'continue' });
+    expect(modules.filter((m) => m.kind === 'section').every((m) => m.pictureLight === false)).toBe(
+      true,
+    );
+    expect(MIGRATIONS[5]!({ builtIns: [3] })).toMatchObject({ builtIns: [3] });
   });
 
   it('fails clearly when a migration is missing', () => {

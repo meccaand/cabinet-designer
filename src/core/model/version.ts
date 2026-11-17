@@ -6,5 +6,6 @@
  * 3: style presets, knobs and handle placement, shelf nosing (ADR-039).
  * 4: built-ins (ADR-040).
  * 5: end panel conventions (flat or framed, ADR-041).
+ * 6: run trim, picture lights, corners between runs (ADR-042).
  */
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;

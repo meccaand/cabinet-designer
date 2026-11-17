@@ -14,6 +14,7 @@ import { Dimensions } from './Dimensions';
 import { DIMENSION_OFFSET, explodeOffset, unionBounds, type DimensionLine } from './scene';
 import styles from './Viewer.module.css';
 import { ViewToolbar } from './ViewToolbar';
+import { TrimMeshes } from './TrimMeshes';
 
 interface ViewerProps {
   project: Project;
@@ -179,6 +180,12 @@ export function Viewer({
                   {a.model.parts.map((p) => (
                     <PartMesh key={p.id} part={p} ownerWidth={0} finish={finish} />
                   ))}
+                  <TrimMeshes
+                    mouldings={a.mouldings}
+                    lights={a.lights}
+                    color={finish?.kind === 'clear' ? undefined : finish?.color}
+                    lightColor={finish?.hardwareColor}
+                  />
                 </group>
               );
             })}

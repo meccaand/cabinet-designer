@@ -1,7 +1,7 @@
 import { useDeferredValue, useMemo } from 'react';
 import { estimate, type Estimate } from '../core/costing';
 import { buildCutList, type CutList } from '../core/cutlist';
-import type { ExpandedProject } from '../core/builtin';
+import { mouldingTotals, type ExpandedProject } from '../core/builtin';
 import type { Project } from '../core/model';
 import {
   guillotineNester,
@@ -62,7 +62,17 @@ export function deriveOutputs(project: Project): Outputs {
   }));
   const cutList = buildCutList(view, models, assemblies);
   const nests = nestCutList(view, cutList, nester);
-  return { project, built, cutList, nests, estimate: estimate(view, cutList, nests, models) };
+  const extras = {
+    hardware: built.assemblies.flatMap((a) => a.model.hardware),
+    mouldings: mouldingTotals(built.assemblies.flatMap((a) => a.mouldings)),
+  };
+  return {
+    project,
+    built,
+    cutList,
+    nests,
+    estimate: estimate(view, cutList, nests, models, extras),
+  };
 }
 
 /**

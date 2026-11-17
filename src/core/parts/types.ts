@@ -32,7 +32,8 @@ export type PartRole =
   | 'divider'
   // Built-in runs (ADR-040)
   | 'countertop'
-  | 'countertopEdge';
+  | 'countertopEdge'
+  | 'frieze';
 
 export interface PartSize {
   /** Along the grain (or the longer side, for grainless material). */

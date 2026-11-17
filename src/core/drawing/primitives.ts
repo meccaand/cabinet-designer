@@ -17,6 +17,8 @@ export type Fill =
   | 'hardware'
   // Space a built-in keeps clear (a fireplace): drawn, not built.
   | 'obstruction'
+  // Bought trim: crown and base moulding.
+  | 'moulding'
   // Sheet diagrams: the sheet, its trimmed factory edges, parts, and the reusable offcut.
   | 'sheet'
   | 'trim'

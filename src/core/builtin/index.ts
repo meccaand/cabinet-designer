@@ -2,6 +2,7 @@ export {
   compileBuiltIn,
   expandProject,
   MIN_AUTO_WIDTH,
+  MIN_CORNER_FILLER,
   TV_CLEARANCE,
   type Assembly,
   type CompiledBuiltIn,
@@ -10,3 +11,11 @@ export {
   type Obstruction,
 } from './compile';
 export { seams, type CountertopSegment } from './countertop';
+export {
+  mouldingBoxes,
+  mouldingLength,
+  mouldingTotals,
+  type MouldingEnd,
+  type MouldingSegment,
+  type MouldingTotal,
+} from './trim';

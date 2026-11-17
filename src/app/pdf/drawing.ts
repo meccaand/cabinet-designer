@@ -37,6 +37,7 @@ const FILLS: Record<Fill, { fill: string; stroke: string | null }> = {
   wall: { fill: '#f4f1ea', stroke: '#9a9389' },
   hardware: { fill: '#9c7a3c', stroke: '#4a3a1c' },
   obstruction: { fill: '#e6e2da', stroke: '#9a9389' },
+  moulding: { fill: '#e8dcc3', stroke: INK },
   sheet: { fill: '#f0e6d2', stroke: INK },
   trim: { fill: '#d8ccb6', stroke: INK },
   part: { fill: '#e2c99c', stroke: INK },

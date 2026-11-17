@@ -22,7 +22,7 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 | 10. Style presets   | ✅ Done, awaiting review |
 | 11. Runs & datums   | ✅ Done, awaiting review |
 | 12. Niche & ends    | ✅ Done, awaiting review |
-| 13. Run trim        | Planned                  |
+| 13. Run trim        | ✅ Done, awaiting review |
 | 14. Reference room  | Planned                  |
 
 M10–M14 add **styled built-ins** (spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md), architecture: ADR-038). A built-in is a set of wall runs of modules sharing one style preset and continuous datums. Each run compiles to ordinary cabinets plus trim, so every existing output keeps working.

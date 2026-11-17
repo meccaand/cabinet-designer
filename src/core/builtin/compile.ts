@@ -31,12 +31,17 @@ import {
 } from '../model';
 import type { CabinetModel } from '../parts';
 import { formatLength, inch, quantize, type Mm } from '../units';
+import { wallFrames } from '../layout';
+import type { Box } from '../geometry';
 import { buildCountertop, type CountertopSegment } from './countertop';
+import { buildRunTrim, type MouldingEnd, type MouldingSegment, type TrimPath } from './trim';
 
 /** The narrowest an 'auto' section may become. */
 export const MIN_AUTO_WIDTH = inch(6);
 /** Room around a TV in a media niche, each side (ADR-041). */
 export const TV_CLEARANCE = inch(1);
+/** Narrower corner fillers get a warning: doors on the two walls may hit (ADR-042). */
+export const MIN_CORNER_FILLER = inch(2);
 
 /** Where a compiled cabinet or filler came from. */
 export interface CompiledSource {
@@ -60,7 +65,11 @@ export interface Obstruction {
   depth: Mm;
 }
 
-/** Parts that belong to a run rather than one box (the countertop), in run coordinates. */
+/**
+ * What belongs to a run rather than one box, in run coordinates: the countertop, frieze and
+ * corner fillers (parts, cut), the crown and base moulding (bought, by length), and picture
+ * lights (bought, counted in `model.hardware`).
+ */
 export interface Assembly {
   id: string;
   builtInId: string;
@@ -68,6 +77,8 @@ export interface Assembly {
   wallId: string;
   offset: Mm;
   model: CabinetModel;
+  mouldings: MouldingSegment[];
+  lights: Box[];
 }
 
 export interface CompiledBuiltIn {
@@ -314,8 +325,71 @@ function compileRun(
     }
   }
 
+  // ---- Corners with the run on the adjoining wall (ADR-042) ---------------------------------
+  const runEnd = x;
+  const wallEnd = quantize(wall.length - run.offset);
+  const last = mods.length - 1;
+  const partner = {
+    left: run.ends.left === 'corner' ? cornerPartner(project, builtIn, run, 'left') : null,
+    right: run.ends.right === 'corner' ? cornerPartner(project, builtIn, run, 'right') : null,
+  };
+  /** Where the other run's face plane at `depth` crosses this run (run coordinates). */
+  const across = (side: 'left' | 'right', depth: Mm) =>
+    quantize(side === 'left' ? depth - run.offset : wallEnd - depth);
+  // End panels, with any applied frame (ADR-041).
+  const te =
+    thickness(project, c, 'door') + (c.endPanel.style === 'framed' ? c.endPanel.frameThickness : 0);
+  const boxed = (i: number) => mods[i]?.kind === 'section' || mods[i]?.kind === 'stile';
+  const endSection = (side: 'left' | 'right') => (side === 'left' ? sections[0] : sections.at(-1));
+  const fillers: { level: 'base' | 'upper'; x0: Mm; x1: Mm }[] = [];
+  for (const side of ['left', 'right'] as const) {
+    const other = partner[side];
+    if (!other || !boxed(side === 'left' ? 0 : last)) continue;
+    const here = side === 'left' ? 0 : runEnd;
+    const face = across(side, other.baseDepth);
+    const width = side === 'left' ? here - face : face - here;
+    if (width < -1e-6) {
+      throw new BuildError(
+        `its ${side} end runs into the boxes on the other wall: it must stop at least ${f(other.baseDepth)} from the corner.`,
+      );
+    }
+    if (endSection(side)?.module.endPanels[side]) {
+      throw new BuildError(`an end panel can't go at the ${side} end, in the corner.`);
+    }
+    if (width < MIN_CORNER_FILLER - 1e-6) {
+      out.warnings.push(
+        `${wall.name}: the corner filler at the ${side} end is only ${f(Math.max(0, width))}: doors on the two walls may hit. Leave at least ${f(MIN_CORNER_FILLER)}.`,
+      );
+    }
+    if (width > 1e-6) {
+      fillers.push({ level: 'base', x0: Math.min(here, face), x1: Math.max(here, face) });
+    }
+    const upperFace = across(side, other.upperDepth);
+    if (endSection(side)?.module.upper && Math.abs(upperFace - here) > 1e-6) {
+      fillers.push({
+        level: 'upper',
+        x0: Math.min(here, upperFace),
+        x1: Math.max(here, upperFace),
+      });
+    }
+  }
+  const atStart = (side: 'left' | 'right') => {
+    const s = endSection(side);
+    if (!s || !s.module.endPanels[side]) return side === 'left' ? 0 : runEnd;
+    const flush = side === 'left' ? s.x0 <= 1e-6 : s.x0 + s.W >= runEnd - 1e-6;
+    if (!flush) return side === 'left' ? 0 : runEnd;
+    return quantize(side === 'left' ? s.x0 - te : s.x0 + s.W + te);
+  };
+  const endKind = (side: 'left' | 'right'): MouldingEnd =>
+    run.ends[side] === 'open'
+      ? 'outsideCorner'
+      : run.ends[side] === 'corner'
+        ? 'insideCorner'
+        : 'square';
+
   // ---- Countertop: continuous over neighbouring sections, stopping at anything else ---------
   const segments: CountertopSegment[] = [];
+  const basePaths: TrimPath[] = [];
   let open: { first: number; last: number } | null = null;
   const close = () => {
     const seg = open;
@@ -326,30 +400,89 @@ function compileRun(
       return i >= seg.first && i <= seg.last;
     });
     const first = inSeg[0];
-    const last = inSeg.at(-1);
-    if (first && last) {
-      // End panels, with any applied frame (ADR-041).
-      const te =
-        thickness(project, c, 'door') +
-        (c.endPanel.style === 'framed' ? c.endPanel.frameThickness : 0);
-      segments.push({
-        x0: quantize(first.x0 - (first.module.endPanels.left ? te : 0)),
-        x1: quantize(last.x0 + last.W + (last.module.endPanels.right ? te : 0)),
-        exposedLeft: seg.first === 0 && run.ends.left === 'open',
-        exposedRight: seg.last === mods.length - 1 && run.ends.right === 'open',
-        joints: inSeg.slice(1).map((s) => s.x0),
-      });
-    }
+    const lastS = inSeg.at(-1);
+    if (!first || !lastS) return;
+    const x0 = quantize(first.x0 - (first.module.endPanels.left ? te : 0));
+    const x1 = quantize(lastS.x0 + lastS.W + (lastS.module.endPanels.right ? te : 0));
+    const startsRun = seg.first === 0;
+    const endsRun = seg.last === last;
+    // At a corner the earlier wall's top runs through to the wall; the later one butts into
+    // its front edge.
+    const left = startsRun && partner.left;
+    const right = endsRun && partner.right;
+    segments.push({
+      x0: left ? across('left', left.baseDepth + left.countertopOverhang) : x0,
+      x1: right ? wallEnd : x1,
+      exposedLeft: startsRun && run.ends.left === 'open',
+      exposedRight: endsRun && run.ends.right === 'open',
+      joints: inSeg.slice(1).map((s) => s.x0),
+    });
+    basePaths.push({
+      x0: left ? across('left', left.baseDepth) : x0,
+      x1: right ? across('right', right.baseDepth) : x1,
+      left: startsRun ? endKind('left') : 'square',
+      right: endsRun ? endKind('right') : 'square',
+    });
   };
   mods.forEach((m, i) => {
     if (m.kind === 'section' || m.kind === 'stile') open = { first: open?.first ?? i, last: i };
     else close();
   });
   close();
-  if (segments.length) {
+
+  // ---- Frieze and crown: along the whole run, except across obstructions that stop them ------
+  const friezePaths: (TrimPath & { returnLeft: boolean; returnRight: boolean })[] = [];
+  const crownPaths: TrimPath[] = [];
+  let from: number | null = null;
+  const closePath = (to: number) => {
+    if (from === null) return;
+    const i = from;
+    from = null;
+    const xi = out.modules.get(mods[i]?.id ?? '')?.x0 ?? 0;
+    const xj = out.modules.get(mods[to]?.id ?? '')?.x1 ?? runEnd;
+    const startsRun = i === 0;
+    const endsRun = to === last;
+    const l = startsRun ? partner.left : null;
+    const r = endsRun ? partner.right : null;
+    const left = startsRun ? endKind('left') : 'square';
+    const right = endsRun ? endKind('right') : 'square';
+    const x0 = startsRun ? atStart('left') : xi;
+    const x1 = endsRun ? atStart('right') : xj;
+    friezePaths.push({
+      x0: l ? across('left', l.upperDepth) : x0,
+      x1: r ? wallEnd : x1,
+      left,
+      right,
+      returnLeft: left === 'outsideCorner',
+      returnRight: right === 'outsideCorner',
+    });
+    crownPaths.push({
+      x0: l ? across('left', l.upperDepth) : x0,
+      x1: r ? across('right', r.upperDepth) : x1,
+      left,
+      right,
+    });
+  };
+  mods.forEach((m, i) => {
+    if (m.kind === 'obstruction' && m.crown === 'stop') closePath(i - 1);
+    else from ??= i;
+  });
+  closePath(last);
+
+  const friezeHeight = quantize(builtIn.topGap - builtIn.trim.crownHeight);
+  if (friezeHeight < -1e-6) {
+    throw new BuildError(
+      `the crown (${f(builtIn.trim.crownHeight)}) is taller than the space above the uppers (${f(builtIn.topGap)}).`,
+    );
+  }
+  const lights = sections
+    .filter((s) => s.module.pictureLight && s.module.upper)
+    .map((s) => quantize(s.x0 + s.W / 2));
+
+  if (mods.length) {
     const carrier: Cabinet = {
       id: run.id,
-      name: `${builtIn.name} countertop (${wall.name})`,
+      name: `${builtIn.name} run (${wall.name})`,
       type: 'base',
       width: Math.max(1, x),
       height: run.countertopHeight,
@@ -361,7 +494,25 @@ function compileRun(
       endPanels: { left: false, right: false },
     };
     const ctx = new BuildContext(carrier, project);
-    buildCountertop(ctx, run, segments);
+    if (segments.length) buildCountertop(ctx, run, segments);
+    const trim = buildRunTrim(ctx, {
+      run,
+      frieze: friezePaths,
+      crown: crownPaths,
+      base: basePaths,
+      topLine,
+      ceiling: wall.height,
+      friezeHeight: Math.max(0, friezeHeight),
+      crownHeight: builtIn.trim.crownHeight,
+      crownProjection: builtIn.trim.crownProjection,
+      baseMouldingHeight: builtIn.trim.baseMouldingHeight,
+      fillers,
+      baseTop: baseHeight,
+      lights,
+      lightWidth: builtIn.trim.pictureLightWidth,
+      railWidth: c.faceFrame.railWidth,
+    });
+    const lightItem = project.materials.hardware.find((h) => h.kind === 'pictureLight');
     out.assemblies.push({
       id: run.id,
       builtInId: builtIn.id,
@@ -377,9 +528,20 @@ function compileRun(
         handles: [],
         slides: [],
         adjustableShelves: 0,
-        hardware: [],
+        hardware: lights.length
+          ? [
+              {
+                kind: 'pictureLight',
+                itemId: lightItem?.id ?? null,
+                name: lightItem?.name ?? 'Picture light',
+                qty: lights.length,
+              },
+            ]
+          : [],
         warnings: ctx.warnings,
       },
+      mouldings: trim.mouldings,
+      lights: trim.lights,
     });
   }
 
@@ -474,6 +636,31 @@ function compileRun(
       level: 'pilaster',
     });
   }
+}
+
+/**
+ * The run on the adjoining wall that this run's `side` end meets round an inside corner: on the
+ * wall before (left) or after (right), in the same built-in, with its facing end set to meet.
+ */
+function cornerPartner(project: Project, builtIn: BuiltIn, run: Run, side: 'left' | 'right'): Run {
+  const frames = wallFrames(project.room);
+  const i = frames.findIndex((fr) => fr.wall.id === run.wallId);
+  const frame = frames[i];
+  const inside = side === 'left' ? frame?.startCorner : frame?.endCorner;
+  const next = inside === 'inside' ? frames[side === 'left' ? i - 1 : i + 1] : undefined;
+  if (!frame || !next) {
+    throw new BuildError(
+      `its ${side} end is set to meet the run on the next wall, but ${frame?.wall.name ?? 'its wall'} doesn't ${side === 'left' ? 'start' : 'end'} at an inside corner.`,
+    );
+  }
+  const facing = side === 'left' ? 'right' : 'left';
+  const other = builtIn.runs.find((r) => r.wallId === next.wall.id && r.ends[facing] === 'corner');
+  if (!other) {
+    throw new BuildError(
+      `its ${side} end is set to meet a run round the corner, but no run on ${next.wall.name} has its ${facing} end set to meet it.`,
+    );
+  }
+  return other;
 }
 
 function thickness(project: Project, c: ConstructionDefaults, role: 'carcass' | 'door'): Mm {

@@ -834,3 +834,56 @@ follow the step-back. The traditional style template now uses framed ends. Migra
   shortened too. The traditional style's flush plinth has no notch.
 - **The bridge shelf isn't nosed:** the face-frame rail covers its front edge.
 - **TV clearance** is fixed at 1" all round; it isn't a setting yet.
+
+## ADR-042: Run trim, picture lights and inside corners between runs
+
+**Status:** Accepted (M13). Schema version 6. Spec §3, §6, §8.
+
+**Trim belongs to the run, never to a box.** The run assembly (ADR-040) now holds, besides the
+countertop:
+
+- **Frieze boards** (cut parts) and **corner fillers** (cut parts).
+- **Crown and base moulding:** bought by length, as `MouldingSegment`s with an end type each
+  (square, inside corner, outside corner with a return).
+- **Picture lights:** counted as hardware.
+
+A built-in gets `trim` (`crownHeight`, `crownProjection`, `baseMouldingHeight`,
+`pictureLightWidth`). The frieze is `topGap − crownHeight`, so the frieze and crown always
+exactly fill the space above the uppers. Sections get `pictureLight`. Obstructions get `crown`
+(continue or stop). The crown and frieze cross a fireplace by default; the countertop and base
+moulding always stop.
+
+**Corners (dead corner with fillers, spec §6).** A run end can meet "the run round the corner".
+On the paper check, letting one run's boxes into the corner square left the other run's boxes
+standing in front of its last door. So both runs stop short of each other. Each gets a corner
+filler at base level and a corner stile at upper level, out to the other's face, and the corner
+behind is dead space. The run on the earlier wall is the one whose countertop and frieze run
+through to the wall. A run without a matching partner, or whose boxes reach into the other's,
+is an error; a filler under 2" is a warning.
+
+**Construction, chosen by Andrew:**
+
+- **Countertops butt at the corner:** the earlier wall's top runs through, and the later one
+  butts square into its front edge strip.
+- **The frieze is an applied 3/4" board**, flush with the face frames, fastened to blocking on
+  the box tops and to the wall where nothing is below. It's one board per stretch, with a note
+  past 12'.
+
+**Choices made without asking (please check):**
+
+- **Cut parts butt everywhere:** the frieze inside corner (the later board butts into the
+  earlier one's face) and the frieze return at an open end (behind the front board). Mitres are
+  only counted for the bought mouldings.
+- **Moulding lengths** are to the long points, plus the solid-stock waste allowance (20%) for
+  offcuts at the mitres. Prices are per metre in the hardware library (shown per foot in inch
+  projects). Defaults: crown $3.50/ft, base $2/ft, picture lights $45 each.
+- **Base moulding stops square at pilasters,** rather than wrapping them. The pilaster's plinth
+  and cap blocks are not drawn yet.
+- **The fireplace is assumed flush with the uppers' face** for the crown and frieze to run
+  straight across it. A chimney breast standing proud of the uppers would need outside corners
+  round it, which aren't modelled yet.
+- **The reference room's fireplace wall grew from 135" to 156"** to leave room for the corner
+  (the media wall's 18" boxes plus a 3" filler).
+
+Also fixed: the hardware library's "Used for" list was missing knobs (M10), and now has knobs,
+picture lights and the two mouldings.

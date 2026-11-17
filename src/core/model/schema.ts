@@ -72,14 +72,24 @@ export const BandingSchema = z.object({
 });
 export type Banding = z.infer<typeof BandingSchema>;
 
-export const HardwareKindSchema = z.enum(['hinge', 'slide', 'pull', 'knob', 'shelfPin']);
+export const HardwareKindSchema = z.enum([
+  'hinge',
+  'slide',
+  'pull',
+  'knob',
+  'shelfPin',
+  // Built-ins (ADR-042): picture lights each; crown and base moulding by length.
+  'pictureLight',
+  'crownMoulding',
+  'baseMoulding',
+]);
 export type HardwareKind = z.infer<typeof HardwareKindSchema>;
 
 export const HardwareItemSchema = z.object({
   id: Id,
   name: z.string().min(1),
   kind: HardwareKindSchema,
-  /** Per hinge, per slide pair, per pull or knob, per pin. */
+  /** Per hinge, per slide pair, per pull or knob, per pin, per light; mouldings per metre. */
   unitCost: Money,
 });
 export type HardwareItem = z.infer<typeof HardwareItemSchema>;
@@ -512,6 +522,8 @@ export const SectionModuleSchema = z.object({
     ])
     .nullable(),
   endPanels: z.object({ left: z.boolean(), right: z.boolean() }),
+  /** A picture light on the frieze, centred over the section. */
+  pictureLight: z.boolean(),
 });
 export type SectionModule = z.infer<typeof SectionModuleSchema>;
 
@@ -541,6 +553,9 @@ export const ObstructionModuleSchema = z.object({
   label: z.string(),
   width: PositiveLength,
   height: PositiveLength,
+  /** The crown and frieze run across it (a fireplace) or stop either side (a window to the
+   * ceiling). The countertop and base moulding always stop. */
+  crown: z.enum(['continue', 'stop']),
 });
 
 export const RunModuleSchema = z.discriminatedUnion('kind', [
@@ -550,6 +565,8 @@ export const RunModuleSchema = z.discriminatedUnion('kind', [
   ObstructionModuleSchema,
 ]);
 export type RunModule = z.infer<typeof RunModuleSchema>;
+
+const RunEndSchema = z.enum(['wall', 'open', 'corner']);
 
 export const RunSchema = z.object({
   id: Id,
@@ -570,8 +587,12 @@ export const RunSchema = z.object({
   countertopEdge: PositiveLength,
   /** Shelves in every upper bay that follows the run's lines (datum). */
   shelves: z.int().min(0).max(20),
-  /** What each end of the run meets: a wall (flush, scribed) or open room (overhang). */
-  ends: z.object({ left: z.enum(['wall', 'open']), right: z.enum(['wall', 'open']) }),
+  /**
+   * What each end of the run meets: a wall (flush, scribed), open room (overhang, returns), or
+   * the run on the next wall round an inside corner (ADR-042). At a corner, the run on the
+   * earlier wall runs through to the wall; the later one starts past it, with fillers.
+   */
+  ends: z.object({ left: RunEndSchema, right: RunEndSchema }),
   modules: z.array(RunModuleSchema),
 });
 export type Run = z.infer<typeof RunSchema>;
@@ -583,6 +604,18 @@ export const BuiltInSchema = z.object({
   styleId: Id.nullable(),
   /** Ceiling to the top of the upper boxes: room for the frieze and crown (one line, all walls). */
   topGap: NonNegLength,
+  /**
+   * Run trim (ADR-042). The frieze fills `topGap` below the crown, so it is `topGap − crown
+   * height` tall (none if 0).
+   */
+  trim: z.object({
+    crownHeight: NonNegLength,
+    /** How far the crown stands out from the frieze. */
+    crownProjection: NonNegLength,
+    /** Applied over the plinth face; 0 = none. */
+    baseMouldingHeight: NonNegLength,
+    pictureLightWidth: PositiveLength,
+  }),
   runs: z.array(RunSchema),
 });
 export type BuiltIn = z.infer<typeof BuiltInSchema>;

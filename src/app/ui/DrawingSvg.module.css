@@ -68,6 +68,10 @@
   stroke: #9a9389;
   stroke-dasharray: 40 30;
 }
+.moulding {
+  fill: #e8dcc3;
+  stroke: #5b5348;
+}
 .hardware {
   fill: #9c7a3c;
   stroke: #4a3a1c;

@@ -13,6 +13,9 @@ const GENERIC: Record<HardwareKind, string> = {
   slide: 'Drawer slide (pair)',
   pull: 'Pull',
   knob: 'Knob',
+  pictureLight: 'Picture light',
+  crownMoulding: 'Crown moulding',
+  baseMoulding: 'Base moulding',
   shelfPin: 'Shelf pin',
 };
 

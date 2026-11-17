@@ -246,7 +246,14 @@ describe('estimate edge cases', () => {
   it('counts no sheets for a material with nothing on it', () => {
     const p = createProject('e', 'Empty');
     const e = estimate(p, buildCutList(p, new Map()), [], new Map());
-    expect(e).toEqual({ sheets: [], solids: [], banding: [], hardware: [], total: 0 });
+    expect(e).toEqual({
+      sheets: [],
+      solids: [],
+      banding: [],
+      hardware: [],
+      mouldings: [],
+      total: 0,
+    });
     const ghost = {
       materialId: 'gone',
       materialName: 'Gone',

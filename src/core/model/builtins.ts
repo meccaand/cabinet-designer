@@ -9,7 +9,21 @@ import type { BuiltIn, Run, RunModule, SectionModule, Wall } from './schema';
 export const DEFAULT_TOP_GAP = inch(10);
 
 export function createBuiltIn(id: string, name: string, styleId: string | null): BuiltIn {
-  return { id, name, styleId, topGap: DEFAULT_TOP_GAP, runs: [] };
+  return {
+    id,
+    name,
+    styleId,
+    topGap: DEFAULT_TOP_GAP,
+    // Spec §3: a 4 1/2" cove crown (leaving a 5 1/2" frieze), base moulding the plinth's height,
+    // 16" picture lights.
+    trim: {
+      crownHeight: inch(4.5),
+      crownProjection: inch(3),
+      baseMouldingHeight: inch(4.5),
+      pictureLightWidth: inch(16),
+    },
+    runs: [],
+  };
 }
 
 /** A run along `wall` from `offset` to the wall's end, with the spec's datums and no modules. */
@@ -52,6 +66,7 @@ export function createModule(id: string, template: ModuleTemplate, name = ''): R
     base: { groups: [{ doors: 2 }], shelves: 1 },
     upper: { kind: 'openBay', shelves: null },
     endPanels: { left: false, right: false },
+    pictureLight: false,
     ...over,
   });
   switch (template) {
@@ -65,7 +80,11 @@ export function createModule(id: string, template: ModuleTemplate, name = ''): R
         upper: { kind: 'mediaNiche', cubbies: 2, bridgeLine: 1, tvSize: inch(65) },
       });
     case 'tower':
-      return section({ name: name || 'Tower', endPanels: { left: true, right: false } });
+      return section({
+        name: name || 'Tower',
+        endPanels: { left: true, right: false },
+        pictureLight: true,
+      });
     case 'baseOnly':
       return section({ name: name || 'Base', upper: null });
     case 'stile':
@@ -79,6 +98,7 @@ export function createModule(id: string, template: ModuleTemplate, name = ''): R
         label: name || 'Fireplace',
         width: inch(60),
         height: inch(54),
+        crown: 'continue',
       };
   }
 }

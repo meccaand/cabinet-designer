@@ -20,6 +20,12 @@ import { LengthInput } from './LengthInput';
 import { NumberInput } from './NumberInput';
 import { StyleEditor } from './StyleSection';
 
+const END_OPTIONS: [Run['ends']['left'], string][] = [
+  ['wall', 'A wall'],
+  ['open', 'The room'],
+  ['corner', 'The run round the corner'],
+];
+
 const KIND_NAMES: Record<RunModule['kind'], string> = {
   section: 'Section',
   stile: 'Stile',
@@ -91,8 +97,40 @@ export function BuiltInEditor({
             onCommit={(topGap) => updateBuiltIn(builtIn.id, (b) => void (b.topGap = topGap))}
           />
         </div>
+        <div className={styles.grid} style={{ marginTop: 8 }}>
+          <LengthInput
+            label="Crown height"
+            value={builtIn.trim.crownHeight}
+            units={units}
+            allowZero
+            onCommit={(v) => updateBuiltIn(builtIn.id, (b) => void (b.trim.crownHeight = v))}
+          />
+          <LengthInput
+            label="Crown projection"
+            value={builtIn.trim.crownProjection}
+            units={units}
+            allowZero
+            onCommit={(v) => updateBuiltIn(builtIn.id, (b) => void (b.trim.crownProjection = v))}
+          />
+          <LengthInput
+            label="Base moulding height"
+            value={builtIn.trim.baseMouldingHeight}
+            units={units}
+            allowZero
+            onCommit={(v) => updateBuiltIn(builtIn.id, (b) => void (b.trim.baseMouldingHeight = v))}
+          />
+          <LengthInput
+            label="Picture light width"
+            value={builtIn.trim.pictureLightWidth}
+            units={units}
+            onCommit={(v) => updateBuiltIn(builtIn.id, (b) => void (b.trim.pictureLightWidth = v))}
+          />
+        </div>
         <p className={styles.hint}>
-          One line round the room: room for the frieze and crown above the upper bays.
+          One line round the room above the upper bays: a frieze{' '}
+          {formatLength(Math.max(0, builtIn.topGap - builtIn.trim.crownHeight), units)} tall under
+          the crown. Crown and base moulding are bought by length; they run round corners and return
+          at open ends.
         </p>
         {style && (
           <details className={styles.styleDetails}>
@@ -223,19 +261,13 @@ function RunEditor({
         <Choice
           label="Left end meets"
           value={run.ends.left}
-          options={[
-            ['wall', 'A wall'],
-            ['open', 'The room'],
-          ]}
+          options={END_OPTIONS}
           onChange={(v) => set((r) => void (r.ends.left = v))}
         />
         <Choice
           label="Right end meets"
           value={run.ends.right}
-          options={[
-            ['wall', 'A wall'],
-            ['open', 'The room'],
-          ]}
+          options={END_OPTIONS}
           onChange={(v) => set((r) => void (r.ends.right = v))}
         />
       </div>
@@ -425,8 +457,17 @@ function ModuleFields({
         {length('Opening height', m.height, (v) =>
           set((x) => void (x.kind === 'obstruction' && (x.height = v))),
         )}
+        <Choice
+          label="Crown and frieze"
+          value={m.crown}
+          options={[
+            ['continue', 'Run across it'],
+            ['stop', 'Stop either side'],
+          ]}
+          onChange={(v) => set((x) => void (x.kind === 'obstruction' && (x.crown = v)))}
+        />
         <p className={styles.hint} style={{ gridColumn: '1 / -1' }}>
-          Kept clear and drawn; the countertop and plinth stop at it.
+          Kept clear and drawn; the countertop and base moulding stop at it.
         </p>
       </div>
     );
@@ -671,6 +712,17 @@ function SectionFields({
             </p>
           )}
         </>
+      )}
+
+      {m.upper && (
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={m.pictureLight}
+            onChange={(e) => set((x) => void (x.pictureLight = e.target.checked))}
+          />
+          Picture light on the frieze above
+        </label>
       )}
 
       <h4 className={styles.subTitle}>Finished ends</h4>

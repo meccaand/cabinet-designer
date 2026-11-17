@@ -319,14 +319,29 @@ function Library({ project, imperial }: { project: Project; imperial: boolean })
               <option value="hinge">Hinges</option>
               <option value="slide">Drawer slides (pair)</option>
               <option value="pull">Pulls</option>
+              <option value="knob">Knobs</option>
               <option value="shelfPin">Shelf pins</option>
+              <option value="pictureLight">Picture lights</option>
+              <option value="crownMoulding">Crown moulding</option>
+              <option value="baseMoulding">Base moulding</option>
             </select>
           </div>
-          <NumberInput
-            label="Price each"
-            value={h.unitCost}
-            onCommit={(v) => edit('hardware', h.id, (x) => void (x.unitCost = v))}
-          />
+          {h.kind === 'crownMoulding' || h.kind === 'baseMoulding' ? (
+            // Stored per metre; shown per foot in inch projects.
+            <NumberInput
+              label={imperial ? 'Price per foot' : 'Price per metre'}
+              value={imperial ? h.unitCost * 0.3048 : h.unitCost}
+              onCommit={(v) =>
+                edit('hardware', h.id, (x) => void (x.unitCost = imperial ? v / 0.3048 : v))
+              }
+            />
+          ) : (
+            <NumberInput
+              label="Price each"
+              value={h.unitCost}
+              onCommit={(v) => edit('hardware', h.id, (x) => void (x.unitCost = v))}
+            />
+          )}
           <RemoveButton name={h.name} onClick={() => onRemove(h.id, h.name)} />
         </div>
       ))}

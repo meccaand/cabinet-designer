@@ -77,8 +77,12 @@ export const DEFAULT_MATERIALS: MaterialLibrary = {
     { id: 'slide-side', name: 'Side-mount slide (pair)', kind: 'slide', unitCost: 12 },
     { id: 'pull', name: 'Pull', kind: 'pull', unitCost: 5 },
     { id: 'shelf-pin-5', name: 'Shelf pin, 5 mm', kind: 'shelfPin', unitCost: 0.1 },
-    // Last, where the 2 → 3 migration adds it to older projects.
+    // Last, where the 2 → 3 and 5 → 6 migrations add them to older projects.
     { id: 'knob', name: 'Knob', kind: 'knob', unitCost: 6 },
+    { id: 'picture-light', name: 'Picture light', kind: 'pictureLight', unitCost: 45 },
+    // Per metre: $3.50 and $2 a foot.
+    { id: 'crown', name: 'Crown moulding', kind: 'crownMoulding', unitCost: 11.5 },
+    { id: 'base-moulding', name: 'Base moulding', kind: 'baseMoulding', unitCost: 6.5 },
   ],
 };
 

@@ -311,6 +311,30 @@ built-in's style.
     back is the box back: mount the TV through it into blocking or studs.
   - TV check: a 16:9 TV of diagonal `d` is `d × 16/√337` wide and `d × 9/√337` high. It needs
     1" (`TV_CLEARANCE`) all round, or the built-in shows a warning.
+- **Run trim** (ADR-042). `zU` = upper depth, `tf` = face-frame stock thickness, top line =
+  ceiling − `topGap`.
+  - **Frieze:** `tf` boards, `topGap − crownHeight` tall, from the top line up, face flush with
+    the uppers' face frames (`zU`). Across every module except an opening set to stop the crown.
+    At an end meeting the room, from the outside of the end panel (and frame), with a return
+    board along the end to the wall, butted behind the front board.
+  - **Crown** (bought): on the frieze face, `crownHeight` up to the ceiling, standing out
+    `crownProjection`, along the same path. **Base moulding** (bought): on the plinth/face-frame
+    face (`baseDepth`), `baseMouldingHeight` tall, along each stretch of sections, stopping
+    square at pilasters and openings, returned at an end meeting the room.
+  - Lengths to buy are to the long points: the face run, plus the projection at each mitred end,
+    plus an outside corner's return (face depth + projection), plus the waste allowance.
+  - **Picture lights:** centred over each section that asks, on the middle of the frieze (or the
+    top rail when there's no frieze).
+- **Inside corners between runs** (`ends: 'corner'`, ADR-042). The run on the earlier wall
+  (its right end) and the run on the later wall (its left end) each stop short of the other's
+  boxes. Each closes the gap with a **corner filler** (face-frame stock, floor to box top, in its
+  base face plane) out to the other run's base face, and a **corner stile** (countertop to top
+  line, in its upper face plane) out to the other's upper face. The corner behind is dead space.
+  - The earlier wall's countertop and frieze run through to the wall; the later wall's
+    countertop butts into the earlier one's front edge (`baseDepth + overhang` from that wall),
+    and its frieze into the earlier frieze's face.
+  - The crowns and base mouldings meet in one inside mitre at the faces.
+  - A filler narrower than 2" draws a warning: doors on the two walls may hit.
 
 ## Hardware
 

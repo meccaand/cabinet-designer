@@ -1,4 +1,4 @@
-import type { Assembly, Obstruction } from '../builtin';
+import { mouldingBoxes, type Assembly, type Obstruction } from '../builtin';
 import { fillerPart, layoutItems, wallFrames, type LayoutItem } from '../layout';
 import type { Project } from '../model';
 import type { CabinetModel } from '../parts';
@@ -66,9 +66,33 @@ export function wallElevation(
     }
   }
 
-  // Run parts (countertops) in front of the boxes they sit on.
+  // Run parts (countertops, frieze, corner fillers) in front of the boxes they sit on, then
+  // the mouldings and picture lights on them.
   for (const a of extras.assemblies ?? []) {
-    if (a.wallId === wallId) prims.push(...partRects(a.model, a.offset, 0));
+    if (a.wallId !== wallId) continue;
+    prims.push(...partRects(a.model, a.offset, 0));
+    for (const m of a.mouldings) {
+      const b = mouldingBoxes(m)[0];
+      if (!b) continue;
+      prims.push({
+        kind: 'rect',
+        x: a.offset + b.min.x,
+        y: b.min.y,
+        w: b.max.x - b.min.x,
+        h: b.max.y - b.min.y,
+        fill: 'moulding',
+      });
+    }
+    for (const l of a.lights) {
+      prims.push({
+        kind: 'rect',
+        x: a.offset + l.min.x,
+        y: l.min.y,
+        w: l.max.x - l.min.x,
+        h: l.max.y - l.min.y,
+        fill: 'hardware',
+      });
+    }
   }
 
   const chain = (level: LayoutItem[], y: Mm, dir: 1 | -1) => {

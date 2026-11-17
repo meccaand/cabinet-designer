@@ -107,6 +107,33 @@ test('acceptance #2: the countertop height moves the bases, the uppers and the t
   await expect.poll(async () => (await upper.boundingBox())?.height).toBeCloseTo(before!.height, 0);
 });
 
+test('acceptance #4: crown runs across the fireplace and mitres at the corner', async ({
+  page,
+}) => {
+  await openReferenceRoom(page);
+  const crown = () =>
+    main(page)
+      .getByRole('row')
+      .filter({ hasText: /^Crown moulding/ });
+  await page.getByRole('tab', { name: 'Materials & cost' }).click();
+  await expect(crown()).toContainText('1 inside corner, 1 outside corner with return');
+  await expect(
+    main(page)
+      .getByRole('row')
+      .filter({ hasText: /^Picture light/ }),
+  ).toContainText('4');
+  const across = Number((await crown().textContent())!.match(/([\d.]+) ft/)![1]);
+
+  // Stop the crown at the fireplace: there is less of it.
+  const fireRun = editor(page).getByRole('region', { name: 'Run on Fireplace wall' });
+  await fireRun.getByRole('button', { name: /^Fireplace \+ chimney breast ·/ }).click();
+  await fireRun.getByLabel('Crown and frieze').selectOption('stop');
+  await page.getByRole('tab', { name: 'Materials & cost' }).click();
+  await expect
+    .poll(async () => Number((await crown().textContent())!.match(/([\d.]+) ft/)![1]))
+    .toBeLessThan(across);
+});
+
 test('a built-in starts from an empty wall in a few steps; problems are shown', async ({
   page,
 }) => {
