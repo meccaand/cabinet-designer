@@ -7,5 +7,6 @@
  * 4: built-ins (ADR-040).
  * 5: end panel conventions (flat or framed, ADR-041).
  * 6: run trim, picture lights, corners between runs (ADR-042).
+ * 7: corner treatments: blind base, wrap-around shelves (ADR-044).
  */
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;

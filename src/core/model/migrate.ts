@@ -116,6 +116,15 @@ export const MIGRATIONS: Migrations = {
         extra.length > 0 && { materials: { ...materials, hardware: [...library, ...extra] } }),
     };
   },
+  // Corner treatments (ADR-044): every corner so far was a dead corner, which is what no entry
+  // means.
+  6: (doc) => ({
+    ...doc,
+    builtIns: (Array.isArray(doc['builtIns']) ? (doc['builtIns'] as unknown[]) : []).map((b) => {
+      const bi = record(b);
+      return bi ? { corners: [], ...bi } : b;
+    }),
+  }),
 };
 
 /** The value as a plain object, or undefined: migrations see unvalidated input. */

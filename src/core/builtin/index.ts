@@ -21,6 +21,15 @@ export {
 } from './trim';
 export {
   CORNER_FILLER,
+  cornerAt,
+  cornerRuns,
+  DEAD_CORNER,
+  NEW_CORNER,
+  ownsBlindBase,
+  setCorner,
+  type CornerSettings,
+} from './corners';
+export {
   fitRun,
   hingeTowardsEnd,
   layoutModules,

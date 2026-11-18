@@ -179,10 +179,13 @@ test('acceptance #1: both reference walls from presets, in under 10 actions each
   expect(actions).toBeLessThanOrEqual(10);
   await expect(fire.getByLabel('Group 1 hinged')).toHaveValue('right');
 
-  // Media wall: it meets the fireplace wall round the corner by itself.
+  // Media wall: it meets the fireplace wall round the corner by itself, with a blind base and
+  // wrap-around shelves; the spec's room has a dead corner.
   actions = 0;
   await act(() => editor(page).getByLabel('Add a run').selectOption({ label: 'Media wall' }));
   await act(() => mediaRun(page).getByLabel('Lay out the wall').selectOption('media'));
+  await act(() => mediaRun(page).getByLabel('Left corner base').selectOption('dead'));
+  await act(() => mediaRun(page).getByLabel('Left corner uppers').selectOption('dead'));
   expect(actions).toBeLessThanOrEqual(10);
 
   await expect(editor(page).getByRole('alert')).toHaveCount(0);
@@ -190,6 +193,41 @@ test('acceptance #1: both reference walls from presets, in under 10 actions each
   expect(built.length).toBeGreaterThan(50);
   await openReferenceRoom(page);
   expect(built).toEqual(await cutRows(page));
+});
+
+test('a corner gets a blind base and wrap-around shelves, set from either run', async ({
+  page,
+}) => {
+  await openReferenceRoom(page);
+  const fireRun = editor(page).getByRole('region', { name: 'Run on Fireplace wall' });
+  await fireRun.getByLabel('Right corner base').selectOption('blind');
+  await fireRun.getByLabel('Right corner uppers').selectOption('wrap');
+  await expect(editor(page).getByRole('alert')).toHaveCount(0);
+  // The media run shows the same corner, and which run's box takes it.
+  await expect(mediaRun(page).getByLabel('Left corner base')).toHaveValue('blind');
+  await expect(mediaRun(page).getByLabel('Left corner uppers')).toHaveValue('wrap');
+  await expect(mediaRun(page).getByLabel('Left corner blind box in')).toHaveValue('theirs');
+  // The fireplace run now runs up to the media run's face.
+  await expect(fireRun.getByLabel('Run length', { exact: true })).toHaveValue('126"');
+
+  expect(await qty(page, /^\d+Face frame blind stile/)).toBe(1);
+  expect(await qty(page, /^\d+Fixed shelf \(run\)/)).toBe(4);
+  // Picking the corner shelves in a view opens the bay they start from.
+  await page.getByRole('tab', { name: 'Elevation', exact: true }).click();
+  await page.locator('#elevation-wall').selectOption({ label: 'Fireplace wall' });
+  await main(page)
+    .getByRole('button', {
+      name: 'Living room built-ins · Corner shelves (Right tower + Left bay) on elevation',
+    })
+    .click();
+  await expect(
+    fireRun.getByRole('button', { name: /^Right tower ·/, expanded: true }),
+  ).toBeVisible();
+
+  // Back to a dead corner.
+  await mediaRun(page).getByLabel('Left corner base').selectOption('dead');
+  await expect(fireRun.getByLabel('Run length', { exact: true })).toHaveValue('123"');
+  expect(await qty(page, /^\d+Face frame blind stile/)).toBe(0);
 });
 
 test('a built-in starts from an empty wall in a few steps; problems are shown', async ({

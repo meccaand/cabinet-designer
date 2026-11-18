@@ -280,6 +280,9 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
   const fc = c.fronts;
   const ff = c.faceFrame;
   const doors = face.fill === 'door';
+  /** A wing's stile at its outer end: the convention, or what a built-in run sets (ADR-044). */
+  const endStile = (w: Wing) =>
+    (w.owner ? cabinet.stiles?.left : cabinet.stiles?.right) ?? ff.stileWidth;
   /** The face of a wing in its own coordinates: the door zone (frameless) or the opening. */
   const opening = (w: Wing): Rect => {
     if (frameless) {
@@ -293,7 +296,7 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
       };
     }
     return {
-      x0: ff.stileWidth,
+      x0: endStile(w),
       x1: w.L - w.otherD - ff.stileWidth,
       y0: y0 + ff.railWidth,
       y1: y1 - ff.railWidth,
@@ -322,7 +325,8 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
           thicknessAxis: 'z',
           ...(notes && { notes }),
         });
-      member('ff/stile/end', 'Face frame stile', 'ffStile', { x0: -oh, x1: fsw, y0, y1 });
+      const es = endStile(w);
+      member('ff/stile/end', 'Face frame stile', 'ffStile', { x0: -oh, x1: es, y0, y1 });
       member(
         'ff/stile/corner',
         w.owner ? 'Face frame corner stile (run)' : 'Face frame corner stile',
@@ -333,13 +337,13 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
           : undefined,
       );
       member('ff/rail/top', 'Face frame top rail', 'ffRail', {
-        x0: fsw,
+        x0: es,
         x1: cornerStile,
         y0: y1 - rw,
         y1,
       });
       member('ff/rail/bottom', 'Face frame bottom rail', 'ffRail', {
-        x0: fsw,
+        x0: es,
         x1: cornerStile,
         y0,
         y1: y0 + rw,
@@ -403,22 +407,34 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
   };
 
   // ---- Fixed shelves, two pieces each -------------------------------------------------------
-  if (shelfCount > 0 && c.shelves.nosingHeight > 0 && face.fill === 'open') {
-    ctx.warnings.push('Shelf nosing is not made for L-shaped shelves yet: add it by hand.');
-  }
+  // Spaced within the opening, as on every other cabinet, so they line up with neighbours'.
   if (shelfCount > 0) {
     const ts = ctx.thickness('shelf');
-    const pitch = (topUnderside - bottomTop) / (shelfCount + 1);
+    const o = opening(run);
+    const sy0 = Math.max(bottomTop, o.y0);
+    const sy1 = Math.min(topUnderside, o.y1);
+    const pitch = (sy1 - sy0) / (shelfCount + 1);
     check(pitch > ts, 'Too many shelves for the height.');
     const se = housed ? e : 0;
-    const runFront = frontInner(run);
+    // Open shelves can carry a solid nosing (ADR-039). The run's nosing runs on across the
+    // return shelf's front edge; the return's nosing butts into its face.
+    const nosing =
+      face.fill === 'open' && c.shelves.nosingHeight > 0
+        ? { h: c.shelves.nosingHeight, t: ctx.thickness('faceFrame') }
+        : null;
+    check(
+      !nosing || nosing.h >= ts - 1e-6,
+      'Shelf nosing must be at least as tall as the shelves are thick.',
+    );
+    const shelfFront = (w: Wing) => (nosing ? quantize(frontInner(w) - nosing.t) : frontInner(w));
     for (let i = 1; i <= shelfCount; i++) {
-      const yc = bottomTop + pitch * i;
+      const yc = sy0 + pitch * i;
       for (const [w, built] of [
         [run, a],
         [ret, b],
       ] as const) {
         inWing(w, () => {
+          const other = w.owner ? ret : run;
           const shelf = ctx.add({
             id: `shelf/${i}`,
             role: 'shelfFixed',
@@ -426,18 +442,44 @@ export function buildCorner(ctx: BuildContext): CabinetModel {
             materialRole: 'shelf',
             bounds: box(
               t - se,
-              w.owner ? w.L - zBackInner : w.L - runFront,
+              w.owner ? w.L - zBackInner : w.L - shelfFront(run),
               yc - ts / 2,
               yc + ts / 2,
               zBackInner,
-              frontInner(w),
+              shelfFront(w),
             ),
             lengthAxis: 'x',
             thicknessAxis: 'y',
             notes: [seam('shelf')],
-            banding: { role: 'carcassBanding', edges: ['long1'] },
+            ...(!nosing && {
+              banding: { role: 'carcassBanding' as const, edges: ['long1' as const] },
+            }),
           });
           if (housed) ctx.joint(built.side, shelf, 'dado', 'x', se);
+          if (!nosing) return;
+          const top = yc + ts / 2;
+          ctx.add({
+            id: `shelf/${i}/nosing`,
+            role: 'shelfNosing',
+            name: 'Shelf nosing' + piece(w),
+            materialRole: 'faceFrame',
+            bounds: box(
+              t,
+              w.owner ? w.L - shelfFront(other) : w.L - frontInner(other),
+              quantize(top - nosing.h),
+              top,
+              shelfFront(w),
+              frontInner(w),
+            ),
+            lengthAxis: 'x',
+            thicknessAxis: 'z',
+            notes: [
+              'Glue to the front edge of the shelf, top edges flush.',
+              w.owner
+                ? "Runs on across the end of the return shelf's nosing."
+                : "Butts into the face of the run shelf's nosing at the corner.",
+            ],
+          });
         });
       }
     }

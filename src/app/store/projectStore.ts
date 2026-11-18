@@ -32,7 +32,13 @@ import {
   type Wall,
 } from '../../core/model';
 import { inch, quantize, type Mm } from '../../core/units';
-import { fitRun, layoutModules, type RunLayout } from '../../core/builtin';
+import {
+  fitRun,
+  layoutModules,
+  setCorner,
+  type CornerSettings,
+  type RunLayout,
+} from '../../core/builtin';
 import { projectLayout } from '../models';
 import { createSampleProject } from '../sample';
 
@@ -115,6 +121,8 @@ export interface ProjectState {
   deleteModule: (moduleId: string) => void;
   /** Replaces a run's modules with a whole-wall layout (ADR-043). */
   layOutRun: (runId: string, layout: RunLayout) => void;
+  /** Sets how the corner at the start of `wallId` is built, refitting its two runs (ADR-044). */
+  setCorner: (builtInId: string, wallId: string, patch: Partial<CornerSettings>) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -551,6 +559,11 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       edit((p) => {
         const r = p.builtIns.flatMap((b) => b.runs).find((x) => x.id === runId);
         if (r) r.modules = layoutModules(layout, r, () => crypto.randomUUID());
+      }),
+    setCorner: (builtInId, wallId, patch) =>
+      edit((p) => {
+        const b = p.builtIns.find((x) => x.id === builtInId);
+        if (b) setCorner(p, b, wallId, patch);
       }),
     deleteModule: (moduleId) =>
       edit((p) => {

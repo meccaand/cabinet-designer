@@ -8,22 +8,23 @@ Repo: `~/Desktop/Andrew/Code/cabinet-designer`, private remote `meccaand/cabinet
 
 ## Status
 
-| Milestone           | State                    |
-| ------------------- | ------------------------ |
-| 1. Foundation       | ✅ Done                  |
-| 2. Core engine      | ✅ Done                  |
-| 3. 3D viewer        | ✅ Done                  |
-| 4. Cabinet editor   | ✅ Done                  |
-| 5. Project layout   | ✅ Done                  |
-| 6. Outputs          | ✅ Done                  |
-| 7. Export & polish  | ✅ Done                  |
-| 8. Hardening        | ✅ Done                  |
-| 9. L-shaped corners | ✅ Done, awaiting review |
-| 10. Style presets   | ✅ Done, awaiting review |
-| 11. Runs & datums   | ✅ Done, awaiting review |
-| 12. Niche & ends    | ✅ Done, awaiting review |
-| 13. Run trim        | ✅ Done, awaiting review |
-| 14. Reference room  | ✅ Done, awaiting review |
+| Milestone            | State                    |
+| -------------------- | ------------------------ |
+| 1. Foundation        | ✅ Done                  |
+| 2. Core engine       | ✅ Done                  |
+| 3. 3D viewer         | ✅ Done                  |
+| 4. Cabinet editor    | ✅ Done                  |
+| 5. Project layout    | ✅ Done                  |
+| 6. Outputs           | ✅ Done                  |
+| 7. Export & polish   | ✅ Done                  |
+| 8. Hardening         | ✅ Done                  |
+| 9. L-shaped corners  | ✅ Done, awaiting review |
+| 10. Style presets    | ✅ Done, awaiting review |
+| 11. Runs & datums    | ✅ Done, awaiting review |
+| 12. Niche & ends     | ✅ Done, awaiting review |
+| 13. Run trim         | ✅ Done, awaiting review |
+| 14. Reference room   | ✅ Done, awaiting review |
+| 15. Built-in corners | ✅ Done, awaiting review |
 
 M10–M14 add **styled built-ins** (spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md), architecture: ADR-038). A built-in is a set of wall runs of modules sharing one style preset and continuous datums. Each run compiles to ordinary cabinets plus trim, so every existing output keeps working.
 
@@ -34,6 +35,8 @@ M10–M14 add **styled built-ins** (spec: [BUILTIN-SPEC.md](BUILTIN-SPEC.md), ar
 | 12  | Media niche & finished ends | Niche + bridge cubbies (bridge bottom = top shelf line), TV clearance check, recessed-panel end panels following the step-back                                                                                            | —                    |
 | 13  | Run trim & corners          | Crown, frieze, base moulding, countertop: continuous, continue/stop at obstructions, miter at inside corners, return at exposed ends; blind dead corner; picture lights; LF + miter/return counts in the BOM, CSV and PDF | #4                   |
 | 14  | Reference room & polish     | "Traditional painted built-in" template and quick-add, elevation polish, e2e rebuilding both reference walls in ≤10 actions each, golden cut lists for review                                                             | #1                   |
+
+M15 adds **corner treatments** between two runs of a built-in (ADR-044), at Andrew's request: a blind corner base (one run's end box carries on into the corner) and wrap-around open shelves (one L of shelves through the corner), chosen per corner, besides M13's dead corner. Schema v7.
 
 M9 adds an L-shaped base and L-shaped open shelving for inside corners (ADR-037).
 

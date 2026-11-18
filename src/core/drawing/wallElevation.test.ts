@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { referenceRoom } from '../__tests__/referenceRoom';
-import { expandProject } from '../builtin';
+import { expandProject, setCorner } from '../builtin';
 import { createCabinet, generateCabinet } from '../generate';
 import { createProject, type Cabinet } from '../model';
 import type { CabinetModel } from '../parts';
@@ -132,5 +132,21 @@ describe('wallElevation with built-ins', () => {
     expect(fire).toEqual(expect.arrayContaining(['30"', '6"', '60"', '18"']));
     const plain = wallElevation(e.project, 'media', models);
     expect(wallElevation(e.project, 'media', models, e).bounds.y0).toBeLessThan(plain.bounds.y0);
+  });
+
+  it("dimensions the boxes on the floor, not a wrap-around corner's return standing over one", () => {
+    const p = referenceRoom();
+    setCorner(p, p.builtIns[0]!, 'media', { upper: 'wrap' });
+    const e = expandProject(p);
+    const models = new Map(
+      e.project.cabinets.map((c) => {
+        const r = generateCabinet(c, e.project);
+        return [c.id, r.ok ? r.model : null] as const;
+      }),
+    );
+    const media = texts(wallElevation(e.project, 'media', models, e));
+    // 21" to the left bay's 34 1/2" box; the corner shelves' 55 1/2" return isn't chained.
+    expect(media).toEqual(expect.arrayContaining(['21"', '34 1/2"', '69"']));
+    expect(media).not.toContain('55 1/2"');
   });
 });

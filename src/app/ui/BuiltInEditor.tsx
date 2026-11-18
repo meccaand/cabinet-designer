@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import {
+  cornerAt,
   hingeTowardsEnd,
   RUN_LAYOUTS,
   setRunEnd,
   setRunOffset,
+  type CornerSettings,
   type ExpandedProject,
   type RunLayout,
 } from '../../core/builtin';
+import { wallFrames } from '../../core/layout';
 import {
   MODULE_TEMPLATES,
   resolveConstruction,
@@ -197,6 +200,68 @@ export function BuiltInEditor({
   );
 }
 
+/**
+ * How a run's end meets the run round the corner (ADR-044). Both runs show the same corner;
+ * a change refits them.
+ */
+function CornerFields({
+  project,
+  builtIn,
+  run,
+  side,
+}: {
+  project: Project;
+  builtIn: BuiltIn;
+  run: Run;
+  side: 'left' | 'right';
+}) {
+  const frames = wallFrames(project.room);
+  const i = frames.findIndex((fr) => fr.wall.id === run.wallId);
+  const other = frames[side === 'left' ? i - 1 : i + 1];
+  const wallId = side === 'left' ? run.wallId : other?.wall.id;
+  if (!wallId || !other) return null;
+  const corner = cornerAt(builtIn, wallId);
+  const set = (patch: Partial<CornerSettings>) =>
+    useProjectStore.getState().setCorner(builtIn.id, wallId, patch);
+  const Side = side === 'left' ? 'Left' : 'Right';
+  const mine = side === 'right' ? 'earlier' : 'later';
+  return (
+    <>
+      <Choice
+        label={`${Side} corner base`}
+        value={corner.base}
+        options={[
+          ['dead', 'Dead corner, fillers'],
+          ['blind', 'Blind corner box'],
+        ]}
+        onChange={(base) => set({ base })}
+      />
+      <Choice
+        label={`${Side} corner uppers`}
+        value={corner.upper}
+        options={[
+          ['dead', 'Corner stile'],
+          ['wrap', 'Wrap-around shelves'],
+        ]}
+        onChange={(upper) => set({ upper })}
+      />
+      {corner.base === 'blind' && (
+        <Choice
+          label={`${Side} corner blind box in`}
+          value={corner.owner === mine ? 'mine' : 'theirs'}
+          options={[
+            ['mine', 'This run'],
+            ['theirs', `The run on ${other.wall.name}`],
+          ]}
+          onChange={(v) =>
+            set({ owner: v === 'mine' ? mine : mine === 'earlier' ? 'later' : 'earlier' })
+          }
+        />
+      )}
+    </>
+  );
+}
+
 function RunEditor({
   project,
   built,
@@ -277,6 +342,12 @@ function RunEditor({
           options={END_OPTIONS}
           onChange={(v) => set((r) => setRunEnd(r, 'right', v))}
         />
+        {(['left', 'right'] as const).map(
+          (side) =>
+            run.ends[side] === 'corner' && (
+              <CornerFields key={side} project={project} builtIn={builtIn} run={run} side={side} />
+            ),
+        )}
       </div>
       <p className={styles.hint}>
         Modules take {f(end)} of the run's {f(run.length)}; auto-width sections share the rest.

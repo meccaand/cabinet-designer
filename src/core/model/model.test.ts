@@ -499,6 +499,26 @@ describe('loadProject / upgradeDocument', () => {
     expect(MIGRATIONS[5]!({ builtIns: [3] })).toMatchObject({ builtIns: [3] });
   });
 
+  it('6 → 7: built-ins get no corner treatments (dead corners, as before)', () => {
+    const current = referenceRoom();
+    current.builtIns[0]!.corners = [];
+    const v6 = clone(current) as unknown as Record<string, unknown> & {
+      builtIns: Record<string, unknown>[];
+    };
+    v6['schemaVersion'] = 6;
+    for (const b of v6.builtIns) delete b['corners'];
+    expect(loadProject(v6)).toEqual({ ok: true, value: current });
+    expect(MIGRATIONS[6]!({})).toEqual({ builtIns: [] });
+    expect(MIGRATIONS[6]!({ builtIns: [3] })).toEqual({ builtIns: [3] });
+  });
+
+  it('a corner is set once per built-in', () => {
+    const p = referenceRoom();
+    const corner = { wallId: 'media', base: 'blind', upper: 'wrap', owner: 'earlier' } as const;
+    p.builtIns[0]!.corners = [corner, corner];
+    expect(ProjectSchema.safeParse(p).success).toBe(false);
+  });
+
   it('fails clearly when a migration is missing', () => {
     expect(upgradeDocument({ schemaVersion: 1 }, {}, 2)).toEqual({
       ok: false,

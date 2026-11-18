@@ -5,6 +5,11 @@ import { inch } from '../units';
 import {
   compileBuiltIn,
   CORNER_FILLER,
+  cornerAt,
+  cornerRuns,
+  DEAD_CORNER,
+  NEW_CORNER,
+  setCorner,
   fitRun,
   hingeTowardsEnd,
   layoutModules,
@@ -132,7 +137,7 @@ describe('run ends and offset', () => {
 });
 
 describe('fitting a run round a corner', () => {
-  it('meets the run on the wall before, leaving a 3" filler each side', () => {
+  it('meets the run on the wall before: a blind base and wrap-around shelves by default', () => {
     const p = room();
     const b = p.builtIns[0]!;
     const fire = createRun('f', wall(p, 'fireplace'), inch(12));
@@ -143,11 +148,29 @@ describe('fitting a run round a corner', () => {
     media.modules = layoutModules('media', media, ids());
     b.runs.push(media);
     fitRun(p, b, media);
+    expect(b.corners).toEqual([{ wallId: 'media', ...NEW_CORNER }]);
+    expect(NEW_CORNER).toEqual({ base: 'blind', upper: 'wrap', owner: 'earlier' });
+    // The fireplace run owns the blind base: it runs up to the media wall's face. The media
+    // run stops a 3" filler short of the fireplace run's face.
     expect(CORNER_FILLER).toBe(inch(3));
     expect(media).toMatchObject({ offset: inch(21), length: inch(138) });
     expect(media.ends).toEqual({ left: 'corner', right: 'wall' });
-    expect(fire).toMatchObject({ length: inch(123) });
+    expect(fire).toMatchObject({ length: inch(126) });
     expect(fire.ends.right).toBe('corner');
+  });
+
+  it('a corner already set keeps its treatment: a dead corner leaves a filler each side', () => {
+    const p = room();
+    const b = p.builtIns[0]!;
+    b.corners = [{ wallId: 'media', ...DEAD_CORNER }];
+    const fire = createRun('f', wall(p, 'fireplace'), inch(12));
+    b.runs.push(fire);
+    const media = createRun('m', wall(p, 'media'));
+    b.runs.push(media);
+    fitRun(p, b, media);
+    expect(b.corners).toHaveLength(1);
+    expect(fire.length).toBe(inch(123));
+    expect(media.offset).toBe(inch(21));
   });
 
   it('meets the run on the wall after, when that one was added first', () => {
@@ -160,7 +183,7 @@ describe('fitting a run round a corner', () => {
     fire.modules = layoutModules('fireplace', fire, ids());
     b.runs.push(fire);
     fitRun(p, b, fire);
-    expect(fire).toMatchObject({ offset: inch(12), length: inch(123) });
+    expect(fire).toMatchObject({ offset: inch(12), length: inch(126) });
     expect(fire.ends).toEqual({ left: 'open', right: 'corner' });
     expect(media).toMatchObject({ offset: inch(21), length: inch(138) });
     expect(media.ends.left).toBe('corner');
@@ -189,5 +212,52 @@ describe('fitting a run round a corner', () => {
     const run = { ...createRun('x', wall(p, 'media')), wallId: 'gone' };
     fitRun(p, p.builtIns[0]!, run);
     expect(run.offset).toBe(0);
+  });
+});
+
+describe('setting a corner', () => {
+  /** The reference room's two runs, fitted, with a corner between them. */
+  function fitted() {
+    const p = room();
+    const b = p.builtIns[0]!;
+    const fire = createRun('f', wall(p, 'fireplace'), inch(12));
+    b.runs.push(fire);
+    const media = createRun('m', wall(p, 'media'));
+    b.runs.push(media);
+    fitRun(p, b, media);
+    return { p, b, fire, media };
+  }
+
+  it('finds the two runs at a corner', () => {
+    const { p, b, fire, media } = fitted();
+    expect(cornerRuns(p, b, 'media')).toEqual({ earlier: fire, later: media });
+    expect(cornerRuns(p, b, 'fireplace')).toBeNull();
+    media.ends.left = 'wall';
+    expect(cornerRuns(p, b, 'media')).toBeNull();
+  });
+
+  it('a dead base gives the owner its filler back; the uppers alone move nothing', () => {
+    const { p, b, fire, media } = fitted();
+    setCorner(p, b, 'media', { upper: 'dead' });
+    expect(fire.length).toBe(inch(126));
+    setCorner(p, b, 'media', { base: 'dead' });
+    expect(cornerAt(b, 'media')).toEqual({ wallId: 'media', ...DEAD_CORNER });
+    expect(fire.length).toBe(inch(123));
+    expect(media).toMatchObject({ offset: inch(21), length: inch(138) });
+  });
+
+  it("the later run can own the blind base: it runs up to the earlier run's face", () => {
+    const { p, b, fire, media } = fitted();
+    setCorner(p, b, 'media', { owner: 'later' });
+    expect(fire.length).toBe(inch(123));
+    expect(media).toMatchObject({ offset: inch(18), length: inch(141) });
+    expect(cornerAt(b, 'fireplace')).toEqual(DEAD_CORNER);
+  });
+
+  it('a new corner entry is added; a corner without both runs is only recorded', () => {
+    const p = room();
+    const b = p.builtIns[0]!;
+    setCorner(p, b, 'media', { base: 'blind' });
+    expect(b.corners).toEqual([{ wallId: 'media', ...DEAD_CORNER, base: 'blind' }]);
   });
 });

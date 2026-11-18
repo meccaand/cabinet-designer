@@ -35,6 +35,7 @@ import { wallFrames } from '../layout';
 import type { Box } from '../geometry';
 import { buildCountertop, type CountertopSegment } from './countertop';
 import { buildRunTrim, type MouldingEnd, type MouldingSegment, type TrimPath } from './trim';
+import { cornerAt, endSection as endModule, ownsBlindBase } from './corners';
 
 /** The narrowest an 'auto' section may become. */
 export const MIN_AUTO_WIDTH = inch(6);
@@ -120,16 +121,98 @@ export function compileBuiltIn(project: Project, builtIn: BuiltIn): CompiledBuil
     );
     return out;
   }
+  const halves: WrapHalf[] = [];
   for (const run of builtIn.runs) {
     try {
-      compileRun(project, builtIn, run, c, out);
+      compileRun(project, builtIn, run, c, out, halves);
     } catch (e) {
       if (!(e instanceof BuildError)) throw e;
       const wall = project.room.walls.find((w) => w.id === run.wallId);
       out.errors.push(`${wall?.name ?? 'Run'}: ${e.message}`);
     }
   }
+  for (const a of halves) {
+    const b = halves.find((h) => h.cornerWallId === a.cornerWallId && h.side === 'left');
+    if (a.side !== 'right' || !b) continue;
+    try {
+      wrapCorner(builtIn, a, b, out);
+    } catch (e) {
+      if (!(e instanceof BuildError)) throw e;
+      out.errors.push(`${a.wall.name}: ${e.message}`);
+    }
+  }
   return out;
+}
+
+/** One run's end bay at a corner with wrap-around shelves (ADR-044). */
+interface WrapHalf {
+  /** The later wall: the corner is at its start. */
+  cornerWallId: string;
+  /** The run's end at the corner: 'right' for the earlier wall's run. */
+  side: 'left' | 'right';
+  run: Run;
+  wall: Wall;
+  section: SectionLayout;
+  upperHeight: Mm;
+  topLine: Mm;
+  shelves: number;
+}
+
+/**
+ * Wrap-around shelves: the two end bays at a corner become one L-shaped open shelving cabinet
+ * (ADR-037) standing on the countertop, its run along the earlier wall and its return along
+ * the later one. Each wing keeps its bay's outer stile; the corner stiles meet where the two
+ * runs' upper faces cross.
+ */
+function wrapCorner(builtIn: BuiltIn, a: WrapHalf, b: WrapHalf, out: CompiledBuiltIn) {
+  if (
+    Math.abs(a.run.countertopHeight - b.run.countertopHeight) > 1e-6 ||
+    Math.abs(a.topLine - b.topLine) > 1e-6
+  ) {
+    throw new BuildError(
+      `wrap-around shelves need the runs on both walls at the same countertop height and top line.`,
+    );
+  }
+  if (a.shelves !== b.shelves) {
+    throw new BuildError(
+      `wrap-around shelves need the same number of shelves in both corner bays (${a.section.module.name || 'this one'} has ${a.shelves}, ${b.section.module.name || 'the other'} has ${b.shelves}).`,
+    );
+  }
+  const names = [a.section.module.name, b.section.module.name].filter(Boolean).join(' + ');
+  const id = `${builtIn.id}/corner/${a.cornerWallId}`;
+  const cabinet: Cabinet = {
+    id,
+    name: `${builtIn.name} · Corner shelves${names ? ` (${names})` : ''}`,
+    type: 'lShelf',
+    width: quantize(a.wall.length - a.run.offset - a.section.x0),
+    height: a.upperHeight,
+    depth: a.run.upperDepth,
+    placement: {
+      wallId: a.wall.id,
+      offset: quantize(a.run.offset + a.section.x0),
+      elevation: a.run.countertopHeight,
+    },
+    ...(builtIn.styleId && { styleId: builtIn.styleId }),
+    // Standing on the countertop: no toe kick, and the run sets the outer stiles.
+    construction: { faceFrame: { sideOverhang: 0 }, platform: { enabled: false } },
+    face: { kind: 'leaf', fill: 'open', shelves: { count: a.shelves, adjustable: false } },
+    endPanels: {
+      left: a.section.module.endPanels.left,
+      right: b.section.module.endPanels.right,
+    },
+    stiles: { left: a.section.stiles.left, right: b.section.stiles.right },
+    corner: {
+      returnWidth: quantize(b.run.offset + b.section.x0 + b.section.W),
+      returnDepth: b.run.upperDepth,
+    },
+  };
+  out.cabinets.push(cabinet);
+  out.sources.set(id, {
+    builtInId: builtIn.id,
+    runId: a.run.id,
+    moduleId: a.section.module.id,
+    level: 'upper',
+  });
 }
 
 interface SectionLayout {
@@ -147,6 +230,7 @@ function compileRun(
   run: Run,
   c: ConstructionDefaults,
   out: CompiledBuiltIn,
+  halves: WrapHalf[],
 ): void {
   const found = project.room.walls.find((w) => w.id === run.wallId);
   if (!found) throw new BuildError('its wall no longer exists.');
@@ -238,6 +322,58 @@ function compileRun(
     x = quantize(x + footprint);
   });
 
+  // ---- Corners with the run on the adjoining wall (ADR-042, ADR-044) -----------------------
+  const runEnd = x;
+  const wallEnd = quantize(wall.length - run.offset);
+  const last = mods.length - 1;
+  const partner = {
+    left: run.ends.left === 'corner' ? cornerPartner(project, builtIn, run, 'left') : null,
+    right: run.ends.right === 'corner' ? cornerPartner(project, builtIn, run, 'right') : null,
+  };
+  const corner = {
+    left: partner.left ? cornerAt(builtIn, run.wallId) : null,
+    right: partner.right ? cornerAt(builtIn, partner.right.wallId) : null,
+  };
+  const boxed = (i: number) => mods[i]?.kind === 'section' || mods[i]?.kind === 'stile';
+  const endSection = (side: 'left' | 'right') => (side === 'left' ? sections[0] : sections.at(-1));
+  /** The end section, when it is at the very end of the run (only stiles beyond it). */
+  const cornerSection = (side: 'left' | 'right') =>
+    boxed(side === 'left' ? 0 : last) ? endSection(side) : undefined;
+  /** The end section whose base box carries on into the corner: a blind base. */
+  const blindAt = (side: 'left' | 'right') => {
+    const k = corner[side];
+    if (!k || !ownsBlindBase(k, side) || !mods.length) return undefined;
+    const s = cornerSection(side);
+    if (!s) {
+      throw new BuildError(
+        `the blind corner base at its ${side} end needs a section there, to carry on into the corner.`,
+      );
+    }
+    return s;
+  };
+  const blind = { left: blindAt('left'), right: blindAt('right') };
+  if (blind.left && blind.left === blind.right) {
+    throw new BuildError(
+      'its only section would be a blind corner at both ends: add a section, or make one corner dead.',
+    );
+  }
+  /** The end section whose upper becomes one wing of wrap-around shelves. */
+  const wrapAt = (side: 'left' | 'right') => {
+    const k = corner[side];
+    const other = partner[side];
+    if (k?.upper !== 'wrap' || !other || !mods.length || !other.modules.length) return undefined;
+    const s = cornerSection(side);
+    if (s?.module.upper?.kind !== 'openBay') {
+      throw new BuildError(
+        `wrap-around shelves need an open bay at its ${side} end, in the corner: change the module there, or the corner's uppers.`,
+      );
+    }
+    // The other run reports its own end.
+    const theirs = endModule(other.modules, side === 'left' ? 'right' : 'left');
+    return theirs?.upper?.kind === 'openBay' ? s : undefined;
+  };
+  const wrap = { left: wrapAt('left'), right: wrapAt('right') };
+
   // ---- Boxes -------------------------------------------------------------------------------
   const plyT = thickness(project, c, 'carcass');
   const baseHeight = quantize(run.countertopHeight - plyT);
@@ -268,14 +404,28 @@ function compileRun(
     });
     const groups = m.base.groups;
     const [only] = groups;
+    // A blind base carries on past the run's end to the wall, behind the other run; its blind
+    // stile covers the end stile and everything to the wall.
+    const blindSide = blind.left === s ? 'left' : blind.right === s ? 'right' : null;
+    const past = blindSide === 'left' ? s.x0 + run.offset : wallEnd - (s.x0 + s.W);
+    const baseX0 = blindSide === 'left' ? -run.offset : s.x0;
     const baseCabinet: Cabinet = {
       ...common,
       id: `${base}/base`,
       name: `${label} base`,
-      type: 'base',
+      type: blindSide ? 'blindBase' : 'base',
+      ...(blindSide && {
+        width: quantize(s.W + past),
+        blind: {
+          side: blindSide,
+          blindWidth: quantize(s.stiles[blindSide] + past),
+          // The other run's corner filler stands where a pull filler would.
+          pullFillerWidth: 0,
+        },
+      }),
       height: baseHeight,
       depth: run.baseDepth,
-      placement: { wallId: wall.id, offset: quantize(run.offset + s.x0), elevation: 0 },
+      placement: { wallId: wall.id, offset: quantize(run.offset + baseX0), elevation: 0 },
       face:
         groups.length === 1 && only
           ? leaf(only.doors, only.hinge)
@@ -295,7 +445,19 @@ function compileRun(
       moduleId: m.id,
       level: 'base',
     });
-    if (m.upper) {
+    const wrapSide = wrap.left === s ? 'left' : wrap.right === s ? 'right' : null;
+    if (m.upper && wrapSide) {
+      halves.push({
+        cornerWallId: wrapSide === 'left' ? wall.id : (partner.right?.wallId ?? ''),
+        side: wrapSide,
+        run,
+        wall,
+        section: s,
+        upperHeight,
+        topLine,
+        shelves: m.upper.kind === 'openBay' ? (m.upper.shelves ?? run.shelves) : run.shelves,
+      });
+    } else if (m.upper) {
       const upper: Cabinet = {
         ...common,
         id: `${base}/upper`,
@@ -331,22 +493,13 @@ function compileRun(
     }
   }
 
-  // ---- Corners with the run on the adjoining wall (ADR-042) ---------------------------------
-  const runEnd = x;
-  const wallEnd = quantize(wall.length - run.offset);
-  const last = mods.length - 1;
-  const partner = {
-    left: run.ends.left === 'corner' ? cornerPartner(project, builtIn, run, 'left') : null,
-    right: run.ends.right === 'corner' ? cornerPartner(project, builtIn, run, 'right') : null,
-  };
+  // ---- Corner fillers -------------------------------------------------------------------------
   /** Where the other run's face plane at `depth` crosses this run (run coordinates). */
   const across = (side: 'left' | 'right', depth: Mm) =>
     quantize(side === 'left' ? depth - run.offset : wallEnd - depth);
   // End panels, with any applied frame (ADR-041).
   const te =
     thickness(project, c, 'door') + (c.endPanel.style === 'framed' ? c.endPanel.frameThickness : 0);
-  const boxed = (i: number) => mods[i]?.kind === 'section' || mods[i]?.kind === 'stile';
-  const endSection = (side: 'left' | 'right') => (side === 'left' ? sections[0] : sections.at(-1));
   const fillers: { level: 'base' | 'upper'; x0: Mm; x1: Mm }[] = [];
   for (const side of ['left', 'right'] as const) {
     const other = partner[side];
@@ -362,16 +515,17 @@ function compileRun(
     if (endSection(side)?.module.endPanels[side]) {
       throw new BuildError(`an end panel can't go at the ${side} end, in the corner.`);
     }
-    if (width < MIN_CORNER_FILLER - 1e-6) {
+    // A blind box fills its own side of the corner; the other run keeps its filler.
+    if (!blind[side] && width < MIN_CORNER_FILLER - 1e-6) {
       out.warnings.push(
         `${wall.name}: the corner filler at the ${side} end is only ${f(Math.max(0, width))}: doors on the two walls may hit. Leave at least ${f(MIN_CORNER_FILLER)}.`,
       );
     }
-    if (width > 1e-6) {
+    if (width > 1e-6 && !blind[side]) {
       fillers.push({ level: 'base', x0: Math.min(here, face), x1: Math.max(here, face) });
     }
     const upperFace = across(side, other.upperDepth);
-    if (endSection(side)?.module.upper && Math.abs(upperFace - here) > 1e-6) {
+    if (endSection(side)?.module.upper && !wrap[side] && Math.abs(upperFace - here) > 1e-6) {
       fillers.push({
         level: 'upper',
         x0: Math.min(here, upperFace),
@@ -481,9 +635,23 @@ function compileRun(
       `the crown (${f(builtIn.trim.crownHeight)}) is taller than the space above the uppers (${f(builtIn.topGap)}).`,
     );
   }
+  // Over the box; a wrapped bay's over its opening, which runs on to the corner stile where
+  // the two runs' uppers meet.
   const lights = sections
     .filter((s) => s.module.pictureLight && s.module.upper)
-    .map((s) => quantize(s.x0 + s.W / 2));
+    .map((s) => {
+      if (wrap.left === s && partner.left) {
+        return quantize(
+          (across('left', partner.left.upperDepth) + sw + s.x0 + s.W - s.stiles.right) / 2,
+        );
+      }
+      if (wrap.right === s && partner.right) {
+        return quantize(
+          (s.x0 + s.stiles.left + across('right', partner.right.upperDepth) - sw) / 2,
+        );
+      }
+      return quantize(s.x0 + s.W / 2);
+    });
 
   if (mods.length) {
     const carrier: Cabinet = {

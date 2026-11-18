@@ -937,3 +937,74 @@ showed the back of the media wall.
   has one on the left only, so rebuilding it deletes one.
 - **Corner filler:** quick-add leaves 3", as in the reference. The warning threshold stays 2".
 - **Layout stile widths** follow the reference: 2 1/4" on the fireplace wall, 3" elsewhere.
+
+## ADR-044: Corner treatments: blind base and wrap-around shelves
+
+**Status:** Accepted (M15, at Andrew's request). Schema version 7.
+
+M13's dead corner (ADR-042) leaves both runs short of the corner, with fillers and a 9" corner
+stile over space nobody can reach. Andrew asked for corners that are used. He chose, from the
+options offered:
+
+- **A blind corner base.**
+- **Wrap-around open shelves.**
+- **The earlier wall's run owns the corner by default.**
+
+He did not choose a diagonal corner box, an L-shaped base with a lazy susan, a blind upper or
+diagonal open shelves. The dead corner stays available.
+
+**Model.** A built-in gets `corners`: one entry per corner, keyed by the later wall (the corner
+is at its start). Each entry has:
+
+- `base`: dead or blind.
+- `upper`: dead or wrap.
+- `owner`: the earlier or the later run, whose box takes a blind corner.
+
+A corner with no entry is a dead corner, so the v6 → v7 migration only adds an empty list, and
+the spec's reference room is unchanged. Both runs' editors show the same corner.
+
+**Compiled from existing cabinet types, no new geometry:**
+
+- **Blind base.** The owner's end section's base box becomes a `blindBase` (ADR-019) that
+  carries on to the wall behind the other run. Its blind stile covers its end stile and
+  everything past the run's end. The other run's corner filler is the pull filler, so the blind
+  box's own `pullFillerWidth` is 0.
+- **Wrap-around shelves.** The two end bays' uppers become one `lShelf` (ADR-037) standing on
+  the countertop, with no toe kick. The earlier run is the L's run and owns the corner square;
+  the later run is the return. The upper corner stiles go.
+
+**Fitting.** Quick-add gives a new corner a blind base and wrap-around shelves. The owner of a
+blind base runs up to the other run's face, and the other run stops a 3" filler short.
+Changing a corner's base or owner refits both runs. Changing only the uppers moves nothing.
+
+**Also changed:**
+
+- **L-shaped shelving shelves are spaced within the face-frame opening, like every other
+  cabinet's.** They used to be spaced between the bottom and the top, which put them ¼"–¾"
+  off the bays beside a wrap-around corner. Frameless L shelving and the G7/G8 cut lists are
+  unchanged; the shelves move only in height.
+- **L-shaped shelving gets shelf nosing** when the style asks for it, instead of a warning.
+  The run piece's nosing runs on across the end of the return's.
+- **Wall elevation dimensions:** where items stand over one another, only the lowest is
+  dimensioned. A wrap-around return wider than the box below it would otherwise print two
+  overlapping labels.
+
+**Choices made without asking (please check):**
+
+- **New corners default to blind base + wrap-around shelves.** The acceptance test for the
+  reference room's dead corner now takes 4 actions on the media wall instead of 2, still
+  under 10.
+- **The blind box's door is where the section's door was.** The blind stile seen between the
+  other run's face and the door is just the end stile (2 1/4" in the reference), once the
+  owner is fitted up to the other run. In the reference room, whose towers have fixed widths,
+  the run stays where it was, so the visible blind stile is 3" + 2 1/4".
+- **The wrap-around L has no hanging rail,** like every L shelving cabinet: it stands on the
+  countertop and is fixed through its backs. The bays beside it are wall-cabinet builds with
+  a hanging rail.
+- **The wrap-around L is always the earlier run's.** The owner setting only moves the blind
+  base box. Which shelf piece runs through the corner can't be seen.
+- **Wrap-around shelves need matching bays:** both corner bays open (not a TV niche), the same
+  shelf count, and the same countertop height and top line, or the built-in shows an error.
+  While either run has no modules, the corner waits and builds as dead.
+- **A picture light over a wrapped bay** centres over its widened opening, out to the corner
+  stile.

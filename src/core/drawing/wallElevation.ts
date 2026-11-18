@@ -9,7 +9,8 @@ import type { Drawing, Primitive } from './primitives';
 /**
  * Elevation of one wall as seen from the room: the wall, each cabinet and filler on it, and
  * chained dimensions of item widths and the gaps between them: floor items (starting in the
- * bottom third of the wall) below the floor line, raised items (wall cabinets) above.
+ * bottom third of the wall) below the floor line, raised items (wall cabinets) above. Where
+ * items stand over one another, the lowest is dimensioned.
  * A built-in's run adds a second tier below with each section's clear opening and each
  * pilaster and opening, and its heights (countertop, top line, ceiling) up the right side.
  */
@@ -98,9 +99,14 @@ export function wallElevation(
   }
 
   const chain = (level: LayoutItem[], y: Mm, dir: 1 | -1) => {
-    const spans = level
-      .map((i) => [i.offset + i.x0, i.offset + i.x1] as const)
-      .sort((a, b) => a[0] - b[0]);
+    // Lowest items first; one standing over another (a built-in's upper on its base, or a
+    // wrap-around corner wider than the box below it) isn't dimensioned again.
+    const kept: (readonly [Mm, Mm])[] = [];
+    for (const i of [...level].sort((a, b) => a.elevation - b.elevation || a.offset - b.offset)) {
+      const s = [i.offset + i.x0, i.offset + i.x1] as const;
+      if (!kept.some(([a, b]) => Math.min(b, s[1]) - Math.max(a, s[0]) > 0.5)) kept.push(s);
+    }
+    const spans = kept.sort((a, b) => a[0] - b[0]);
     let cursor = 0;
     const out: Primitive[] = [];
     for (const [a, b] of [...spans, [wall.length, wall.length] as const]) {

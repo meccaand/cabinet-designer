@@ -23,6 +23,7 @@ export function createBuiltIn(id: string, name: string, styleId: string | null):
       pictureLightWidth: inch(16),
     },
     runs: [],
+    corners: [],
   };
 }
 

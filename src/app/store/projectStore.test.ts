@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { referenceRoom } from '../../core/__tests__/referenceRoom';
-import { hingeTowardsEnd, setRunEnd, setRunOffset } from '../../core/builtin';
+import { hingeTowardsEnd, NEW_CORNER, setRunEnd, setRunOffset } from '../../core/builtin';
 import type { CutList } from '../../core/cutlist';
 import { inch } from '../../core/units';
 import { projectModels } from '../models';
@@ -443,10 +443,16 @@ describe('acceptance #1: the reference room from presets', () => {
     act(() => s().deleteModule(pilasters[1]!.id));
     expect(actions).toBeLessThanOrEqual(10);
 
-    // Media wall: it meets the fireplace wall round the corner by itself.
+    // Media wall: it meets the fireplace wall round the corner by itself, with a blind base
+    // and wrap-around shelves (ADR-044). The spec's room has a dead corner (ADR-042).
     actions = 0;
     const media = act(() => s().addRun(id, 'media'))!;
     act(() => s().layOutRun(media, 'media'));
+    expect(b().corners).toEqual([{ wallId: 'media', ...NEW_CORNER }]);
+    expect(fire().length).toBe(inch(126));
+    expect([...deriveOutputs(s().project).built.errors.values()].flat()).toEqual([]);
+    act(() => s().setCorner(id, 'media', { base: 'dead' }));
+    act(() => s().setCorner(id, 'media', { upper: 'dead' }));
     expect(actions).toBeLessThanOrEqual(10);
 
     expect(fire()).toMatchObject({ offset: inch(12), length: inch(123) });

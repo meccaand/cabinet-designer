@@ -601,6 +601,24 @@ export const RunSchema = z.object({
 });
 export type Run = z.infer<typeof RunSchema>;
 
+/**
+ * How two runs meet round an inside corner (ADR-044). Keyed by the later wall: the corner is at
+ * its start. A corner with no entry is a dead corner with fillers (ADR-042).
+ */
+export const RunCornerSchema = z.object({
+  /** The wall whose start is the corner. */
+  wallId: Id,
+  /** Base level: both runs stop short, with fillers ('dead'), or one run's end box carries on
+   * into the corner, behind the other run ('blind'). */
+  base: z.enum(['dead', 'blind']),
+  /** Upper level: a corner stile over the dead space ('dead'), or one L of open shelves
+   * through the corner from one run's end bay to the other's ('wrap'). */
+  upper: z.enum(['dead', 'wrap']),
+  /** Which run's base box takes the corner when it is blind. */
+  owner: z.enum(['earlier', 'later']),
+});
+export type RunCorner = z.infer<typeof RunCornerSchema>;
+
 export const BuiltInSchema = z.object({
   id: Id,
   name: z.string().min(1),
@@ -621,6 +639,12 @@ export const BuiltInSchema = z.object({
     pictureLightWidth: PositiveLength,
   }),
   runs: z.array(RunSchema),
+  corners: z
+    .array(RunCornerSchema)
+    .refine(
+      (cs) => new Set(cs.map((c) => c.wallId)).size === cs.length,
+      'Each corner is set once.',
+    ),
 });
 export type BuiltIn = z.infer<typeof BuiltInSchema>;
 

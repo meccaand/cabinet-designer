@@ -336,18 +336,45 @@ built-in's style.
     and its frieze into the earlier frieze's face.
   - The crowns and base mouldings meet in one inside mitre at the faces.
   - A filler narrower than 2" draws a warning: doors on the two walls may hit.
-- **Quick-add** (ADR-043). A run added on a wall that meets one of the built-in's runs round an
-  inside corner (and that run reaches the corner) is fitted to it: both ends are set to meet,
-  and each run stops `other run's baseDepth + 3"` from the corner, leaving a 3" corner filler.
-  Wall layouts fill a run with auto-width sections, so they fit any run length:
-  - **Media wall:** 3" stiles; a lit bay either side of a 66" TV section (two door pairs, a
+- **Corner treatments** (ADR-044), per corner, besides the dead corner above:
+  - **Blind corner base.** The owning run (the earlier wall's by default) has its end section's
+    base box carry on past the run's end to the wall, behind the other run: a blind corner base
+    box, width = box width + (distance from the run's end to the wall). Its face-frame **blind
+    stile** = the end stile + that distance, so the doors are where they were. No corner filler
+    on the owner's side; the other run keeps its corner filler, which is the blind corner's
+    pull filler (3" by default: the other run's doors and knobs clear the blind box's face). The
+    owner run is fitted to end at the other run's base face, so the visible blind stile is just
+    its end stile. The end module must be a section; a one-section run can't be blind at both
+    ends.
+  - **Wrap-around shelves.** The two end bays' uppers become one L-shaped open shelving cabinet
+    (ADR-037) on the countertop, no toe kick, its run along the earlier wall and its return
+    along the later one: run width = from the earlier bay's box to the wall; return width = from
+    the earlier wall to the far side of the later bay's box; depths = each run's `upperDepth`.
+    Each wing's outer stile is its bay's; the corner stiles meet where the two upper faces cross
+    (the run's is `ff` + frame thickness, the return's frame butts against its face). The run's
+    shelves reach through the corner square to the return's back; the return's butt against
+    their front edges. No corner stiles. Both bays must be open bays with the same shelf count,
+    on runs with the same countertop height and top line. The picture light centres over the
+    wing's opening.
+  - **L-shaped shelves** (all, not only in built-ins) are now spaced within the face-frame
+    opening, as every other cabinet's are, so they line up with the bays beside them; before,
+    they were spaced between the bottom and the top. With shelf nosing, each piece gets one: the
+    run piece's runs on across the end of the return's; the return's butts into its face.
+- **Quick-add** (ADR-043, ADR-044). A run added on a wall that meets one of the built-in's runs
+  round an inside corner (and that run reaches the corner) is fitted to it: both ends are set
+  to meet, and the corner gets a blind base (owned by the earlier wall's run) and wrap-around
+  shelves. The owner ends at the other run's base face; the other run stops `owner's baseDepth
+  - 3"` from the corner, leaving a 3" corner filler. Changing a corner's base or owner refits
+    both runs the same way (a dead corner: 3" each side).
+    Wall layouts fill a run with auto-width sections, so they fit any run length:
+  * **Media wall:** 3" stiles; a lit bay either side of a 66" TV section (two door pairs, a
     niche for a 65" TV, two bridge cubbies on the top shelf line).
-  - **Fireplace wall:** 2 1/4" stiles; a lit tower either side of a 60" × 54" fireplace, with a
+  * **Fireplace wall:** 2 1/4" stiles; a lit tower either side of a 60" × 54" fireplace, with a
     6" × 12" pilaster between each tower and the fireplace.
-  - **Bookcases:** 3" stiles; `round(run length / 33")` lit bays, doors below.
-  - An end section at an end meeting the room gets a finished end panel; at a wall or corner,
+  * **Bookcases:** 3" stiles; `round(run length / 33")` lit bays, doors below.
+  * An end section at an end meeting the room gets a finished end panel; at a wall or corner,
     none. Changing what an end meets keeps this true.
-  - A single door hinges on the side nearer the run's end (the wall or corner), so it opens
+  * A single door hinges on the side nearer the run's end (the wall or corner), so it opens
     against the wall and leaves the room side clear.
 
 ## Hardware

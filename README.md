@@ -50,6 +50,9 @@ or a TV niche above, towers, pilasters, and openings such as a fireplace
 - The run owns its trim: countertop, frieze, crown and base moulding run across the boxes,
   mitre at inside corners and return at open ends. Mouldings are bought by length, with mitre
   counts. Picture lights are counted as hardware.
+- Inside corners between runs: a blind corner base (one run's end box carries on into the
+  corner) and wrap-around open shelves (one L of shelves through the corner), or a dead corner
+  with fillers. Chosen per corner.
 - Quick-add: wall layouts (media wall, fireplace wall, bookcases), and runs that fit
   themselves to the run round the corner. The spec's two-wall reference room takes 10 actions.
   Its cut list and shopping list are in [docs/golden](docs/golden/).
@@ -57,6 +60,8 @@ or a TV niche above, towers, pilasters, and openings such as a fireplace
 | Built-ins in the room                                        | Media wall elevation                                            |
 | ------------------------------------------------------------ | --------------------------------------------------------------- |
 | ![Two walls of built-ins](docs/screenshots/builtin-room.png) | ![Media wall elevation](docs/screenshots/builtin-elevation.png) |
+
+<img src="docs/screenshots/builtin-corner.png" alt="The inside corner with a blind base and wrap-around shelves" width="640">
 
 **Shop outputs.** Everything is recomputed as you edit:
 

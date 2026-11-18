@@ -70,6 +70,25 @@ test('built-in screenshots', async ({ page }) => {
   await page.locator('#elevation-wall').selectOption({ label: 'Media wall' });
   await page.waitForTimeout(400);
   await shot(page, 'builtin-elevation');
+
+  // The corner with a blind base and wrap-around shelves (ADR-044), close up.
+  const ed = page.getByRole('region', { name: 'Edit built-in' });
+  const fireRun = ed.getByRole('region', { name: 'Run on Fireplace wall' });
+  await fireRun.getByLabel('Right corner base').selectOption('blind');
+  await fireRun.getByLabel('Right corner uppers').selectOption('wrap');
+  await page.getByRole('tab', { name: '3D' }).click();
+  await page.waitForTimeout(800);
+  const box = (await page.locator('canvas').boundingBox())!;
+  await page.mouse.move(box.x + 0.47 * box.width, box.y + 0.42 * box.height);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(box.x + 0.5 * box.width, box.y + 0.55 * box.height, { steps: 10 });
+  await page.mouse.up({ button: 'right' });
+  for (let i = 0; i < 16; i++) {
+    await page.mouse.wheel(0, -300);
+    await page.waitForTimeout(80);
+  }
+  await page.waitForTimeout(800);
+  await shot(page, 'builtin-corner');
 });
 
 test.describe('tablet', () => {

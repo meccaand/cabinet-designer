@@ -211,11 +211,21 @@ describe('shelf nosing', () => {
     if (!r2.ok) expect(r2.errors[0]).toMatch(/too many shelves/);
   });
 
-  it('L-shaped shelving warns instead (not made yet)', () => {
+  it('L-shaped shelving: each piece gets one; the run piece runs on across the corner', () => {
     const project = styledProject();
-    const model = build(project, styledCabinet(project, 'lShelf'));
-    expect(model.parts.some((p) => p.role === 'shelfNosing')).toBe(false);
-    expect(model.warnings.join()).toMatch(/nosing/);
+    const cab = styledCabinet(project, 'lShelf');
+    const model = build(project, cab);
+    expect(violations(model, cab, project)).toEqual([]);
+    expect(model.warnings.join()).not.toMatch(/nosing/);
+    const nosings = model.parts.filter((p) => p.role === 'shelfNosing');
+    expect(nosings).toHaveLength(8);
+    const run = model.parts.find((p) => p.id === `${cab.id}/shelf/1/nosing`)!;
+    const ret = model.parts.find((p) => p.id === `${cab.id}/return/shelf/1/nosing`)!;
+    const retShelf = model.parts.find((p) => p.id === `${cab.id}/return/shelf/1`)!;
+    // The run's nosing reaches the return shelf's front edge; the return's butts into its face.
+    expect(run.bounds.max.x).toBeCloseTo(retShelf.bounds.min.x, 6);
+    expect(ret.bounds.min.z).toBeCloseTo(run.bounds.max.z, 6);
+    expect(ret.bounds.min.x).toBeCloseTo(run.bounds.max.x - inch(3 / 4), 6);
   });
 });
 
