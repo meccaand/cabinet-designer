@@ -254,3 +254,8 @@
   opacity: 0.35;
   cursor: default;
 }
+
+/* A field that takes a whole row of a grid. */
+.wide {
+  grid-column: 1 / -1;
+}

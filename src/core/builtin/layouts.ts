@@ -178,6 +178,22 @@ export function fitRun(project: Project, builtIn: BuiltIn, run: Run) {
   syncEndPanels(run);
 }
 
+/**
+ * Moves every run of `source` (and its corner settings) into `target`, removes `source`, and
+ * fits the moved runs, so runs on neighbouring walls meet round the corner (ADR-044). `target`'s
+ * style, top line and trim apply to them from now on. Mutates the project.
+ */
+export function joinBuiltIns(project: Project, target: BuiltIn, source: BuiltIn) {
+  if (target === source) return;
+  const moved = source.runs;
+  target.runs.push(...moved);
+  for (const c of source.corners) {
+    if (!target.corners.some((t) => t.wallId === c.wallId)) target.corners.push(c);
+  }
+  project.builtIns.splice(project.builtIns.indexOf(source), 1);
+  for (const r of moved) fitRun(project, target, r);
+}
+
 /** The hinge side for a single door: towards the nearer end of the run, so the door opens
  * against the wall or corner and leaves the room side clear. */
 export function hingeTowardsEnd(x0: Mm, x1: Mm, runEnd: Mm): 'left' | 'right' {

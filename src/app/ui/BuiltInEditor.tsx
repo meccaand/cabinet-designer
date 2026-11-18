@@ -4,6 +4,7 @@ import {
   hingeTowardsEnd,
   RUN_LAYOUTS,
   setRunEnd,
+  strayPartner,
   setRunOffset,
   type CornerSettings,
   type ExpandedProject,
@@ -220,6 +221,28 @@ function CornerFields({
   const other = frames[side === 'left' ? i - 1 : i + 1];
   const wallId = side === 'left' ? run.wallId : other?.wall.id;
   if (!wallId || !other) return null;
+  const facing = side === 'left' ? 'right' : 'left';
+  const paired = builtIn.runs.some(
+    (r) => r.wallId === other.wall.id && r.ends[facing] === 'corner',
+  );
+  const stray = paired ? null : strayPartner(project, builtIn, run, side);
+  if (stray) {
+    return (
+      <div className={`${styles.field} ${styles.wide}`}>
+        <button
+          type="button"
+          className={styles.button}
+          onClick={() => useProjectStore.getState().joinBuiltIn(builtIn.id, stray.builtIn.id)}
+        >
+          Join “{stray.builtIn.name}” into this built-in
+        </button>
+        <p className={styles.hint}>
+          The run on {other.wall.name} is in “{stray.builtIn.name}”. Runs meet round a corner only
+          within one built-in; joined, its runs take this built-in's style and trim.
+        </p>
+      </div>
+    );
+  }
   const corner = cornerAt(builtIn, wallId);
   const set = (patch: Partial<CornerSettings>) =>
     useProjectStore.getState().setCorner(builtIn.id, wallId, patch);

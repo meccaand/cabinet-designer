@@ -989,6 +989,18 @@ Changing a corner's base or owner refits both runs. Changing only the uppers mov
   dimensioned. A wrap-around return wider than the box below it would otherwise print two
   overlapping labels.
 
+**Runs in two built-ins (found in review).** Runs only meet round a corner within one built-in,
+because the corner shares one style, top line and trim. Clicking "Add a built-in" once per wall
+makes two built-ins, and both runs then reported that nothing met them. Now:
+
+- **The error says so.** It names the other built-in and says to join the two.
+- **The corner offers "Join … into this built-in".** It moves the other built-in's runs (and
+  corner settings) into this one, removes the other, and fits the moved runs as quick-add
+  does. Their style, top line and trim become this built-in's. Undo splits them again.
+
+A run on the other wall counts when its facing end is set to meet the corner, or when it
+reaches within the corner zone.
+
 **Choices made without asking (please check):**
 
 - **New corners default to blind base + wrap-around shelves.** The acceptance test for the

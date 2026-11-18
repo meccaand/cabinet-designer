@@ -35,7 +35,7 @@ import { wallFrames } from '../layout';
 import type { Box } from '../geometry';
 import { buildCountertop, type CountertopSegment } from './countertop';
 import { buildRunTrim, type MouldingEnd, type MouldingSegment, type TrimPath } from './trim';
-import { cornerAt, endSection as endModule, ownsBlindBase } from './corners';
+import { cornerAt, endSection as endModule, ownsBlindBase, strayPartner } from './corners';
 
 /** The narrowest an 'auto' section may become. */
 export const MIN_AUTO_WIDTH = inch(6);
@@ -833,8 +833,11 @@ function cornerPartner(project: Project, builtIn: BuiltIn, run: Run, side: 'left
   const facing = side === 'left' ? 'right' : 'left';
   const other = builtIn.runs.find((r) => r.wallId === next.wall.id && r.ends[facing] === 'corner');
   if (!other) {
+    const stray = strayPartner(project, builtIn, run, side);
     throw new BuildError(
-      `its ${side} end is set to meet a run round the corner, but no run on ${next.wall.name} has its ${facing} end set to meet it.`,
+      stray
+        ? `its ${side} end is set to meet the run on ${next.wall.name}, but that run is in “${stray.builtIn.name}”. Runs meet round a corner only within one built-in: join the two in this built-in's run editor.`
+        : `its ${side} end is set to meet a run round the corner, but no run on ${next.wall.name} has its ${facing} end set to meet it.`,
     );
   }
   return other;

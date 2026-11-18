@@ -230,6 +230,34 @@ test('a corner gets a blind base and wrap-around shelves, set from either run', 
   expect(await qty(page, /^\d+Face frame blind stile/)).toBe(0);
 });
 
+test('a built-in per wall: the corner asks to join them, and joining fits the corner', async ({
+  page,
+}) => {
+  await importProject(page, { ...referenceRoom(), builtIns: [], stylePresets: [] });
+  await sidebar(page).getByRole('button', { name: 'Add a built-in' }).click();
+  const fire = editor(page).getByRole('region', { name: 'Run on Fireplace wall' });
+  await fire.getByLabel('Lay out the wall').selectOption('fireplace');
+  await fire.getByLabel('Right end meets').selectOption('corner');
+  // A second built-in, on the media wall.
+  await page.getByRole('tab', { name: 'Elevation', exact: true }).click();
+  await page.locator('#elevation-wall').selectOption({ label: 'Media wall' });
+  await sidebar(page).getByRole('button', { name: 'Add a built-in' }).click();
+  await mediaRun(page).getByLabel('Lay out the wall').selectOption('media');
+  await mediaRun(page).getByLabel('Left end meets').selectOption('corner');
+  await expect(editor(page).getByRole('alert')).toContainText(
+    'that run is in “Built-in”. Runs meet round a corner only within one built-in',
+  );
+
+  await mediaRun(page).getByRole('button', { name: 'Join “Built-in” into this built-in' }).click();
+  await expect(editor(page).getByRole('alert')).toHaveCount(0);
+  await expect(sidebar(page).getByRole('button', { name: /^Built-in/ })).toHaveCount(1);
+  await expect(sidebar(page).getByRole('button', { name: /Built-in 2 · 2 runs/ })).toBeVisible();
+  await expect(mediaRun(page).getByLabel('Left corner base')).toHaveValue('blind');
+  // Undo splits them again.
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(sidebar(page).getByRole('button', { name: /^Built-in/ })).toHaveCount(2);
+});
+
 test('a built-in starts from an empty wall in a few steps; problems are shown', async ({
   page,
 }) => {

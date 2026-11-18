@@ -27,10 +27,12 @@ export {
   NEW_CORNER,
   ownsBlindBase,
   setCorner,
+  strayPartner,
   type CornerSettings,
 } from './corners';
 export {
   fitRun,
+  joinBuiltIns,
   hingeTowardsEnd,
   layoutModules,
   RUN_LAYOUTS,

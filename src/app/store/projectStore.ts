@@ -34,6 +34,7 @@ import {
 import { inch, quantize, type Mm } from '../../core/units';
 import {
   fitRun,
+  joinBuiltIns,
   layoutModules,
   setCorner,
   type CornerSettings,
@@ -123,6 +124,8 @@ export interface ProjectState {
   layOutRun: (runId: string, layout: RunLayout) => void;
   /** Sets how the corner at the start of `wallId` is built, refitting its two runs (ADR-044). */
   setCorner: (builtInId: string, wallId: string, patch: Partial<CornerSettings>) => void;
+  /** Moves every run of `sourceId` into `targetId` and fits them round the corners (ADR-044). */
+  joinBuiltIn: (targetId: string, sourceId: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -564,6 +567,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       edit((p) => {
         const b = p.builtIns.find((x) => x.id === builtInId);
         if (b) setCorner(p, b, wallId, patch);
+      }),
+    joinBuiltIn: (targetId, sourceId) =>
+      edit((p) => {
+        const target = p.builtIns.find((x) => x.id === targetId);
+        const source = p.builtIns.find((x) => x.id === sourceId);
+        if (target && source) joinBuiltIns(p, target, source);
       }),
     deleteModule: (moduleId) =>
       edit((p) => {

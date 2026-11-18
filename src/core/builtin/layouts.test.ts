@@ -10,6 +10,9 @@ import {
   DEAD_CORNER,
   NEW_CORNER,
   setCorner,
+  strayPartner,
+  joinBuiltIns,
+  expandProject,
   fitRun,
   hingeTowardsEnd,
   layoutModules,
@@ -259,5 +262,60 @@ describe('setting a corner', () => {
     const b = p.builtIns[0]!;
     setCorner(p, b, 'media', { base: 'blind' });
     expect(b.corners).toEqual([{ wallId: 'media', ...DEAD_CORNER, base: 'blind' }]);
+  });
+});
+
+describe('runs in two built-ins at one corner', () => {
+  /** Each wall's run in a built-in of its own, both set to meet round the corner. */
+  function apart() {
+    const p = room();
+    const a = p.builtIns[0]!;
+    const fire = createRun('f', wall(p, 'fireplace'), inch(12));
+    fire.ends = { left: 'open', right: 'corner' };
+    fire.modules = layoutModules('fireplace', fire, ids());
+    a.runs.push(fire);
+    const b = createBuiltIn('b2', 'Built-in 2', 'traditional');
+    const media = createRun('m', wall(p, 'media'));
+    media.ends.left = 'corner';
+    media.modules = layoutModules('media', media, ids());
+    b.runs.push(media);
+    p.builtIns.push(b);
+    return { p, a, b, fire, media };
+  }
+
+  it('is reported as a corner needing the two built-ins joined', () => {
+    const { p, a, b, fire, media } = apart();
+    expect(strayPartner(p, a, fire, 'right')).toEqual({ builtIn: b, run: media });
+    expect(strayPartner(p, b, media, 'left')).toEqual({ builtIn: a, run: fire });
+    expect(strayPartner(p, a, fire, 'left')).toBeNull();
+    const errors = [...expandProject(p).errors.values()].flat();
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toMatch(
+      /Fireplace wall: its right end is set to meet the run on Media wall, but that run is in “Built-in 2”.*join the two/,
+    );
+    expect(errors[1]).toMatch(/Media wall: .*that run is in “Built-in”/);
+  });
+
+  it('a run reaching the corner counts, even when its end is not set to meet', () => {
+    const { p, b, fire, media } = apart();
+    media.ends.left = 'wall';
+    expect(strayPartner(p, p.builtIns[0]!, fire, 'right')).toEqual({ builtIn: b, run: media });
+    media.offset = inch(40);
+    expect(strayPartner(p, p.builtIns[0]!, fire, 'right')).toBeNull();
+  });
+
+  it('joining moves the runs over and fits the corner', () => {
+    const { p, a, b, fire, media } = apart();
+    b.corners = [{ wallId: 'elsewhere', ...DEAD_CORNER }];
+    joinBuiltIns(p, a, b);
+    expect(p.builtIns).toEqual([a]);
+    expect(a.runs).toEqual([fire, media]);
+    expect(a.corners.map((c) => c.wallId)).toEqual(['elsewhere', 'media']);
+    expect(cornerAt(a, 'media')).toMatchObject(NEW_CORNER);
+    expect(media).toMatchObject({ offset: inch(21), length: inch(138) });
+    expect(fire.length).toBe(inch(126));
+    expect([...expandProject(p).errors.values()].flat()).toEqual([]);
+    joinBuiltIns(p, a, a);
+    expect(p.builtIns).toEqual([a]);
   });
 });

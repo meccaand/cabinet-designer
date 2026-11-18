@@ -96,3 +96,32 @@ export function setCorner(
   later.offset = quantize(earlier.baseDepth + cornerGap(next, 'left'));
   later.length = quantize(Math.max(MIN_RUN, end - later.offset));
 }
+
+/**
+ * A run of another built-in that `run`'s `side` end meets round an inside corner: on the
+ * adjoining wall, with its facing end set to meet, or reaching the corner. Runs only meet within
+ * one built-in, so the two built-ins need joining (`joinBuiltIns`).
+ */
+export function strayPartner(
+  project: Project,
+  builtIn: BuiltIn,
+  run: Run,
+  side: 'left' | 'right',
+): { builtIn: BuiltIn; run: Run } | null {
+  const frames = wallFrames(project.room);
+  const i = frames.findIndex((f) => f.wall.id === run.wallId);
+  const corner = side === 'left' ? frames[i]?.startCorner : frames[i]?.endCorner;
+  const next = corner === 'inside' ? frames[side === 'left' ? i - 1 : i + 1] : undefined;
+  if (!next) return null;
+  const zone = run.baseDepth + CORNER_FILLER;
+  const meets = (r: Run) =>
+    side === 'left'
+      ? r.ends.right === 'corner' || r.offset + r.length > next.wall.length - zone + 1e-6
+      : r.ends.left === 'corner' || r.offset < zone - 1e-6;
+  for (const b of project.builtIns) {
+    if (b.id === builtIn.id) continue;
+    const r = b.runs.find((x) => x.wallId === next.wall.id && meets(x));
+    if (r) return { builtIn: b, run: r };
+  }
+  return null;
+}
