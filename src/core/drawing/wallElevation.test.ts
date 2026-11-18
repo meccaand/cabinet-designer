@@ -110,4 +110,27 @@ describe('wallElevation with built-ins', () => {
       'Fireplace + chimney breast',
     );
   });
+
+  it('dimensions the openings along a run, and its heights up the side', () => {
+    const p = referenceRoom();
+    const e = expandProject(p);
+    const models = new Map(
+      e.project.cabinets.map((c) => {
+        const r = generateCabinet(c, e.project);
+        return [c.id, r.ok ? r.model : null] as const;
+      }),
+    );
+    const media = texts(wallElevation(e.project, 'media', models, e));
+    // Openings: 30" bays either side of the 66" TV section; and the 66" from countertop to
+    // top line.
+    expect(media.filter((t) => t === '66"')).toHaveLength(2);
+    expect(media.filter((t) => t === '30"').length).toBeGreaterThanOrEqual(2);
+    // Floor to countertop 32", countertop to top line 66", top line to ceiling 10".
+    expect(media).toEqual(expect.arrayContaining(['32"', '66"', '10"']));
+    const fire = texts(wallElevation(e.project, 'fireplace', models, e));
+    // Tower openings, the pilaster and the fireplace.
+    expect(fire).toEqual(expect.arrayContaining(['30"', '6"', '60"', '18"']));
+    const plain = wallElevation(e.project, 'media', models);
+    expect(wallElevation(e.project, 'media', models, e).bounds.y0).toBeLessThan(plain.bounds.y0);
+  });
 });

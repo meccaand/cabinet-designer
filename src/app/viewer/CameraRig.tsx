@@ -18,11 +18,14 @@ export function CameraRig({
   bounds,
   frameKey,
   fromLeft = false,
+  isoDirection,
 }: {
   bounds: Box;
   frameKey: string;
   /** See fitCamera: for L-shaped cabinets. */
   fromLeft?: boolean;
+  /** See fitCamera: for a room. Reframes only when its value changes. */
+  isoDirection?: readonly [number, number, number] | undefined;
 }) {
   // Subscribed so a projection switch re-frames; mutated through get() as R3F intends.
   const camera = useThree((s) => s.camera);
@@ -37,13 +40,24 @@ export function CameraRig({
   const view = useViewerStore((s) => s.view);
   const request = useViewerStore((s) => s.viewRequest);
   const latest = useRef(bounds);
+  const latestDir = useRef(isoDirection);
   useEffect(() => {
     latest.current = bounds;
+    latestDir.current = isoDirection;
   });
+  const dirKey = isoDirection?.map((v) => v.toFixed(3)).join() ?? '';
 
   useEffect(() => {
     if (!controls || width === 0 || height === 0) return;
-    const fit = fitCamera(latest.current, view, { width, height }, FOV, TOOLBAR_PX, fromLeft);
+    const fit = fitCamera(
+      latest.current,
+      view,
+      { width, height },
+      FOV,
+      TOOLBAR_PX,
+      fromLeft,
+      latestDir.current,
+    );
     const cam = get().camera;
     cam.position.set(...fit.position);
     if (cam instanceof OrthographicCamera) cam.zoom = fit.zoom;
@@ -51,7 +65,7 @@ export function CameraRig({
     controls.target.set(...fit.target);
     controls.update();
     get().invalidate();
-  }, [request, view, frameKey, camera, controls, width, height, get, fromLeft]);
+  }, [request, view, frameKey, camera, controls, width, height, get, fromLeft, dirKey]);
 
   return null;
 }

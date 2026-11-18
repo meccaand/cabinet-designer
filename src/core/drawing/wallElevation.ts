@@ -10,6 +10,8 @@ import type { Drawing, Primitive } from './primitives';
  * Elevation of one wall as seen from the room: the wall, each cabinet and filler on it, and
  * chained dimensions of item widths and the gaps between them: floor items (starting in the
  * bottom third of the wall) below the floor line, raised items (wall cabinets) above.
+ * A built-in's run adds a second tier below with each section's clear opening and each
+ * pilaster and opening, and its heights (countertop, top line, ceiling) up the right side.
  */
 export function wallElevation(
   project: Project,
@@ -117,10 +119,30 @@ export function wallElevation(
   prims.push(...chain(low, 0, -1), ...chain(high, wall.height, 1));
   prims.push(...dimension([0, 0], [0, wall.height], [-gap, 0], label(wall.height)));
 
+  // Built-in runs: openings on a second tier, and the datums.
+  const runs = (extras.assemblies ?? []).filter((a) => a.wallId === wallId);
+  for (const a of runs) {
+    for (const sp of a.guide.spans) {
+      const [x0, x1] = [a.offset + sp.x0, a.offset + sp.x1];
+      prims.push(...dimension([x0, 0], [x1, 0], [0, -2 * gap], label(sp.x1 - sp.x0)));
+    }
+  }
+  const levels = [
+    ...new Set([0, ...runs.flatMap((a) => [a.guide.countertop, a.guide.topLine]), wall.height]),
+  ].sort((a, b) => a - b);
+  if (runs.length) {
+    levels.slice(1).forEach((y, i) => {
+      const y0 = levels[i] ?? 0;
+      prims.push(...dimension([wall.length, y0], [wall.length, y], [gap, 0], label(y - y0)));
+    });
+  }
+
   const out = gap * 1.3 + textSize;
+  const below = runs.length ? out + gap : out;
+  const right = runs.length ? out + textSize * 3 : textSize;
   return {
     primitives: prims,
     textSize,
-    bounds: { x0: -out - textSize, y0: -out, x1: wall.length + textSize, y1: wall.height + out },
+    bounds: { x0: -out - textSize, y0: -below, x1: wall.length + right, y1: wall.height + out },
   };
 }

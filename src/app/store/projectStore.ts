@@ -32,6 +32,7 @@ import {
   type Wall,
 } from '../../core/model';
 import { inch, quantize, type Mm } from '../../core/units';
+import { fitRun, layoutModules, type RunLayout } from '../../core/builtin';
 import { projectLayout } from '../models';
 import { createSampleProject } from '../sample';
 
@@ -112,6 +113,8 @@ export interface ProjectState {
   /** Moves a module one place left (-1) or right (+1) in its run. */
   moveModule: (moduleId: string, step: -1 | 1) => void;
   deleteModule: (moduleId: string) => void;
+  /** Replaces a run's modules with a whole-wall layout (ADR-043). */
+  layOutRun: (runId: string, layout: RunLayout) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => {
@@ -449,8 +452,10 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       edit((p) => {
         if (!faceFrame) p.stylePresets.push(createStylePreset(styleId, 'traditionalPainted'));
         const b = createBuiltIn(id, n === 1 ? 'Built-in' : `Built-in ${n}`, styleId);
-        b.runs.push(createRun(crypto.randomUUID(), wall, 0));
+        const run = createRun(crypto.randomUUID(), wall, 0);
+        b.runs.push(run);
         p.builtIns.push(b);
+        fitRun(p, b, run);
       });
       return id;
     },
@@ -472,7 +477,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       if (!wall || !project.builtIns.some((b) => b.id === builtInId)) return null;
       const id = crypto.randomUUID();
       edit((p) => {
-        p.builtIns.find((b) => b.id === builtInId)?.runs.push(createRun(id, wall, 0));
+        const b = p.builtIns.find((x) => x.id === builtInId);
+        if (!b) return;
+        b.runs.push(createRun(id, wall, 0));
+        const run = b.runs.at(-1);
+        // Meets a run of the built-in round a corner, if there is one.
+        if (run) fitRun(p, b, run);
       });
       return id;
     },
@@ -536,6 +546,11 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           const [m] = r.modules.splice(i, 1);
           if (m) r.modules.splice(j, 0, m);
         }
+      }),
+    layOutRun: (runId, layout) =>
+      edit((p) => {
+        const r = p.builtIns.flatMap((b) => b.runs).find((x) => x.id === runId);
+        if (r) r.modules = layoutModules(layout, r, () => crypto.randomUUID());
       }),
     deleteModule: (moduleId) =>
       edit((p) => {

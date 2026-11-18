@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { referenceRoom } from '../../core/__tests__/referenceRoom';
+import { hingeTowardsEnd, setRunEnd, setRunOffset } from '../../core/builtin';
+import type { CutList } from '../../core/cutlist';
 import { inch } from '../../core/units';
 import { projectModels } from '../models';
+import { deriveOutputs } from '../outputs';
 import { materialInUse, tidyStiles, useProjectStore } from './projectStore';
 
 const initial = useProjectStore.getState();
@@ -387,6 +391,73 @@ describe('built-ins', () => {
     const styleId = s().project.builtIns[0]!.styleId!;
     s().deleteStyle(styleId);
     expect(s().project.builtIns[0]!.styleId).toBeNull();
+  });
+});
+
+/** A cut list as a shop would see it: material, part, size and quantity, ignoring which
+ * named cabinet each part goes to. */
+function shopRows(cutList: CutList): string[] {
+  return cutList.groups
+    .flatMap((g) =>
+      g.rows.map((r) =>
+        [g.materialName, r.name, r.qty, r.length, r.width, r.thickness].join(' | '),
+      ),
+    )
+    .sort();
+}
+
+describe('acceptance #1: the reference room from presets', () => {
+  it('rebuilds both walls in under 10 actions each, part for part', () => {
+    const room = referenceRoom();
+    s().openProject({ ...room, builtIns: [], stylePresets: [] });
+    const b = () => s().project.builtIns[0]!;
+    const runOn = (wallId: string) => b().runs.find((r) => r.wallId === wallId)!;
+    const section = (name: string) =>
+      runOn('fireplace').modules.find((m) => m.kind === 'section' && m.name === name)!;
+    let actions = 0;
+    const act = <T>(f: () => T): T => {
+      actions++;
+      return f();
+    };
+
+    // Fireplace wall.
+    const id = act(() => s().addBuiltIn('fireplace'));
+    const fire = () => runOn('fireplace');
+    act(() => s().layOutRun(fire().id, 'fireplace'));
+    act(() => s().updateRun(fire().id, (r) => setRunOffset(r, inch(156), inch(12))));
+    act(() => s().updateRun(fire().id, (r) => setRunEnd(r, 'left', 'open')));
+    const right = section('Right tower').id;
+    act(() => s().updateModule(right, (m) => void (m.kind === 'section' && (m.width = inch(18)))));
+    // The editor hinges a single door towards the run's nearer end: here the corner.
+    const laidOut = deriveOutputs(s().project).built.modules;
+    const runEnd = Math.max(...fire().modules.map((m) => laidOut.get(m.id)!.x1));
+    const at = laidOut.get(right)!;
+    expect(hingeTowardsEnd(at.x0, at.x1, runEnd)).toBe('right');
+    act(() =>
+      s().updateModule(right, (m) => {
+        if (m.kind !== 'section') return;
+        m.base.groups = [{ doors: 1, hinge: hingeTowardsEnd(at.x0, at.x1, runEnd) }];
+      }),
+    );
+    const pilasters = fire().modules.filter((m) => m.kind === 'pilaster');
+    act(() => s().deleteModule(pilasters[1]!.id));
+    expect(actions).toBeLessThanOrEqual(10);
+
+    // Media wall: it meets the fireplace wall round the corner by itself.
+    actions = 0;
+    const media = act(() => s().addRun(id, 'media'))!;
+    act(() => s().layOutRun(media, 'media'));
+    expect(actions).toBeLessThanOrEqual(10);
+
+    expect(fire()).toMatchObject({ offset: inch(12), length: inch(123) });
+    expect(fire().ends).toEqual({ left: 'open', right: 'corner' });
+    expect(runOn('media')).toMatchObject({ offset: inch(21), length: inch(138) });
+    expect(runOn('media').ends).toEqual({ left: 'corner', right: 'wall' });
+
+    const built = deriveOutputs(s().project);
+    expect([...built.built.errors.values()].flat()).toEqual([]);
+    expect(shopRows(built.cutList)).toEqual(shopRows(deriveOutputs(referenceRoom()).cutList));
+    expect(built.estimate.total).toBeCloseTo(deriveOutputs(referenceRoom()).estimate.total, 6);
   });
 });
 

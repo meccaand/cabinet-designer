@@ -192,6 +192,28 @@ export interface CameraFit {
 const ISO_DIRECTION: [number, number, number] = [0.62, 0.48, 0.92];
 
 /**
+ * Iso direction for a whole room, looking from inside it: into the corner when things stand on
+ * two or more walls (the mean of their normals, as plan [x, z]), otherwise from the front right
+ * of the one wall, as for a cabinet.
+ */
+export function roomIsoDirection(
+  normals: readonly (readonly [number, number])[],
+): [number, number, number] {
+  const [s, up, c] = ISO_DIRECTION;
+  const h = Math.hypot(s, c);
+  const unique = [...new Map(normals.map((n) => [n.map((v) => v.toFixed(3)).join(), n])).values()];
+  const mx = unique.reduce((sum, n) => sum + n[0], 0);
+  const mz = unique.reduce((sum, n) => sum + n[1], 0);
+  const len = Math.hypot(mx, mz);
+  if (unique.length < 2 || len < 0.3) {
+    // Front right of the wall: its normal turned as the cabinet iso turns +z.
+    const [nx, nz] = unique[0] ?? [0, 1];
+    return [nx * c + nz * s, up, -nx * s + nz * c];
+  }
+  return [(mx / len) * h, up, (mz / len) * h];
+}
+
+/**
  * Camera that frames `bounds` in `view`. Standard views are orthographic (true elevations);
  * iso is perspective. `viewport` is the canvas size in CSS pixels.
  */
@@ -205,10 +227,12 @@ export function fitCamera(
   /** Iso and side views from the left: an L-shaped cabinet's fronts face the inside corner,
    * front and left. */
   fromLeft = false,
+  /** Iso only: look along this instead (a room, see roomIsoDirection). */
+  isoDirection?: readonly [number, number, number],
 ): CameraFit {
-  const dir: [number, number, number] = fromLeft
-    ? [-ISO_DIRECTION[0], ISO_DIRECTION[1], ISO_DIRECTION[2]]
-    : ISO_DIRECTION;
+  const dir: readonly [number, number, number] =
+    isoDirection ??
+    (fromLeft ? [-ISO_DIRECTION[0], ISO_DIRECTION[1], ISO_DIRECTION[2]] : ISO_DIRECTION);
   const c: [number, number, number] = [
     (bounds.min.x + bounds.max.x) / 2,
     (bounds.min.y + bounds.max.y) / 2,

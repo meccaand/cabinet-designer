@@ -11,6 +11,7 @@ import {
   partColor,
   partRoughness,
   partGroup,
+  roomIsoDirection,
   unionBounds,
   visibleParts,
 } from './scene';
@@ -108,6 +109,39 @@ describe('explodeOffset', () => {
     expect(offset('stretcher/front')[1]).toBeGreaterThan(0);
     expect(offset('platform/front')[1]).toBeLessThan(0);
     for (const p of allParts) expect(explodeOffset(p, inch(30)).some((v) => v !== 0)).toBe(true);
+  });
+});
+
+describe('roomIsoDirection', () => {
+  it('looks into the corner from inside the room when two walls are used', () => {
+    // Wall 1 faces +z, wall 2 (after a right turn) faces -x: look from -x, +z.
+    const [x, y, z] = roomIsoDirection([
+      [0, 1],
+      [-1, 0],
+    ]);
+    expect(x).toBeLessThan(0);
+    expect(z).toBeGreaterThan(0);
+    expect(Math.abs(x)).toBeCloseTo(z, 6);
+    expect(y).toBeGreaterThan(0);
+  });
+
+  it('looks from the front right of a single wall, as for a cabinet', () => {
+    const b = { min: { x: -500, y: 0, z: -500 }, max: { x: 500, y: 900, z: 500 } };
+    const v = { width: 800, height: 600 };
+    const dir = roomIsoDirection([[0, 1]]);
+    expect(fitCamera(b, 'iso', v, 35, 0, false, dir).position).toEqual(
+      fitCamera(b, 'iso', v, 35).position,
+    );
+    // The second wall alone (facing -x): from -x.
+    expect(roomIsoDirection([[-1, 0]])[0]).toBeLessThan(0);
+    // Nothing anywhere, or walls facing each other: the first wall's view.
+    expect(roomIsoDirection([])).toEqual(roomIsoDirection([[0, 1]]));
+    expect(
+      roomIsoDirection([
+        [0, 1],
+        [0, -1],
+      ]),
+    ).toEqual(roomIsoDirection([[0, 1]]));
   });
 });
 

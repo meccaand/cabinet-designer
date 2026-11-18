@@ -39,13 +39,32 @@ the front elevation.
 | --------------------------------------- | ------------------------------------------------- |
 | ![Plan view](docs/screenshots/plan.png) | ![Elevation view](docs/screenshots/elevation.png) |
 
+**Built-ins.** Wall-to-wall furniture-style built-ins: runs of base cabinets with open shelving
+or a TV niche above, towers, pilasters, and openings such as a fireplace
+([spec](docs/BUILTIN-SPEC.md)).
+
+- Style presets: one change restyles every box (door style, inset or overlay, paint, knobs or
+  pulls, shelf nosing, plinth, end panels).
+- The countertop height, shelf lines and the line under the frieze are shared across each run,
+  and stiles line up between the bases and uppers.
+- The run owns its trim: countertop, frieze, crown and base moulding run across the boxes,
+  mitre at inside corners and return at open ends. Mouldings are bought by length, with mitre
+  counts. Picture lights are counted as hardware.
+- Quick-add: wall layouts (media wall, fireplace wall, bookcases), and runs that fit
+  themselves to the run round the corner. The spec's two-wall reference room takes 10 actions.
+  Its cut list and shopping list are in [docs/golden](docs/golden/).
+
+| Built-ins in the room                                        | Media wall elevation                                            |
+| ------------------------------------------------------------ | --------------------------------------------------------------- |
+| ![Two walls of built-ins](docs/screenshots/builtin-room.png) | ![Media wall elevation](docs/screenshots/builtin-elevation.png) |
+
 **Shop outputs.** Everything is recomputed as you edit:
 
 - The cut list: identical and mirror-image parts merged; cut sizes with banding subtracted;
   grain, edges and notes.
 - Sheet layouts: guillotine cuts only (table saw or track saw), with a numbered cut order in
   plain language, kerf and edge trim, and grain respected.
-- A shopping list and estimate: sheets, board feet, edge banding and hardware.
+- A shopping list and estimate: sheets, board feet, edge banding, mouldings and hardware.
 
 | Cut list                                   | Sheet layouts                                 |
 | ------------------------------------------ | --------------------------------------------- |

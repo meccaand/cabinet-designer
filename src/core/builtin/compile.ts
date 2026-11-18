@@ -79,6 +79,9 @@ export interface Assembly {
   model: CabinetModel;
   mouldings: MouldingSegment[];
   lights: Box[];
+  /** For dimensioning the run in elevation (run coordinates): each section's clear opening and
+   * each pilaster and opening, and the countertop and top lines. */
+  guide: { spans: { x0: Mm; x1: Mm }[]; countertop: Mm; topLine: Mm };
 }
 
 export interface CompiledBuiltIn {
@@ -186,10 +189,12 @@ function compileRun(
 
   // ---- Positions ---------------------------------------------------------------------------
   const sections: SectionLayout[] = [];
+  const spans: { x0: Mm; x1: Mm }[] = [];
   let x = 0;
   mods.forEach((m, i) => {
     if (m.kind !== 'section') {
       out.modules.set(m.id, { x0: x, x1: x + m.width, width: m.width });
+      if (m.kind !== 'stile') spans.push({ x0: x, x1: quantize(x + m.width) });
       if (m.kind === 'pilaster') pilaster(m.id, m.width, m.depth, x);
       if (m.kind === 'obstruction') {
         out.obstructions.push({
@@ -227,6 +232,7 @@ function compileRun(
       }
     }
     sections.push({ module: m, stiles, x0, W });
+    spans.push({ x0: quantize(x + imp.left), x1: quantize(x + imp.left + width) });
     const footprint = imp.left + width + imp.right;
     out.modules.set(m.id, { x0: x, x1: quantize(x + footprint), width });
     x = quantize(x + footprint);
@@ -542,6 +548,7 @@ function compileRun(
       },
       mouldings: trim.mouldings,
       lights: trim.lights,
+      guide: { spans, countertop: run.countertopHeight, topLine },
     });
   }
 
@@ -627,6 +634,8 @@ function compileRun(
       height: quantize(wall.height - builtIn.topGap),
       elevation: 0,
       depth,
+      name: 'Pilaster',
+      ...(builtIn.styleId && { styleId: builtIn.styleId }),
     };
     out.fillers.push(filler);
     out.sources.set(filler.id, {

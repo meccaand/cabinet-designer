@@ -38,9 +38,12 @@ export function addEndPanel(
   face: number,
 ): void {
   const te = ctx.thickness('door');
-  const notch = f.traits.platform
-    ? { height: ctx.c.platform.height, depth: quantize(face - (f.D - ctx.c.platform.setback)) }
-    : undefined;
+  // A flush plinth (no setback, front at the face) needs no notch.
+  const notchDepth = quantize(face - (f.D - ctx.c.platform.setback));
+  const notch =
+    f.traits.platform && notchDepth > 0
+      ? { height: ctx.c.platform.height, depth: notchDepth }
+      : undefined;
   ctx.add({
     id: `endPanel/${side}`,
     role: 'endPanel',

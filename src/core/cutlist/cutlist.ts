@@ -63,7 +63,7 @@ export function buildCutList(
   }
   for (const f of project.fillers) {
     const wall = project.room.walls.find((w) => w.id === f.wallId);
-    owners.set(f.id, `Filler${wall ? ` (${wall.name})` : ''}`);
+    owners.set(f.id, `${f.name ?? 'Filler'}${wall ? ` (${wall.name})` : ''}`);
     all.push(fillerPart(f, project));
   }
   for (const a of assemblies) {

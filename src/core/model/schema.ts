@@ -442,6 +442,10 @@ export const FillerSchema = z.object({
   elevation: NonNegLength,
   /** Wall to the filler's front face (lines up with the neighbouring fronts). */
   depth: PositiveLength,
+  /** What the cut list calls it (a built-in's pilaster); "Filler" when absent. */
+  name: z.string().optional(),
+  /** Stock and finish from this style, as a cabinet's (a built-in's pilaster). */
+  styleId: Id.optional(),
 });
 export type Filler = z.infer<typeof FillerSchema>;
 

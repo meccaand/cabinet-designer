@@ -7,19 +7,24 @@ const sidebar = (page: Page) => page.getByRole('complementary', { name: 'Cabinet
 const editor = (page: Page) => page.getByRole('region', { name: 'Edit built-in' });
 const mediaRun = (page: Page) => editor(page).getByRole('region', { name: 'Run on Media wall' });
 
-/** Open the spec's reference room by importing it. */
-async function openReferenceRoom(page: Page) {
+/** Import a project through the Projects dialog. */
+async function importProject(page: Page, project: object) {
   await page
     .getByRole('banner')
-    .getByRole('button', { name: /Sample kitchen/ })
+    .getByRole('button', { name: /^(Sample kitchen|Reference living room)/ })
     .click();
   const dialog = page.getByRole('dialog', { name: 'Projects' });
   await dialog.locator('input[type=file]').setInputFiles({
-    name: 'reference.json',
+    name: 'project.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(referenceRoom())),
+    buffer: Buffer.from(JSON.stringify(project)),
   });
   await expect(dialog).toBeHidden();
+}
+
+/** Open the spec's reference room by importing it. */
+async function openReferenceRoom(page: Page) {
+  await importProject(page, referenceRoom());
   await sidebar(page)
     .getByRole('button', { name: /Living room built-ins/ })
     .click();
@@ -132,6 +137,59 @@ test('acceptance #4: crown runs across the fireplace and mitres at the corner', 
   await expect
     .poll(async () => Number((await crown().textContent())!.match(/([\d.]+) ft/)![1]))
     .toBeLessThan(across);
+});
+
+/** Every cut list row as part, quantity and size, sorted: what a shop cuts, whichever cabinet
+ * each goes to. */
+async function cutRows(page: Page): Promise<string[]> {
+  await page.getByRole('tab', { name: 'Cut list' }).click();
+  const rows = main(page).getByRole('region', { name: 'Cut list' }).getByRole('row');
+  await expect(rows.first()).toBeVisible();
+  const out: string[] = [];
+  for (const row of await rows.all()) {
+    const cells = await row.getByRole('cell').allTextContents();
+    if (cells.length < 7) continue;
+    out.push([cells[1], cells[3], cells[4], cells[5], cells[6]].join(' | '));
+  }
+  return out.sort();
+}
+
+test('acceptance #1: both reference walls from presets, in under 10 actions each', async ({
+  page,
+}) => {
+  // The reference room's two walls, with nothing on them.
+  await importProject(page, { ...referenceRoom(), builtIns: [], stylePresets: [] });
+  let actions = 0;
+  const act = async (f: () => Promise<unknown>) => {
+    actions++;
+    await f();
+  };
+
+  // Fireplace wall: open to the room on the left, from 12"; a narrow one-door right tower and a
+  // pilaster on the left only.
+  await act(() => sidebar(page).getByRole('button', { name: 'Add a built-in' }).click());
+  const fire = editor(page).getByRole('region', { name: 'Run on Fireplace wall' });
+  await act(() => fire.getByLabel('Lay out the wall').selectOption('fireplace'));
+  await act(() => setField(fire, 'From wall start', '12'));
+  await act(() => fire.getByLabel('Left end meets').selectOption('open'));
+  await act(() => fire.getByRole('button', { name: /^Right tower ·/ }).click());
+  await act(() => setField(fire, 'Opening width', '18'));
+  await act(() => fire.getByLabel('Group 1', { exact: true }).selectOption('1'));
+  await act(() => fire.getByRole('button', { name: 'Remove Pilaster' }).nth(1).click());
+  expect(actions).toBeLessThanOrEqual(10);
+  await expect(fire.getByLabel('Group 1 hinged')).toHaveValue('right');
+
+  // Media wall: it meets the fireplace wall round the corner by itself.
+  actions = 0;
+  await act(() => editor(page).getByLabel('Add a run').selectOption({ label: 'Media wall' }));
+  await act(() => mediaRun(page).getByLabel('Lay out the wall').selectOption('media'));
+  expect(actions).toBeLessThanOrEqual(10);
+
+  await expect(editor(page).getByRole('alert')).toHaveCount(0);
+  const built = await cutRows(page);
+  expect(built.length).toBeGreaterThan(50);
+  await openReferenceRoom(page);
+  expect(built).toEqual(await cutRows(page));
 });
 
 test('a built-in starts from an empty wall in a few steps; problems are shown', async ({

@@ -19,3 +19,14 @@ export {
   type MouldingSegment,
   type MouldingTotal,
 } from './trim';
+export {
+  CORNER_FILLER,
+  fitRun,
+  hingeTowardsEnd,
+  layoutModules,
+  RUN_LAYOUTS,
+  setRunEnd,
+  setRunOffset,
+  syncEndPanels,
+  type RunLayout,
+} from './layouts';

@@ -1,0 +1,12 @@
+Category,Item,Quantity,Unit,Details,Cost (USD)
+Sheet goods,"3/4"" Plywood",11,sheets,11 sheets (76% used),935
+Sheet goods,"1/4"" Plywood",4,sheets,4 sheets (74% used),160
+Solid stock,Poplar 4/4,87.6,bd ft,87.6 bd ft (incl. 20% waste) · 333.7 ft of parts,438.02
+Edge banding,Iron-on veneer 0.5 mm,27,ft,27.0 ft,8.23
+Mouldings,Crown moulding,30.4,ft,"30.4 ft (incl. 20% waste) · 1 inside corner, 1 outside corner with return",106.54
+Mouldings,Base moulding,22.3,ft,"22.3 ft (incl. 20% waste) · 1 inside corner, 1 outside corner with return",44.17
+Hardware,"Concealed hinge, 35 mm cup",22,each,22,88
+Hardware,Knob,11,each,11,66
+Hardware,"Shelf pin, 5 mm",20,each,20,2
+Hardware,Picture light,4,each,4,180
+Total,,,,,2027.96

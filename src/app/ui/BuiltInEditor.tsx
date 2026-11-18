@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
-import type { ExpandedProject } from '../../core/builtin';
+import {
+  hingeTowardsEnd,
+  RUN_LAYOUTS,
+  setRunEnd,
+  setRunOffset,
+  type ExpandedProject,
+  type RunLayout,
+} from '../../core/builtin';
 import {
   MODULE_TEMPLATES,
   resolveConstruction,
@@ -205,7 +212,7 @@ function RunEditor({
   moduleId: string | undefined;
   onPick: (id: string | undefined) => void;
 }) {
-  const { updateRun, deleteRun, addModule } = useProjectStore.getState();
+  const { updateRun, deleteRun, addModule, layOutRun } = useProjectStore.getState();
   const units = project.units;
   const f = (v: Mm) => formatLength(v, units);
   const wall = project.room.walls.find((w) => w.id === run.wallId);
@@ -234,7 +241,7 @@ function RunEditor({
         {length(
           'From wall start',
           run.offset,
-          (offset) => set((r) => void (r.offset = offset)),
+          (offset) => set((r) => setRunOffset(r, wall?.length ?? Infinity, offset)),
           true,
         )}
         {length('Run length', run.length, (v) => set((r) => void (r.length = v)))}
@@ -262,19 +269,33 @@ function RunEditor({
           label="Left end meets"
           value={run.ends.left}
           options={END_OPTIONS}
-          onChange={(v) => set((r) => void (r.ends.left = v))}
+          onChange={(v) => set((r) => setRunEnd(r, 'left', v))}
         />
         <Choice
           label="Right end meets"
           value={run.ends.right}
           options={END_OPTIONS}
-          onChange={(v) => set((r) => void (r.ends.right = v))}
+          onChange={(v) => set((r) => setRunEnd(r, 'right', v))}
         />
       </div>
       <p className={styles.hint}>
         Modules take {f(end)} of the run's {f(run.length)}; auto-width sections share the rest.
         Every upper bay that follows the run gets {run.shelves} shelves on the same lines.
       </p>
+
+      <Choice
+        label={run.modules.length === 0 ? 'Lay out the wall' : 'Replace the modules with a layout'}
+        value=""
+        options={[
+          ['', 'Choose a layout…'],
+          ...RUN_LAYOUTS.map((l): [string, string] => [l.id, l.name]),
+        ]}
+        onChange={(l) => {
+          if (!l) return;
+          layOutRun(run.id, l as RunLayout);
+          onPick(undefined);
+        }}
+      />
 
       <h4 className={styles.subTitle}>Modules, left to right</h4>
       <ol className={styles.moduleList} aria-label="Modules">
@@ -392,6 +413,8 @@ function ModuleRow({
           module={m}
           width={width}
           niche={built.niches.get(m.id)}
+          placed={built.modules.get(m.id)}
+          runEnd={Math.max(0, ...run.modules.map((x) => built.modules.get(x.id)?.x1 ?? 0))}
         />
       )}
     </li>
@@ -404,6 +427,8 @@ function ModuleFields({
   module: m,
   width,
   niche,
+  placed,
+  runEnd,
 }: {
   project: Project;
   run: Run;
@@ -411,6 +436,9 @@ function ModuleFields({
   /** As laid out (auto sections' share). */
   width: Mm | undefined;
   niche?: { width: Mm; height: Mm } | undefined;
+  /** Where it was laid out along the run, and where the run's modules end. */
+  placed: { x0: Mm; x1: Mm } | undefined;
+  runEnd: Mm;
 }) {
   const updateModule = useProjectStore((s) => s.updateModule);
   const units = project.units;
@@ -472,7 +500,17 @@ function ModuleFields({
       </div>
     );
   }
-  return <SectionFields project={project} run={run} module={m} width={width} niche={niche} />;
+  return (
+    <SectionFields
+      project={project}
+      run={run}
+      module={m}
+      width={width}
+      niche={niche}
+      placed={placed}
+      runEnd={runEnd}
+    />
+  );
 }
 
 function SectionFields({
@@ -481,12 +519,16 @@ function SectionFields({
   module: m,
   width,
   niche,
+  placed,
+  runEnd,
 }: {
   project: Project;
   run: Run;
   module: SectionModule;
   width: Mm | undefined;
   niche: { width: Mm; height: Mm } | undefined;
+  placed: { x0: Mm; x1: Mm } | undefined;
+  runEnd: Mm;
 }) {
   const updateModule = useProjectStore((s) => s.updateModule);
   const units = project.units;
@@ -502,16 +544,13 @@ function SectionFields({
           value={m.name}
           onCommit={(name) => set((x) => void (x.name = name))}
         />
-        {auto ? (
-          <div />
-        ) : (
-          <LengthInput
-            label="Opening width"
-            value={m.width as Mm}
-            units={units}
-            onCommit={(v) => set((x) => void (x.width = v))}
-          />
-        )}
+        {/* While auto it shows the share it was given; typing a width fixes it. */}
+        <LengthInput
+          label="Opening width"
+          value={auto ? (width ?? 762) : (m.width as Mm)}
+          units={units}
+          onCommit={(v) => set((x) => void (x.width = v))}
+        />
       </div>
       <label className={styles.check}>
         <input
@@ -547,6 +586,9 @@ function SectionFields({
                 if (!grp) return;
                 grp.doors = v === '1' ? 1 : 2;
                 if (grp.doors === 2) delete grp.hinge;
+                // A single door hinges on the side nearer the run's end, opening towards the
+                // wall or corner.
+                else if (placed) grp.hinge = hingeTowardsEnd(placed.x0, placed.x1, runEnd);
               })
             }
           />

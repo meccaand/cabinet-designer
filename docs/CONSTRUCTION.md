@@ -143,7 +143,8 @@ widths are measured into the corner, so the two wings share the corner square (D
   - Height: the cabinet's full height, so floor cabinets cover the toe kick.
   - Depth: from the wall to the door faces, so the panel is flush with the fronts.
   - Floor cabinets on a toe kick get a recorded toe-kick notch at the bottom front corner: toe-kick height ×
-    (door face − platform front). It shows on the part.
+    (door face − platform front). It shows on the part. A flush plinth (no setback, its front at
+    the door face) needs none, and the panel runs square to the floor.
   - The panel adds its thickness to the run, and layout and snapping account for it.
 - **Fillers** (room items): a strip in door material (frameless) or face-frame stock, with its
   front face at the filler's depth.
@@ -283,8 +284,8 @@ built-in's style.
   Same width and stiles as the base below, so the stiles line up.
 - **End panels** go on both boxes of the section (following the step-back), outside the box
   width. Not allowed where two sections share a stile.
-- **Pilaster:** a filler board, floor to the top line (`wall height − topGap`), `depth` from
-  the wall.
+- **Pilaster:** a board of the style's face-frame stock, floor to the top line
+  (`wall height − topGap`), its face `depth` from the wall. Named "Pilaster" in the cut list.
 - **Countertop,** over each stretch of neighbouring sections (stopping at pilasters and
   openings):
   - Top: sheet stock (`carcass` material), from the wall to the back of the front strip:
@@ -335,6 +336,19 @@ built-in's style.
     and its frieze into the earlier frieze's face.
   - The crowns and base mouldings meet in one inside mitre at the faces.
   - A filler narrower than 2" draws a warning: doors on the two walls may hit.
+- **Quick-add** (ADR-043). A run added on a wall that meets one of the built-in's runs round an
+  inside corner (and that run reaches the corner) is fitted to it: both ends are set to meet,
+  and each run stops `other run's baseDepth + 3"` from the corner, leaving a 3" corner filler.
+  Wall layouts fill a run with auto-width sections, so they fit any run length:
+  - **Media wall:** 3" stiles; a lit bay either side of a 66" TV section (two door pairs, a
+    niche for a 65" TV, two bridge cubbies on the top shelf line).
+  - **Fireplace wall:** 2 1/4" stiles; a lit tower either side of a 60" × 54" fireplace, with a
+    6" × 12" pilaster between each tower and the fireplace.
+  - **Bookcases:** 3" stiles; `round(run length / 33")` lit bays, doors below.
+  - An end section at an end meeting the room gets a finished end panel; at a wall or corner,
+    none. Changing what an end meets keeps this true.
+  - A single door hinges on the side nearer the run's end (the wall or corner), so it opens
+    against the wall and leaves the room side clear.
 
 ## Hardware
 
@@ -351,6 +365,13 @@ built-in's style.
   - A pull (`pullLength`, 5") runs up and down on doors and across on drawers. A knob is
     `knobDiameter` (1¼") across.
 - **Shelf pins**: `pinsPerShelf` per adjustable shelf.
+
+## Golden reference room: please verify
+
+[`docs/golden/`](golden/) holds the spec's reference room's full cut list and shopping list,
+as CSV (`src/core/__tests__/golden.test.ts` keeps them current: any change to what the room
+cuts or buys shows as a diff to those files). Unlike the golden cabinets below, they come from
+the code, so they need a woodworker's eye: sizes, counts and notes.
 
 ## Golden cabinets: please verify
 

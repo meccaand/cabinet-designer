@@ -887,3 +887,53 @@ is an error; a filler under 2" is a warning.
 
 Also fixed: the hardware library's "Used for" list was missing knobs (M10), and now has knobs,
 picture lights and the two mouldings.
+
+## ADR-043: Quick-add for built-ins, the reference room, and elevation polish
+
+**Status:** Accepted (M14). No schema change. Spec §9 #1.
+
+**Acceptance #1: each reference wall from presets in under 10 actions.** The fireplace wall
+takes 8 and the media wall 2. Unit and e2e tests each rebuild both walls from an empty room
+through the store or UI, and check the cut list is part-for-part the reference room's.
+
+- **Wall layouts** (`RUN_LAYOUTS`): media wall, fireplace wall and bookcases. "Lay out the
+  wall" fills a run, or replaces its modules. Sections are auto-width, so a layout fits any run.
+  The "Traditional painted built-in" style is the template: a new built-in uses it (added if
+  missing), as since M11.
+- **Corner fitting:** adding a run next to a run of the same built-in round an inside corner
+  sets both ends to meet and shortens both, leaving a 3" corner filler each side. The reference
+  room's offsets (21") and lengths (123", 138") come out of this with no typing.
+- **Run ends keep end panels in step:** an end meeting the room gives the end section a
+  finished end; a wall or corner removes it (an end panel in a corner is an error).
+- **Moving a run's start keeps its far end** (within the wall), instead of pushing the run
+  past the wall.
+- **Opening width is always editable:** while auto it shows the laid-out share, and typing a
+  width fixes it (one action instead of two).
+
+**Elevation polish.** A wall with a built-in run gets a second tier of dimensions under the
+floor line: each section's clear opening, and each pilaster and opening. Up the right side are
+its heights: floor to countertop, countertop to top line, top line to ceiling. The 3D room view
+now looks from inside the room: into the corner when two walls have something on them,
+otherwise from the front right of the one wall. Before, it looked from one fixed side and
+showed the back of the media wall.
+
+**Golden outputs.** `docs/golden/` holds the reference room's cut list and shopping list
+(CSV), kept current by a snapshot test, for review.
+
+**Fixed while checking the golden cut list:**
+
+- **A flush plinth no longer notches finished end panels.** A setback of 0 gave a "4 1/2" × 0"
+  notch".
+- **Pilasters are cut from the style's face-frame stock** (poplar for the traditional style),
+  not the project's default filler material, and are named "Pilaster". They're painted in 3D.
+  Fillers gain optional `name` and `styleId`, set only on fillers compiled from a built-in, so
+  saved files don't change.
+
+**Choices made without asking (please check):**
+
+- **Hinge side:** a single door hinges towards the nearer end of its run, so it opens against
+  the wall or corner. The reference's right tower (hinged right, next to the corner) agrees.
+- **Fireplace layout:** a pilaster on both sides of the fireplace (symmetrical). The reference
+  has one on the left only, so rebuilding it deletes one.
+- **Corner filler:** quick-add leaves 3", as in the reference. The warning threshold stays 2".
+- **Layout stile widths** follow the reference: 2 1/4" on the fireplace wall, 3" elsewhere.

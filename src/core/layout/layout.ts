@@ -7,7 +7,7 @@
  * wall line and their fronts face along the wall's `normal`.
  */
 import { box } from '../geometry';
-import type { Cabinet, Filler, Project, Wall } from '../model';
+import { cabinetConstruction, type Cabinet, type Filler, type Project, type Wall } from '../model';
 
 type Room = Project['room'];
 import type { CabinetModel, Part } from '../parts';
@@ -367,8 +367,9 @@ export function gapsBeside(
  * front face at the filler's depth.
  */
 export function fillerPart(filler: Filler, project: Project): Part {
-  const role = project.construction.carcass.style === 'frameless' ? 'door' : 'faceFrame';
-  const id = project.construction.materials[role];
+  const c = cabinetConstruction(project, { styleId: filler.styleId, construction: {} });
+  const role = c.carcass.style === 'frameless' ? 'door' : 'faceFrame';
+  const id = c.materials[role];
   const m = [...project.materials.sheets, ...project.materials.solids].find((x) => x.id === id);
   const t = m?.thickness ?? 18;
   const grain = m ? !('grain' in m) || m.grain : true;
@@ -377,7 +378,7 @@ export function fillerPart(filler: Filler, project: Project): Part {
     id: `${filler.id}/filler`,
     cabinetId: filler.id,
     role: 'filler',
-    name: 'Filler',
+    name: filler.name ?? 'Filler',
     materialRole: role,
     materialId: id,
     bounds: box(0, filler.width, 0, filler.height, filler.depth - t, filler.depth),
@@ -387,7 +388,7 @@ export function fillerPart(filler: Filler, project: Project): Part {
     cut: size,
     grain,
     edges: { long1: null, long2: null, end1: null, end2: null },
-    notes: ['Scribe to fit on site.'],
+    notes: filler.name === undefined ? ['Scribe to fit on site.'] : [],
   };
 }
 

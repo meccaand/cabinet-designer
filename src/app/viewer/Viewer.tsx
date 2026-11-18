@@ -11,7 +11,13 @@ import { useViewerStore } from '../store/viewerStore';
 import { CabinetObject, PartMesh } from './CabinetObject';
 import { CameraRig, FOV } from './CameraRig';
 import { Dimensions } from './Dimensions';
-import { DIMENSION_OFFSET, explodeOffset, unionBounds, type DimensionLine } from './scene';
+import {
+  DIMENSION_OFFSET,
+  explodeOffset,
+  roomIsoDirection,
+  unionBounds,
+  type DimensionLine,
+} from './scene';
 import styles from './Viewer.module.css';
 import { ViewToolbar } from './ViewToolbar';
 import { TrimMeshes } from './TrimMeshes';
@@ -91,6 +97,17 @@ export function Viewer({
     };
   }, [room, frames, project.room.walls, cabinet, model, showDimensions, exploded]);
 
+  // The room from inside: towards the walls that have something on them.
+  const isoDirection = useMemo(() => {
+    if (!room) return undefined;
+    const used = new Set([
+      ...project.cabinets.map((c) => c.placement.wallId),
+      ...project.fillers.map((f) => f.wallId),
+    ]);
+    const normals = frames.filter((f) => used.has(f.wall.id)).map((f) => f.normal);
+    return roomIsoDirection(normals.length ? normals : frames.map((f) => f.normal));
+  }, [room, frames, project.cabinets, project.fillers]);
+
   const dims = cabinet
     ? { width: cabinet.width, height: cabinet.height, depth: cabinet.depth }
     : null;
@@ -119,6 +136,7 @@ export function Viewer({
         <CameraRig
           bounds={bounds}
           fromLeft={!room && cabinet?.corner !== undefined}
+          isoDirection={isoDirection}
           frameKey={
             roomOnly
               ? `room:${project.room.walls.map((w) => `${w.length}x${w.height}`).join()}`
@@ -161,7 +179,11 @@ export function Viewer({
               );
               return (
                 <group key={f.id} position={t.position} rotation-y={t.rotationY}>
-                  <PartMesh part={fillerPart(f, project)} ownerWidth={f.width} />
+                  <PartMesh
+                    part={fillerPart(f, project)}
+                    ownerWidth={f.width}
+                    finish={cabinetStyle(project, f)?.finish}
+                  />
                 </group>
               );
             })}
